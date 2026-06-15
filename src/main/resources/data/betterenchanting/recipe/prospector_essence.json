@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "betterenchanting:mining_essence" },
+    { "item": "betterenchanting:treasure_essence" },
+    { "item": "minecraft:emerald" }
+  ],
+  "result": {
+    "count": 1,
+    "id": "betterenchanting:prospector_essence"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "values": [
+    { "id": "minecraft:mending", "required": false },
+    { "id": "minecraft:unbreaking", "required": false },
+    { "id": "minecraft:respiration", "required": false },
+    { "id": "minecraft:aqua_affinity", "required": false }
+  ]
+}

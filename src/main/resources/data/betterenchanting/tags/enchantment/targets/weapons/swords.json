@@ -1,0 +1,9 @@
+{
+  "values": [
+    "#betterenchanting:targets/weapons/melee",
+    { "id": "minecraft:knockback", "required": false },
+    { "id": "minecraft:fire_aspect", "required": false },
+    { "id": "minecraft:looting", "required": false },
+    { "id": "minecraft:sweeping_edge", "required": false }
+  ]
+}

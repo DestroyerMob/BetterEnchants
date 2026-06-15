@@ -1,0 +1,9 @@
+{
+  "values": [
+    "#betterenchanting:targets/weapons/ranged",
+    { "id": "minecraft:power", "required": false },
+    { "id": "minecraft:punch", "required": false },
+    { "id": "minecraft:flame", "required": false },
+    { "id": "minecraft:infinity", "required": false }
+  ]
+}

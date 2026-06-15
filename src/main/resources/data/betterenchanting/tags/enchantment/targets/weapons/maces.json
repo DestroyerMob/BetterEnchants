@@ -1,0 +1,8 @@
+{
+  "values": [
+    "#betterenchanting:targets/weapons/melee",
+    { "id": "minecraft:density", "required": false },
+    { "id": "minecraft:breach", "required": false },
+    { "id": "minecraft:wind_burst", "required": false }
+  ]
+}

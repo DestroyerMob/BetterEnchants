@@ -1,0 +1,8 @@
+{
+  "item": "betterenchanting:defensive_essence",
+  "tags": [
+    "betterenchanting:defensive"
+  ],
+  "weight_multiplier": 1.0,
+  "restricts_pool": true
+}

@@ -1,0 +1,7 @@
+{
+  "values": [
+    "#betterenchanting:targets/armor",
+    { "id": "minecraft:respiration", "required": false },
+    { "id": "minecraft:aqua_affinity", "required": false }
+  ]
+}

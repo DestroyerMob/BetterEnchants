@@ -1,0 +1,19 @@
+{
+  "values": [
+    "betterenchanting:fire_essence",
+    "betterenchanting:frost_essence",
+    "betterenchanting:lightning_essence",
+    "betterenchanting:physical_essence",
+    "betterenchanting:mining_essence",
+    "betterenchanting:defensive_essence",
+    "betterenchanting:vitality_essence",
+    "betterenchanting:mobility_essence",
+    "betterenchanting:void_essence",
+    "betterenchanting:treasure_essence",
+    "betterenchanting:thermal_essence",
+    "betterenchanting:storm_essence",
+    "betterenchanting:prospector_essence",
+    "betterenchanting:warden_essence",
+    "betterenchanting:abyssal_essence"
+  ]
+}

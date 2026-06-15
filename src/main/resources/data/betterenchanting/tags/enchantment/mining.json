@@ -1,0 +1,7 @@
+{
+  "values": [
+    { "id": "minecraft:efficiency", "required": false },
+    { "id": "minecraft:fortune", "required": false },
+    { "id": "minecraft:silk_touch", "required": false }
+  ]
+}

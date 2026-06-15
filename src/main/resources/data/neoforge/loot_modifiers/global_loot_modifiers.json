@@ -1,0 +1,13 @@
+{
+  "replace": false,
+  "entries": [
+    "betterenchanting:ancient_city_essences",
+    "betterenchanting:desert_pyramid_essences",
+    "betterenchanting:mineshaft_essences",
+    "betterenchanting:nether_fortress_essences",
+    "betterenchanting:end_city_essences",
+    "betterenchanting:blaze_essences",
+    "betterenchanting:enderman_essences",
+    "betterenchanting:drowned_essences"
+  ]
+}

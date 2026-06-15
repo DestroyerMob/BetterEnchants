@@ -1,0 +1,11 @@
+{
+  "values": [
+    { "id": "minecraft:depth_strider", "required": false },
+    { "id": "minecraft:feather_falling", "required": false },
+    { "id": "minecraft:frost_walker", "required": false },
+    { "id": "minecraft:soul_speed", "required": false },
+    { "id": "minecraft:swift_sneak", "required": false },
+    { "id": "minecraft:riptide", "required": false },
+    { "id": "minecraft:wind_burst", "required": false }
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "values": [
+    "#betterenchanting:targets/armor",
+    { "id": "minecraft:feather_falling", "required": false },
+    { "id": "minecraft:depth_strider", "required": false },
+    { "id": "minecraft:frost_walker", "required": false },
+    { "id": "minecraft:soul_speed", "required": false }
+  ]
+}

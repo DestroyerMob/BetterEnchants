@@ -1,0 +1,8 @@
+{
+  "values": [
+    "#betterenchanting:targets/weapons",
+    { "id": "minecraft:sharpness", "required": false },
+    { "id": "minecraft:smite", "required": false },
+    { "id": "minecraft:bane_of_arthropods", "required": false }
+  ]
+}

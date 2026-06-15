@@ -1,0 +1,15 @@
+{
+  "values": [
+    { "id": "minecraft:sharpness", "required": false },
+    { "id": "minecraft:smite", "required": false },
+    { "id": "minecraft:bane_of_arthropods", "required": false },
+    { "id": "minecraft:knockback", "required": false },
+    { "id": "minecraft:sweeping_edge", "required": false },
+    { "id": "minecraft:power", "required": false },
+    { "id": "minecraft:punch", "required": false },
+    { "id": "minecraft:impaling", "required": false },
+    { "id": "minecraft:piercing", "required": false },
+    { "id": "minecraft:density", "required": false },
+    { "id": "minecraft:breach", "required": false }
+  ]
+}

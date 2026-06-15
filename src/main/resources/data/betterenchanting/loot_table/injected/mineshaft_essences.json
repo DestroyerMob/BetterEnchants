@@ -1,0 +1,14 @@
+{
+  "type": "minecraft:empty",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [
+        { "type": "minecraft:item", "name": "betterenchanting:mining_essence", "weight": 10 },
+        { "type": "minecraft:item", "name": "betterenchanting:physical_essence", "weight": 4 },
+        { "type": "minecraft:item", "name": "betterenchanting:prospector_essence", "weight": 1 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "values": [
+    { "id": "minecraft:channeling", "required": false },
+    { "id": "minecraft:quick_charge", "required": false },
+    { "id": "minecraft:loyalty", "required": false }
+  ]
+}

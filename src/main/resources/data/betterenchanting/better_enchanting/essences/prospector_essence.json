@@ -1,0 +1,9 @@
+{
+  "item": "betterenchanting:prospector_essence",
+  "tags": [
+    "betterenchanting:mining",
+    "betterenchanting:treasure"
+  ],
+  "weight_multiplier": 1.15,
+  "restricts_pool": true
+}

@@ -1,0 +1,7 @@
+{
+  "values": [
+    "#betterenchanting:targets/tools",
+    { "id": "minecraft:luck_of_the_sea", "required": false },
+    { "id": "minecraft:lure", "required": false }
+  ]
+}

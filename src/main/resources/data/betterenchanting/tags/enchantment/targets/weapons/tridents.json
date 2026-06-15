@@ -1,0 +1,9 @@
+{
+  "values": [
+    "#betterenchanting:targets/weapons",
+    { "id": "minecraft:loyalty", "required": false },
+    { "id": "minecraft:riptide", "required": false },
+    { "id": "minecraft:channeling", "required": false },
+    { "id": "minecraft:impaling", "required": false }
+  ]
+}

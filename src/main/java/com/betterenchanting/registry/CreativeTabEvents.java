@@ -1,0 +1,19 @@
+package com.betterenchanting.registry;
+
+import net.minecraft.world.item.CreativeModeTabs;
+import net.neoforged.neoforge.event.BuildCreativeModeTabContentsEvent;
+
+public final class CreativeTabEvents {
+    private CreativeTabEvents() {
+    }
+
+    public static void addContents(BuildCreativeModeTabContentsEvent event) {
+        if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS) {
+            event.accept(ModItems.ARCANE_CRUCIBLE.get());
+        }
+
+        if (event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
+            ModItems.ESSENCES.forEach(item -> event.accept(item.get()));
+        }
+    }
+}

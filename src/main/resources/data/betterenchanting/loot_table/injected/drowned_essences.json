@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:empty",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [
+        { "type": "minecraft:item", "name": "betterenchanting:mobility_essence", "weight": 6 },
+        { "type": "minecraft:item", "name": "betterenchanting:frost_essence", "weight": 3 }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "values": [
+    "#betterenchanting:targets/armor",
+    { "id": "minecraft:swift_sneak", "required": false }
+  ]
+}

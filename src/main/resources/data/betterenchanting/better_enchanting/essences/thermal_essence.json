@@ -1,0 +1,9 @@
+{
+  "item": "betterenchanting:thermal_essence",
+  "tags": [
+    "betterenchanting:fire",
+    "betterenchanting:frost"
+  ],
+  "weight_multiplier": 1.15,
+  "restricts_pool": true
+}
