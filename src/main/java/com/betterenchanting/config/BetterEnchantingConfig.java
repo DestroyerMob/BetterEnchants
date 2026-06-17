@@ -160,19 +160,19 @@ public final class BetterEnchantingConfig {
         builder.push("verdant_regrowth");
         VERDANT_REGROWTH_BASE_REPAIR_INTERVAL_TICKS = builder
                 .comment("Normal repair interval in ticks when Verdant Regrowth is near growth or in a verdant biome.")
-                .defineInRange("base_repair_interval_ticks", 200, 1, 72_000);
+                .defineInRange("base_repair_interval_ticks", 1200, 1, 72_000);
         VERDANT_REGROWTH_FAST_REPAIR_INTERVAL_TICKS = builder
-                .comment("Accelerated repair interval in ticks when Verdant Regrowth also has sunlight or rain.")
-                .defineInRange("fast_repair_interval_ticks", 100, 1, 72_000);
+                .comment("Accelerated repair interval in ticks when Verdant Regrowth also has sunlight.")
+                .defineInRange("fast_repair_interval_ticks", 600, 1, 72_000);
         VERDANT_REGROWTH_DURABILITY_REPAIRED_PER_LEVEL = builder
                 .comment("Durability repaired by each Verdant Regrowth level whenever the repair interval fires.")
                 .defineInRange("durability_repaired_per_level", 1, 0, 1_000_000);
         VERDANT_REGROWTH_SCAN_HORIZONTAL_RADIUS = builder
                 .comment("Horizontal radius scanned for nearby growth blocks.")
-                .defineInRange("scan_horizontal_radius", 4, 0, 32);
+                .defineInRange("scan_horizontal_radius", 1, 0, 32);
         VERDANT_REGROWTH_SCAN_VERTICAL_RADIUS = builder
                 .comment("Vertical radius scanned for nearby growth blocks.")
-                .defineInRange("scan_vertical_radius", 2, 0, 32);
+                .defineInRange("scan_vertical_radius", 1, 0, 32);
         builder.pop();
 
         builder.push("essence_acquisition");

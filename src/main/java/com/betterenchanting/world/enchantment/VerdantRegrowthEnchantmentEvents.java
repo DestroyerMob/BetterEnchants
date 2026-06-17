@@ -33,7 +33,7 @@ public final class VerdantRegrowthEnchantmentEvents {
             return;
         }
 
-        boolean accelerated = hasSunlight(level, playerPos) || level.isRainingAt(playerPos);
+        boolean accelerated = hasSunlight(level, playerPos);
         int repairInterval = accelerated ? fastInterval : baseInterval;
         if (player.tickCount % repairInterval != 0) {
             return;

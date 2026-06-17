@@ -203,11 +203,11 @@ duration_ticks = 100
 reflected_damage_ratio = 0.25
 
 [verdant_regrowth]
-base_repair_interval_ticks = 200
-fast_repair_interval_ticks = 100
+base_repair_interval_ticks = 1200
+fast_repair_interval_ticks = 600
 durability_repaired_per_level = 1
-scan_horizontal_radius = 4
-scan_vertical_radius = 2
+scan_horizontal_radius = 1
+scan_vertical_radius = 1
 
 [essence_acquisition]
 direct_drop_chance = 0.2
@@ -323,7 +323,7 @@ Tag display example:
 }
 ```
 
-Verdant Regrowth uses tags for its environmental checks:
+Verdant Regrowth uses tags for its environmental checks. By default, the growth-block scan is intentionally close range: 1 block horizontally and 1 block vertically, so the player needs to be standing on or immediately beside living growth. The default biome tag is empty; packs can add biomes if they want whole-biome healing.
 
 - Growth blocks: `data/<namespace>/tags/block/verdant_regrowth_growth_blocks.json`
 - Verdant biomes: `data/<namespace>/tags/worldgen/biome/verdant_regrowth_biomes.json`
@@ -335,7 +335,7 @@ Verdant Regrowth uses tags for its environmental checks:
 - Shocked is a harmful status effect that makes affected living entities take 20% more damage from incoming damage by default. It hides the vanilla potion swirl and emits electric spark particles while active.
 - Shocking is a Lightning weapon enchantment that applies Shocked for 5 seconds by default when the enchanted weapon deals damage.
 - Curse of Rebound is a Curse affinity enchantment for weapons. When a player damages a non-player living target with a cursed weapon, 25% of the final damage dealt is reflected back to the player as thorns-style damage by default.
-- Verdant Regrowth is a 5-level Vitality enchantment for tools and armor that also targets the wood target. Equipped or held enchanted items slowly repair near leaves, grass, flowers, moss, or in forest/jungle biomes; sunlight or rain uses the faster configured repair interval. Higher levels increase durability repaired per repair tick, not the repair interval.
+- Verdant Regrowth is a 5-level Vitality enchantment for tools and armor that also targets the wood target. Equipped or held enchanted items slowly repair near tagged growth blocks, with optional whole-biome healing available through data packs; sunlight uses the faster configured repair interval. Higher levels increase durability repaired per repair tick, not the repair interval.
 - Vein Miner is a Mining enchantment for harvestable tools. It has 5 levels and breaks up to 16 connected matching blocks per level by default.
 - Fortunes Touch is a Mining enchantment created by combining Fortune and Silk Touch. It consumes both ingredients, acts like Silk Touch for the primary block drop, and can add the ordinary non-Silk drop as a secondary roll.
 - Fortunes Touch inherits the level of the Fortune ingredient used to create it. Its secondary ordinary-drop roll chance is 10% per level: level 1 = 10%, level 2 = 20%, level 3 = 30%, and so on, capped at 100%.
