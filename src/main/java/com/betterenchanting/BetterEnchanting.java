@@ -53,6 +53,7 @@ public final class BetterEnchanting {
         NeoForge.EVENT_BUS.addListener(CurseOfReboundEnchantmentEvents::reflectPlayerDamage);
         NeoForge.EVENT_BUS.addListener(ShockingEnchantmentEvents::increaseShockedDamage);
         NeoForge.EVENT_BUS.addListener(ShockingEnchantmentEvents::applyShocked);
+        NeoForge.EVENT_BUS.addListener(ShockingEnchantmentEvents::emitShockedParticles);
         NeoForge.EVENT_BUS.addListener(VerdantRegrowthEnchantmentEvents::repairNearGrowth);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, VeinMinerEnchantmentEvents::veinMineConnectedBlocks);
         NeoForge.EVENT_BUS.addListener(EssenceAcquisitionEvents::addMiningEssenceFromFortune);

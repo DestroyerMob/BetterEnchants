@@ -48,26 +48,30 @@ public final class VerdantRegrowthEnchantmentEvents {
     private static boolean repairStacks(ServerLevel level, Iterable<ItemStack> stacks) {
         boolean repaired = false;
         for (ItemStack stack : stacks) {
-            if (stack.isDamageableItem()
-                    && stack.isDamaged()
-                    && hasVerdantRegrowth(level, stack)) {
-                stack.setDamageValue(Math.max(0, stack.getDamageValue() - 1));
+            if (!stack.isDamageableItem() || !stack.isDamaged()) {
+                continue;
+            }
+
+            int enchantmentLevel = verdantRegrowthLevel(level, stack);
+            int repairAmount = enchantmentLevel * BetterEnchantingConfig.verdantRegrowthDurabilityRepairedPerLevel();
+            if (repairAmount > 0) {
+                stack.setDamageValue(Math.max(0, stack.getDamageValue() - repairAmount));
                 repaired = true;
             }
         }
         return repaired;
     }
 
-    private static boolean hasVerdantRegrowth(ServerLevel level, ItemStack stack) {
+    private static int verdantRegrowthLevel(ServerLevel level, ItemStack stack) {
         if (stack.isEmpty()) {
-            return false;
+            return 0;
         }
 
         return level.registryAccess()
                 .registryOrThrow(Registries.ENCHANTMENT)
                 .getHolder(ModEnchantments.VERDANT_REGROWTH)
-                .map(holder -> stack.getEnchantmentLevel(holder) > 0)
-                .orElse(false);
+                .map(stack::getEnchantmentLevel)
+                .orElse(0);
     }
 
     private static boolean isVerdantBiome(ServerLevel level, BlockPos pos) {

@@ -24,7 +24,7 @@ The project implements an enhanced enchanting flow as a NeoForge `1.21.1` mod.
 - By default, vanilla enchanting tables open the same essence-aware UI, so the essence system is part of the normal enchanting-table workflow.
 - If `enchanting.enhanced_table_takeover` is disabled, vanilla enchanting tables are left alone and the Arcane Crucible block opens the enhanced UI instead.
 - `EnhancedEnchantingMenu` provides slots for one target item, lapis, and three total pool modifiers that can be essences or enchanted books.
-- The three modifier slots map one-to-one to the three enchanting offers: slot 1 controls roll 1, slot 2 controls roll 2, and slot 3 controls roll 3.
+- The three modifier slots hold up to three pool modifiers. Physical slot position does not choose which offer a modifier affects.
 - `EnchantingRoller` computes deterministic roll previews from the player enchantment seed, selected option, target item, essences, and books.
 - `EssenceDefinitions` loads essence behavior from `data/betterenchanting/better_enchanting/essences/*.json`, falling back to Java defaults.
 - `EnchantmentLimitRules` loads item enchantment limits from `data/betterenchanting/better_enchanting/enchantment_limits/*.json`.
@@ -39,7 +39,7 @@ The project implements an enhanced enchanting flow as a NeoForge `1.21.1` mod.
 
 ### Tag System
 
-Every enchantment should have one or more affinity tags, such as Fire, Frost, Lightning, Mining, Vitality, Mobility, Physical, Void, and Treasure.
+Every enchantment should have one or more affinity tags, such as Fire, Frost, Lightning, Mining, Vitality, Mobility, Physical, Void, Treasure, and Curse.
 
 Base items should have target tags, such as armor, weapons, tools, pickaxes, bows, swords, tridents, and similar subtypes. These tags establish the starting compatibility pool.
 
@@ -55,7 +55,7 @@ Each pool modifier slot accepts either an essence or an enchanted book. Do not s
 
 Keep the modifier slots out of the inventory label area. The current placement is a compact vertical column beside the three vanilla offer rows. Do not use a custom widened enchanting-table texture for this; render the vanilla texture and draw the small modifier pocket separately. The side pocket should keep even slot padding: 3px left, 3px right, 3px top, and 3px bottom inside the border. Keep the vanilla title and inventory labels visible.
 
-The three modifier slots are independent spins, not one shared pool sculptor. A modifier in slot 1 only biases offer 1, a modifier in slot 2 only biases offer 2, and a modifier in slot 3 only biases offer 3. Empty modifier slots roll from the normal item/bookshelf pool.
+Modifier contents are treated as an unordered set. The menu builds a deterministic modifier plan from the player enchantment seed and the modifier identities, then rolls those modifiers into the three offer slots. Moving the same essence or enchanted book to a different physical modifier slot should not reveal a different biased offer. Empty planned offer slots roll from the normal item/bookshelf pool.
 
 The current implementation uses menu-local inventory state because it modifies the vanilla enchanting table rather than adding a separate block. Longer term, persistent offer caching should be stored through a world/client-safe mechanism that does not require a custom block.
 
@@ -64,12 +64,13 @@ The current implementation uses menu-local inventory state because it modifies t
 Pool generation should combine:
 
 - Target item compatibility and target tags
-- The corresponding modifier slot's essence affinity tags and pool restriction behavior
-- The corresponding modifier slot's book-provided enchantment boosts
+- The planned direct modifier assigned to that offer, if any
+- Any global modifier effects that apply to all offers
+- Modifier essence affinity tags, pool restriction behavior, or book-provided enchantment boosts
 - Bookshelf power as the main quality and cost driver
 - The mod's relaxed compatibility rules
 
-The current implementation shows three independent options. Each option is deterministic from the player enchantment seed and option index, but its pool sculpting comes only from the matching modifier slot.
+The current implementation shows three independent options. Each option is deterministic from the player enchantment seed and option index, but pool sculpting comes from the seeded modifier plan, not from the physical modifier slot position.
 
 The Crucible no longer presents vanilla-style tiered power levels. All three offers use the same base XP level cost, derived from bookshelf power:
 
@@ -99,6 +100,8 @@ Essences should be data-driven and support:
 - One affinity tag
 - A weight multiplier
 - Whether the essence restricts the pool or only boosts matching options
+- Whether the essence applies to all offers
+- Whether the essence blocks one planned offer slot
 
 Essences should stay single-affinity; hybrid two-tag essences are intentionally not part of the current design.
 
@@ -116,7 +119,7 @@ Current acquisition rules use about a 20% chance by default for direct mob, bloc
 - Treasure Essence: Buried treasure, underwater ruin and elder guardian/ocean monument routes, Luck of the Sea fishing, librarian trades, and crafting.
 - Essence of Purification: Successful zombie villager curing.
 
-Essence of Purification is a special modifier. When placed in a modifier slot, that slot's corresponding roll is blocked, and the remaining active rolls remove curses from their pools. If the player enchants from a cleaned remaining roll, the purification essence is consumed along with the chosen roll's own modifier.
+Essence of Purification is a special modifier defined through essence behavior flags. It applies to all offers, removes curses from the remaining active pools, and blocks one planned offer slot. If the player enchants from a cleaned remaining roll, the purification essence is consumed along with the chosen roll's own direct modifier.
 
 ### Enchantment Limits
 
@@ -169,6 +172,9 @@ max_bookshelf_power = 15
 min_base_cost = 1
 max_base_cost = 30
 base_cost_per_bookshelf_power = 2
+min_level_cost = 1
+max_level_cost = 3
+bookshelf_power_per_level_cost = 5
 lapis_cost = 1
 essence_power_bonus = 2
 book_power_bonus = 2
@@ -182,6 +188,13 @@ connected_blocks_per_level = 16
 
 [shocked]
 damage_multiplier = 1.2
+particle_type = "minecraft:electric_spark"
+particles_enabled = true
+particle_interval_ticks = 2
+particle_count = 3
+particle_horizontal_spread = 0.35
+particle_vertical_spread = 0.75
+particle_speed = 0.03
 
 [shocking]
 duration_ticks = 100
@@ -192,6 +205,7 @@ reflected_damage_ratio = 0.25
 [verdant_regrowth]
 base_repair_interval_ticks = 200
 fast_repair_interval_ticks = 100
+durability_repaired_per_level = 1
 scan_horizontal_radius = 4
 scan_vertical_radius = 2
 
@@ -221,9 +235,9 @@ linear_xp_per_level = 7
 
 The `enchanting.enhanced_table_takeover` option defaults to `true`, so vanilla enchanting tables open the enhanced UI. When disabled, vanilla enchanting tables are left alone for vanilla or other mod behavior, and the Arcane Crucible block becomes the enhanced enchanting station instead. The Arcane Crucible shapelessly crafts from one enchanting table and can shapelessly craft back into one enchanting table.
 
-Enhanced enchanting balance lives in config rather than inline menu constants. Bookshelf power controls offer cost through `min_base_cost`, `max_base_cost`, and `base_cost_per_bookshelf_power`. Modifier-specific roll nudges live in `essence_power_bonus`, `book_power_bonus`, and `gold_material_power_bonus`. Candidate weighting is tuned through `book_weight_multiplier`, `new_tag_combo_multiplier`, and `max_candidate_weight`.
+Enhanced enchanting balance lives in config rather than inline menu constants. Bookshelf power controls offer level requirements and roll quality through `min_base_cost`, `max_base_cost`, and `base_cost_per_bookshelf_power`; those values do not have to match the levels consumed. The actual charged XP levels use `min_level_cost`, `max_level_cost`, and `bookshelf_power_per_level_cost`, which default to 0-5 power costing 1 level, 6-10 costing 2 levels, and 11-15 costing 3 levels. Modifier-specific roll nudges live in `essence_power_bonus`, `book_power_bonus`, and `gold_material_power_bonus`. Candidate weighting is tuned through `book_weight_multiplier`, `new_tag_combo_multiplier`, and `max_candidate_weight`.
 
-Custom enchantment behavior that affects player-facing balance also lives in config. Vein Miner size, Shocked damage multiplier, Shocking duration, Curse of Rebound reflection ratio, Verdant Regrowth timing and scan radius, Mending repair math, Fortunes Touch secondary drop chance, and the core enhanced-enchanting roll formula can all be tuned without recompiling the mod.
+Custom enchantment behavior that affects player-facing balance also lives in config. Vein Miner size, Shocked damage multiplier and particles, Shocking duration, Curse of Rebound reflection ratio, Verdant Regrowth repair amount, timing, and scan radius, Mending repair math, Fortunes Touch secondary drop chance, and the core enhanced-enchanting roll formula can all be tuned without recompiling the mod.
 
 Event-driven essence acquisition uses `essence_acquisition.direct_drop_chance`, which defaults to 20%. Loot-table injected essence chances remain data-pack controlled. Essence villager trades are data-driven through `better_enchanting/essence_trades`.
 
@@ -248,6 +262,20 @@ Pack-facing data folders:
 - `better_enchanting/enchantment_targets/*.json`: item-tag to enchantment-target-tag mappings.
 - `better_enchanting/tag_simplification/*.json`: display simplification groups such as Helmet, Body Armor, Leggings, and Boots becoming Armor.
 - `better_enchanting/tag_display/*.json`: visible tag labels and colors. This can be supplied as datapack data and as resource-pack assets; resource-pack assets keep client tooltips colored on multiplayer clients.
+
+Essence definition example:
+
+```json
+{
+  "item": "betterenchanting:purification_essence",
+  "tags": ["betterenchanting:purification"],
+  "weight_multiplier": 1.0,
+  "restricts_pool": false,
+  "removes_curses": true,
+  "applies_to_all_offers": true,
+  "blocks_offer": true
+}
+```
 
 Essence trade example:
 
@@ -304,10 +332,10 @@ Verdant Regrowth uses tags for its environmental checks:
 
 - Vacuum is a Void enchantment that moves finalized drops into the player's inventory. If inventory space runs out, leftovers drop at the player's feet.
 - Auto-Smelt is a Fire enchantment for harvestable tools. It transforms finalized block drops through smelting recipes so it works after drop modifiers such as Fortune.
-- Shocked is a harmful status effect that makes affected living entities take 20% more damage from incoming damage by default.
+- Shocked is a harmful status effect that makes affected living entities take 20% more damage from incoming damage by default. It hides the vanilla potion swirl and emits electric spark particles while active.
 - Shocking is a Lightning weapon enchantment that applies Shocked for 5 seconds by default when the enchanted weapon deals damage.
-- Curse of Rebound is a Physical curse for weapons. When a player damages a non-player living target with a cursed weapon, 25% of the final damage dealt is reflected back to the player as thorns-style damage by default.
-- Verdant Regrowth is a Vitality enchantment for tools and armor that also targets the wood target. Equipped or held enchanted items slowly repair near leaves, grass, flowers, moss, or in forest/jungle biomes; sunlight or rain uses the faster configured repair interval.
+- Curse of Rebound is a Curse affinity enchantment for weapons. When a player damages a non-player living target with a cursed weapon, 25% of the final damage dealt is reflected back to the player as thorns-style damage by default.
+- Verdant Regrowth is a 5-level Vitality enchantment for tools and armor that also targets the wood target. Equipped or held enchanted items slowly repair near leaves, grass, flowers, moss, or in forest/jungle biomes; sunlight or rain uses the faster configured repair interval. Higher levels increase durability repaired per repair tick, not the repair interval.
 - Vein Miner is a Mining enchantment for harvestable tools. It has 5 levels and breaks up to 16 connected matching blocks per level by default.
 - Fortunes Touch is a Mining enchantment created by combining Fortune and Silk Touch. It consumes both ingredients, acts like Silk Touch for the primary block drop, and can add the ordinary non-Silk drop as a secondary roll.
 - Fortunes Touch inherits the level of the Fortune ingredient used to create it. Its secondary ordinary-drop roll chance is 10% per level: level 1 = 10%, level 2 = 20%, level 3 = 30%, and so on, capped at 100%.

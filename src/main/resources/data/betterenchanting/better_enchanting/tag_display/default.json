@@ -41,6 +41,7 @@
     { "tag": "betterenchanting:fire", "label": "Fire", "color": "#ff8a2a" },
     { "tag": "betterenchanting:frost", "label": "Frost", "color": "#6ee7ff" },
     { "tag": "betterenchanting:lightning", "label": "Lightning", "color": "#ffe75e" },
+    { "tag": "betterenchanting:curse", "label": "Curse", "color": "#b04bff" },
     { "tag": "betterenchanting:physical", "label": "Physical", "color": "#ff6464" },
     { "tag": "betterenchanting:mining", "label": "Mining", "color": "#55d66b" },
     { "tag": "betterenchanting:defensive", "label": "Defensive", "color": "#5b8cff" },

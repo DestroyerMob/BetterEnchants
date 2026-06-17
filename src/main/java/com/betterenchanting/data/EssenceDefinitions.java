@@ -61,7 +61,7 @@ public final class EssenceDefinitions {
         add(map, "mobility_essence", 1.0, true, "mobility");
         add(map, "void_essence", 1.0, true, "void");
         add(map, "treasure_essence", 1.0, true, "treasure");
-        addSpecial(map, "purification_essence", 1.0, false, true, "purification");
+        addSpecial(map, "purification_essence", 1.0, false, true, true, true, "purification");
         return Map.copyOf(map);
     }
 
@@ -72,7 +72,7 @@ public final class EssenceDefinitions {
             boolean restrictsPool,
             String... tagPaths
     ) {
-        addSpecial(map, itemPath, multiplier, restrictsPool, false, tagPaths);
+        addSpecial(map, itemPath, multiplier, restrictsPool, false, false, false, tagPaths);
     }
 
     private static void addSpecial(
@@ -81,6 +81,8 @@ public final class EssenceDefinitions {
             double multiplier,
             boolean restrictsPool,
             boolean removesCurses,
+            boolean appliesToAllOffers,
+            boolean blocksOffer,
             String... tagPaths
     ) {
         ResourceLocation item = BetterEnchanting.id(itemPath);
@@ -88,7 +90,7 @@ public final class EssenceDefinitions {
         for (String tagPath : tagPaths) {
             tags.add(BetterEnchanting.id(tagPath));
         }
-        map.put(item, new EssenceDefinition(item, List.copyOf(tags), multiplier, restrictsPool, removesCurses));
+        map.put(item, new EssenceDefinition(item, List.copyOf(tags), multiplier, restrictsPool, removesCurses, appliesToAllOffers, blocksOffer));
     }
 
     public static final class ReloadListener extends SimpleJsonResourceReloadListener {
@@ -124,7 +126,17 @@ public final class EssenceDefinitions {
             double weightMultiplier = GsonHelper.getAsDouble(object, "weight_multiplier", 1.0D);
             boolean restrictsPool = GsonHelper.getAsBoolean(object, "restricts_pool", true);
             boolean removesCurses = GsonHelper.getAsBoolean(object, "removes_curses", false);
-            return new EssenceDefinition(item, List.copyOf(tags), weightMultiplier, restrictsPool, removesCurses);
+            boolean appliesToAllOffers = GsonHelper.getAsBoolean(object, "applies_to_all_offers", false);
+            boolean blocksOffer = GsonHelper.getAsBoolean(object, "blocks_offer", false);
+            return new EssenceDefinition(
+                    item,
+                    List.copyOf(tags),
+                    weightMultiplier,
+                    restrictsPool,
+                    removesCurses,
+                    appliesToAllOffers,
+                    blocksOffer
+            );
         }
     }
 }

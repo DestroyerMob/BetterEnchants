@@ -8,6 +8,8 @@ public record EssenceDefinition(
         List<ResourceLocation> tags,
         double weightMultiplier,
         boolean restrictsPool,
-        boolean removesCurses
+        boolean removesCurses,
+        boolean appliesToAllOffers,
+        boolean blocksOffer
 ) {
 }

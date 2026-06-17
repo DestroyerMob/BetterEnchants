@@ -61,6 +61,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     private final net.minecraft.util.RandomSource random = net.minecraft.util.RandomSource.create();
     private final DataSlot enchantmentSeed = DataSlot.standalone();
 
+    public final int[] requirements = new int[]{0, 0, 0};
     public final int[] costs = new int[]{0, 0, 0};
     public final int[] enchantClue = new int[]{-1, -1, -1};
     public final int[] levelClue = new int[]{-1, -1, -1};
@@ -127,6 +128,9 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             this.addSlot(new Slot(playerInventory, column, 8 + column * 18, 142));
         }
 
+        this.addDataSlot(DataSlot.shared(this.requirements, 0));
+        this.addDataSlot(DataSlot.shared(this.requirements, 1));
+        this.addDataSlot(DataSlot.shared(this.requirements, 2));
         this.addDataSlot(DataSlot.shared(this.costs, 0));
         this.addDataSlot(DataSlot.shared(this.costs, 1));
         this.addDataSlot(DataSlot.shared(this.costs, 2));
@@ -163,8 +167,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         this.access.execute((level, blockPos) -> {
             IdMap<Holder<Enchantment>> ids = level.registryAccess().registryOrThrow(Registries.ENCHANTMENT).asHolderIdMap();
             int bookshelfPower = EnchantingPowerRules.clampBookshelfPower(EnchantingTablePower.bookshelfPower(level, blockPos));
-            int baseCost = EnchantingPowerRules.offerCostForBookshelfPower(bookshelfPower);
+            int baseRequirement = EnchantingPowerRules.offerRequirementForBookshelfPower(bookshelfPower);
+            int levelCost = EnchantingPowerRules.levelCostForBookshelfPower(bookshelfPower);
             ItemStack costTarget = costTarget(target);
+            PoolModifierRules.ModifierPlan modifierPlan = modifierPlan();
             this.random.setSeed((long) this.enchantmentSeed.get());
 
             for (int option = 0; option < 3; option++) {
@@ -173,34 +179,37 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 this.poolSizes[option] = 0;
                 this.activeTagCounts[option] = 0;
                 this.bookBoostCounts[option] = 0;
+                this.requirements[option] = 0;
+                this.costs[option] = 0;
 
-                ItemStack modifier = modifierStack(option);
-                if (PoolModifierRules.isPurificationModifier(modifier)) {
-                    this.costs[option] = 0;
+                if (PoolModifierRules.blocksOffer(modifierPlan, option)) {
                     continue;
                 }
+                ItemStack modifier = modifierStack(modifierPlan, option);
 
-                int xpCost = net.neoforged.neoforge.event.EventHooks.onEnchantmentLevelSet(
+                int requiredLevel = net.neoforged.neoforge.event.EventHooks.onEnchantmentLevelSet(
                         level,
                         blockPos,
                         option,
                         bookshelfPower,
                         target,
-                        baseCost
+                        baseRequirement
                 );
-                this.costs[option] = Math.max(0, xpCost);
-                if (this.costs[option] <= 0) {
+                this.requirements[option] = Math.max(0, requiredLevel);
+                this.costs[option] = levelCost;
+                if (this.requirements[option] <= 0) {
+                    this.costs[option] = 0;
                     continue;
                 }
 
                 EnchantingRoller.RollPreview preview = EnchantingRoller.preview(
                         level.registryAccess(),
                         target,
-                        EnchantingPowerRules.rollPower(this.costs[option], costTarget, modifier),
+                        EnchantingPowerRules.rollPower(this.requirements[option], costTarget, modifier),
                         option,
                         this.enchantmentSeed.get(),
-                        optionEssenceStacks(option),
-                        optionBookStacks(option)
+                        optionEssenceStacks(modifierPlan, option),
+                        optionBookStacks(modifierPlan, option)
                 );
                 this.poolSizes[option] = preview.poolSize();
                 this.activeTagCounts[option] = preview.profile().essenceTags().size();
@@ -218,7 +227,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
     @Override
     public boolean clickMenuButton(Player player, int id) {
-        if (id < 0 || id >= this.costs.length) {
+        if (id < 0 || id >= this.requirements.length) {
             Util.logAndPauseIfInIde(player.getName() + " pressed invalid enhanced enchanting button id: " + id);
             return false;
         }
@@ -229,22 +238,26 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         if (lapisCost > 0 && (lapis.isEmpty() || lapis.getCount() < lapisCost) && !player.hasInfiniteMaterials()) {
             return false;
         }
-        if (this.costs[id] <= 0
+        int requiredLevel = this.requirements[id];
+        int xpCost = this.costs[id];
+        if (requiredLevel <= 0
+                || xpCost <= 0
                 || !isEnchantingTarget(target)
-                || player.experienceLevel < this.costs[id] && !player.getAbilities().instabuild) {
+                || player.experienceLevel < Math.max(requiredLevel, xpCost) && !player.getAbilities().instabuild) {
             return false;
         }
 
         this.access.execute((level, blockPos) -> {
             ItemStack costTarget = costTarget(target);
+            PoolModifierRules.ModifierPlan modifierPlan = modifierPlan();
             List<EnchantmentInstance> enchantments = EnchantingRoller.preview(
                     level.registryAccess(),
                     target,
-                    EnchantingPowerRules.rollPower(this.costs[id], costTarget, modifierStack(id)),
+                    EnchantingPowerRules.rollPower(this.requirements[id], costTarget, modifierStack(modifierPlan, id)),
                     id,
                     this.enchantmentSeed.get(),
-                    optionEssenceStacks(id),
-                    optionBookStacks(id)
+                    optionEssenceStacks(modifierPlan, id),
+                    optionBookStacks(modifierPlan, id)
             ).enchantments();
 
             if (enchantments.isEmpty()) {
@@ -254,7 +267,6 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 return;
             }
 
-            int xpCost = this.costs[id];
             player.onEnchantmentPerformed(target, xpCost);
             ItemStack enchanted = target.getItem().applyEnchantments(target, enchantments);
             FortunesTouchEnchantmentEvents.fuseFortunesTouch(level.registryAccess(), enchanted);
@@ -268,7 +280,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                         this.enchantingSlots.setItem(LAPIS_SLOT, ItemStack.EMPTY);
                     }
                 }
-                PoolModifierRules.consumeForOption(this.enchantingSlots, FIRST_MODIFIER_SLOT, MODIFIER_SLOT_COUNT, id, player);
+                PoolModifierRules.consumeForOption(this.enchantingSlots, modifierPlan, id, player);
             }
 
             player.awardStat(Stats.ENCHANT_ITEM);
@@ -373,16 +385,20 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         return option < 0 || option >= this.bookBoostCounts.length ? 0 : this.bookBoostCounts[option];
     }
 
-    private ItemStack modifierStack(int option) {
-        return PoolModifierRules.modifierStack(this.enchantingSlots, FIRST_MODIFIER_SLOT, MODIFIER_SLOT_COUNT, option);
+    private PoolModifierRules.ModifierPlan modifierPlan() {
+        return PoolModifierRules.plan(this.enchantingSlots, FIRST_MODIFIER_SLOT, MODIFIER_SLOT_COUNT, this.enchantmentSeed.get());
     }
 
-    private List<ItemStack> optionEssenceStacks(int option) {
-        return PoolModifierRules.optionEssences(this.enchantingSlots, FIRST_MODIFIER_SLOT, MODIFIER_SLOT_COUNT, option);
+    private ItemStack modifierStack(PoolModifierRules.ModifierPlan plan, int option) {
+        return PoolModifierRules.modifierStack(plan, option);
     }
 
-    private List<ItemStack> optionBookStacks(int option) {
-        return PoolModifierRules.optionBooks(this.enchantingSlots, FIRST_MODIFIER_SLOT, MODIFIER_SLOT_COUNT, option);
+    private List<ItemStack> optionEssenceStacks(PoolModifierRules.ModifierPlan plan, int option) {
+        return PoolModifierRules.optionEssences(plan, option);
+    }
+
+    private List<ItemStack> optionBookStacks(PoolModifierRules.ModifierPlan plan, int option) {
+        return PoolModifierRules.optionBooks(plan, option);
     }
 
     private static boolean canApplyWithFusion(RegistryAccess registryAccess, ItemStack target, List<EnchantmentInstance> enchantments) {
@@ -402,6 +418,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
     private void clearPreviews() {
         for (int index = 0; index < 3; index++) {
+            this.requirements[index] = 0;
             this.costs[index] = 0;
             this.enchantClue[index] = -1;
             this.levelClue[index] = -1;

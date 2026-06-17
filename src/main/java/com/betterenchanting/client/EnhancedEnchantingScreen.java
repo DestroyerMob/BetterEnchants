@@ -45,13 +45,13 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
     private static final int VANILLA_BORDER = 0xFF000000;
     private static final ResourceLocation[] ENABLED_LEVEL_SPRITES = new ResourceLocation[]{
             ResourceLocation.withDefaultNamespace("container/enchanting_table/level_1"),
-            ResourceLocation.withDefaultNamespace("container/enchanting_table/level_1"),
-            ResourceLocation.withDefaultNamespace("container/enchanting_table/level_1")
+            ResourceLocation.withDefaultNamespace("container/enchanting_table/level_2"),
+            ResourceLocation.withDefaultNamespace("container/enchanting_table/level_3")
     };
     private static final ResourceLocation[] DISABLED_LEVEL_SPRITES = new ResourceLocation[]{
             ResourceLocation.withDefaultNamespace("container/enchanting_table/level_1_disabled"),
-            ResourceLocation.withDefaultNamespace("container/enchanting_table/level_1_disabled"),
-            ResourceLocation.withDefaultNamespace("container/enchanting_table/level_1_disabled")
+            ResourceLocation.withDefaultNamespace("container/enchanting_table/level_2_disabled"),
+            ResourceLocation.withDefaultNamespace("container/enchanting_table/level_3_disabled")
     };
     private static final ResourceLocation ENCHANTMENT_SLOT_DISABLED_SPRITE = ResourceLocation.withDefaultNamespace(
             "container/enchanting_table/enchantment_slot_disabled"
@@ -128,24 +128,25 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
         for (int option = 0; option < 3; option++) {
             int optionX = x + 60;
             int textX = optionX + 20;
-            int cost = this.menu.costs[option];
-            if (cost == 0) {
+            int requiredLevel = this.menu.requirements[option];
+            int xpCost = this.menu.costs[option];
+            if (requiredLevel == 0 || xpCost == 0) {
                 RenderSystem.enableBlend();
                 guiGraphics.blitSprite(ENCHANTMENT_SLOT_DISABLED_SPRITE, optionX, y + 14 + 19 * option, 108, 19);
                 RenderSystem.disableBlend();
             } else {
-                String costText = cost + "";
-                int textWidth = 86 - this.font.width(costText);
+                String requirementText = requiredLevel + "";
+                int textWidth = 86 - this.font.width(requirementText);
                 FormattedText randomName = EnchantmentNames.getInstance().getRandomName(this.font, textWidth);
                 int textColor = 6839882;
-                boolean disabled = (lapisCost > 0 && lapisCount < lapisCost || this.minecraft.player.experienceLevel < cost)
+                boolean disabled = (lapisCost > 0 && lapisCount < lapisCost || this.minecraft.player.experienceLevel < Math.max(requiredLevel, xpCost))
                         && !this.minecraft.player.getAbilities().instabuild
                         || this.menu.enchantClue[option] == -1;
 
                 if (disabled) {
                     RenderSystem.enableBlend();
                     guiGraphics.blitSprite(ENCHANTMENT_SLOT_DISABLED_SPRITE, optionX, y + 14 + 19 * option, 108, 19);
-                    guiGraphics.blitSprite(DISABLED_LEVEL_SPRITES[option], optionX + 1, y + 15 + 19 * option, 16, 16);
+                    guiGraphics.blitSprite(levelSprite(xpCost, true), optionX + 1, y + 15 + 19 * option, 16, 16);
                     RenderSystem.disableBlend();
                     guiGraphics.drawWordWrap(this.font, randomName, textX, y + 16 + 19 * option, textWidth, (textColor & 16711422) >> 1);
                     textColor = 4226832;
@@ -160,13 +161,13 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                         guiGraphics.blitSprite(ENCHANTMENT_SLOT_SPRITE, optionX, y + 14 + 19 * option, 108, 19);
                     }
 
-                    guiGraphics.blitSprite(ENABLED_LEVEL_SPRITES[option], optionX + 1, y + 15 + 19 * option, 16, 16);
+                    guiGraphics.blitSprite(levelSprite(xpCost, false), optionX + 1, y + 15 + 19 * option, 16, 16);
                     RenderSystem.disableBlend();
                     guiGraphics.drawWordWrap(this.font, randomName, textX, y + 16 + 19 * option, textWidth, textColor);
                     textColor = 8453920;
                 }
 
-                guiGraphics.drawString(this.font, costText, textX + 86 - this.font.width(costText), y + 16 + 19 * option + 7, textColor);
+                guiGraphics.drawString(this.font, requirementText, textX + 86 - this.font.width(requirementText), y + 16 + 19 * option + 7, textColor);
             }
         }
     }
@@ -235,14 +236,15 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
         int lapisCount = this.menu.getLapisCount();
 
         for (int option = 0; option < 3; option++) {
-            int cost = this.menu.costs[option];
+            int requiredLevel = this.menu.requirements[option];
+            int xpCost = this.menu.costs[option];
             Optional<Holder.Reference<Enchantment>> clue = this.minecraft
                     .level
                     .registryAccess()
                     .registryOrThrow(Registries.ENCHANTMENT)
                     .getHolder(this.menu.enchantClue[option]);
 
-            if (this.isHovering(60, 14 + 19 * option, 108, 17, mouseX, mouseY) && cost > 0) {
+            if (this.isHovering(60, 14 + 19 * option, 108, 17, mouseX, mouseY) && requiredLevel > 0 && xpCost > 0) {
                 int clueLevel = this.menu.levelClue[option];
                 int lapisCost = this.menu.getLapisCost();
                 List<Component> tooltip = Lists.newArrayList();
@@ -256,9 +258,10 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                     tooltip.add(Component.translatable("neoforge.container.enchant.limitedEnchantability").withStyle(ChatFormatting.RED));
                 } else if (!creative) {
                     tooltip.add(CommonComponents.EMPTY);
-                    if (this.minecraft.player.experienceLevel < cost) {
-                        tooltip.add(Component.translatable("container.enchant.level.requirement", this.menu.costs[option]).withStyle(ChatFormatting.RED));
-                    } else {
+                    boolean meetsRequirement = this.minecraft.player.experienceLevel >= requiredLevel;
+                    boolean canPayLevels = this.minecraft.player.experienceLevel >= xpCost;
+                    tooltip.add(Component.translatable("container.enchant.level.requirement", requiredLevel).withStyle(meetsRequirement ? ChatFormatting.GRAY : ChatFormatting.RED));
+                    if (meetsRequirement) {
                         if (lapisCost > 0) {
                             MutableComponent lapisLine = lapisCost == 1
                                     ? Component.translatable("container.enchant.lapis.one")
@@ -266,10 +269,10 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                             tooltip.add(lapisLine.withStyle(lapisCount >= lapisCost ? ChatFormatting.GRAY : ChatFormatting.RED));
                         }
 
-                        MutableComponent levelLine = cost == 1
+                        MutableComponent levelLine = xpCost == 1
                                 ? Component.translatable("container.enchant.level.one")
-                                : Component.translatable("container.enchant.level.many", cost);
-                        tooltip.add(levelLine.withStyle(ChatFormatting.GRAY));
+                                : Component.translatable("container.enchant.level.many", xpCost);
+                        tooltip.add(levelLine.withStyle(canPayLevels ? ChatFormatting.GRAY : ChatFormatting.RED));
                     }
                 }
 
@@ -289,6 +292,11 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                 .withStyle(style -> style.withColor(ClientTooltipEvents.dominantAffinityColor(enchantment)));
     }
 
+    private static ResourceLocation levelSprite(int cost, boolean disabled) {
+        int index = Mth.clamp(cost, 1, ENABLED_LEVEL_SPRITES.length) - 1;
+        return disabled ? DISABLED_LEVEL_SPRITES[index] : ENABLED_LEVEL_SPRITES[index];
+    }
+
     public void tickBook() {
         ItemStack itemStack = this.menu.getSlot(0).getItem();
         if (!ItemStack.matches(itemStack, this.last)) {
@@ -305,7 +313,7 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
         boolean hasOffer = false;
 
         for (int option = 0; option < 3; option++) {
-            if (this.menu.costs[option] != 0) {
+            if (this.menu.requirements[option] != 0 && this.menu.costs[option] != 0) {
                 hasOffer = true;
             }
         }

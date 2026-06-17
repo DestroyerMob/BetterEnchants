@@ -1,6 +1,5 @@
 {
   "values": [
-    { "id": "#minecraft:treasure", "required": false },
     { "id": "minecraft:mending", "required": false },
     { "id": "minecraft:infinity", "required": false },
     { "id": "minecraft:frost_walker", "required": false },

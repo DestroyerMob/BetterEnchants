@@ -3,13 +3,22 @@ package com.betterenchanting.world.inventory;
 import com.betterenchanting.data.EssenceDefinition;
 import com.betterenchanting.data.EssenceDefinitions;
 import com.betterenchanting.registry.ModTags;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
+import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 final class PoolModifierRules {
     private PoolModifierRules() {
@@ -23,9 +32,15 @@ final class PoolModifierRules {
         return stack.is(ModTags.Items.ESSENCES) || EssenceDefinitions.isEssence(stack);
     }
 
-    static boolean isPurificationModifier(ItemStack stack) {
+    static boolean blocksOffer(ItemStack stack) {
         return EssenceDefinitions.get(stack)
-                .map(EssenceDefinition::removesCurses)
+                .map(EssenceDefinition::blocksOffer)
+                .orElse(false);
+    }
+
+    private static boolean appliesToAllOffers(ItemStack stack) {
+        return EssenceDefinitions.get(stack)
+                .map(EssenceDefinition::appliesToAllOffers)
                 .orElse(false);
     }
 
@@ -33,41 +48,133 @@ final class PoolModifierRules {
         return stack.is(Items.ENCHANTED_BOOK) && EnchantmentHelper.hasAnyEnchantments(stack);
     }
 
-    static ItemStack modifierStack(Container container, int firstSlot, int slotCount, int option) {
-        if (option < 0 || option >= slotCount) {
-            return ItemStack.EMPTY;
+    static ModifierPlan plan(Container container, int firstSlot, int slotCount, int enchantmentSeed) {
+        List<ModifierInput> modifiers = normalizedModifiers(container, firstSlot, slotCount);
+        ModifierInput[] directModifiers = new ModifierInput[slotCount];
+        boolean[] blockedOffers = new boolean[slotCount];
+        List<ModifierInput> globalModifiers = new ArrayList<>();
+        List<Integer> availableOffers = new ArrayList<>();
+        for (int option = 0; option < slotCount; option++) {
+            availableOffers.add(option);
         }
-        return container.getItem(firstSlot + option);
+
+        List<ModifierInput> shuffledModifiers = new ArrayList<>(modifiers);
+        RandomSource random = RandomSource.create(planSeed(enchantmentSeed, modifiers));
+        shuffle(shuffledModifiers, random);
+        for (ModifierInput modifier : shuffledModifiers) {
+            ItemStack stack = modifier.stack();
+            boolean appliesToAllOffers = appliesToAllOffers(stack);
+            boolean blocksOffer = blocksOffer(stack);
+            if (appliesToAllOffers) {
+                globalModifiers.add(modifier);
+                if (!blocksOffer) {
+                    continue;
+                }
+            }
+            if (availableOffers.isEmpty()) {
+                continue;
+            }
+
+            int offerIndex = availableOffers.remove(random.nextInt(availableOffers.size()));
+            if (blocksOffer) {
+                blockedOffers[offerIndex] = true;
+            } else {
+                directModifiers[offerIndex] = modifier;
+            }
+        }
+
+        return new ModifierPlan(List.copyOf(globalModifiers), directModifiers, blockedOffers);
     }
 
-    static List<ItemStack> optionEssences(Container container, int firstSlot, int slotCount, int option) {
+    static boolean blocksOffer(ModifierPlan plan, int option) {
+        return plan.blocksOffer(option);
+    }
+
+    static ItemStack modifierStack(ModifierPlan plan, int option) {
+        return plan.directModifier(option)
+                .map(ModifierInput::stack)
+                .orElse(ItemStack.EMPTY);
+    }
+
+    static List<ItemStack> optionEssences(ModifierPlan plan, int option) {
         List<ItemStack> stacks = new ArrayList<>();
-        ItemStack modifier = modifierStack(container, firstSlot, slotCount, option);
-        if (isEssenceModifier(modifier) && !isPurificationModifier(modifier)) {
+        ItemStack modifier = modifierStack(plan, option);
+        if (isEssenceModifier(modifier)) {
             stacks.add(modifier);
         }
-        for (int slot = 0; slot < slotCount; slot++) {
-            ItemStack purification = modifierStack(container, firstSlot, slotCount, slot);
-            if (isPurificationModifier(purification)) {
-                stacks.add(purification);
+        for (ModifierInput globalModifier : plan.globalModifiers()) {
+            if (isEssenceModifier(globalModifier.stack())) {
+                stacks.add(globalModifier.stack());
             }
         }
         return List.copyOf(stacks);
     }
 
-    static List<ItemStack> optionBooks(Container container, int firstSlot, int slotCount, int option) {
-        ItemStack modifier = modifierStack(container, firstSlot, slotCount, option);
+    static List<ItemStack> optionBooks(ModifierPlan plan, int option) {
+        ItemStack modifier = modifierStack(plan, option);
         return isEnchantedBook(modifier) ? List.of(modifier) : List.of();
     }
 
-    static void consumeForOption(Container container, int firstSlot, int slotCount, int option, Player player) {
-        consumeInputSlot(container, firstSlot + option, player);
-        for (int slot = 0; slot < slotCount; slot++) {
-            int absoluteSlot = firstSlot + slot;
-            if (slot != option && isPurificationModifier(container.getItem(absoluteSlot))) {
-                consumeInputSlot(container, absoluteSlot, player);
+    static void consumeForOption(Container container, ModifierPlan plan, int option, Player player) {
+        List<Integer> slotsToConsume = new ArrayList<>();
+        plan.directModifier(option).ifPresent(modifier -> slotsToConsume.add(modifier.slot()));
+        for (ModifierInput globalModifier : plan.globalModifiers()) {
+            slotsToConsume.add(globalModifier.slot());
+        }
+        for (int slot : slotsToConsume.stream().distinct().toList()) {
+            consumeInputSlot(container, slot, player);
+        }
+    }
+
+    private static long planSeed(int enchantmentSeed, List<ModifierInput> modifiers) {
+        long seed = enchantmentSeed;
+        for (ModifierInput modifier : modifiers) {
+            seed = seed * 31L + modifier.sortKey().hashCode();
+        }
+        return seed;
+    }
+
+    private static void shuffle(List<ModifierInput> modifiers, RandomSource random) {
+        for (int index = modifiers.size() - 1; index > 0; index--) {
+            int swapIndex = random.nextInt(index + 1);
+            if (swapIndex != index) {
+                ModifierInput current = modifiers.get(index);
+                modifiers.set(index, modifiers.get(swapIndex));
+                modifiers.set(swapIndex, current);
             }
         }
+    }
+
+    private static List<ModifierInput> normalizedModifiers(Container container, int firstSlot, int slotCount) {
+        List<ModifierInput> modifiers = new ArrayList<>();
+        for (int slot = 0; slot < slotCount; slot++) {
+            int absoluteSlot = firstSlot + slot;
+            ItemStack stack = container.getItem(absoluteSlot);
+            if (isPoolModifier(stack)) {
+                modifiers.add(new ModifierInput(absoluteSlot, stack, modifierSortKey(stack)));
+            }
+        }
+        modifiers.sort(Comparator.comparing(ModifierInput::sortKey).thenComparingInt(ModifierInput::slot));
+        return List.copyOf(modifiers);
+    }
+
+    private static String modifierSortKey(ItemStack stack) {
+        String itemId = BuiltInRegistries.ITEM.getKey(stack.getItem()).toString();
+        if (!isEnchantedBook(stack)) {
+            return itemId;
+        }
+
+        ItemEnchantments enchantments = stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY);
+        List<String> entries = new ArrayList<>();
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : enchantments.entrySet()) {
+            String enchantmentId = entry.getKey()
+                    .unwrapKey()
+                    .map(key -> key.location().toString())
+                    .orElse(entry.getKey().toString());
+            entries.add(enchantmentId + ":" + entry.getIntValue());
+        }
+        entries.sort(String::compareTo);
+        return itemId + "|" + String.join(",", entries);
     }
 
     private static void consumeInputSlot(Container container, int slot, Player player) {
@@ -77,6 +184,40 @@ final class PoolModifierRules {
             if (stack.isEmpty()) {
                 container.setItem(slot, ItemStack.EMPTY);
             }
+        }
+    }
+
+    static final class ModifierPlan {
+        private final List<ModifierInput> globalModifiers;
+        private final ModifierInput[] directModifiers;
+        private final boolean[] blockedOffers;
+
+        private ModifierPlan(List<ModifierInput> globalModifiers, ModifierInput[] directModifiers, boolean[] blockedOffers) {
+            this.globalModifiers = globalModifiers;
+            this.directModifiers = directModifiers.clone();
+            this.blockedOffers = blockedOffers.clone();
+        }
+
+        private boolean blocksOffer(int option) {
+            return option >= 0 && option < this.blockedOffers.length && this.blockedOffers[option];
+        }
+
+        private java.util.Optional<ModifierInput> directModifier(int option) {
+            if (option < 0 || option >= this.directModifiers.length) {
+                return java.util.Optional.empty();
+            }
+            return java.util.Optional.ofNullable(this.directModifiers[option]);
+        }
+
+        private List<ModifierInput> globalModifiers() {
+            return this.globalModifiers;
+        }
+    }
+
+    private record ModifierInput(int slot, ItemStack stack, String sortKey) {
+        private ModifierInput {
+            Objects.requireNonNull(stack);
+            Objects.requireNonNull(sortKey);
         }
     }
 }

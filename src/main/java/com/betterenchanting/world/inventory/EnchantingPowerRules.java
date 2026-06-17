@@ -13,16 +13,40 @@ final class EnchantingPowerRules {
         return Mth.clamp(bookshelfPower, 0, BetterEnchantingConfig.maxBookshelfPower());
     }
 
-    static int offerCostForBookshelfPower(int bookshelfPower) {
+    static int offerRequirementForBookshelfPower(int bookshelfPower) {
         int minCost = Math.min(BetterEnchantingConfig.minEnchantingBaseCost(), BetterEnchantingConfig.maxEnchantingBaseCost());
         int maxCost = Math.max(BetterEnchantingConfig.minEnchantingBaseCost(), BetterEnchantingConfig.maxEnchantingBaseCost());
-        long cost = (long) minCost + (long) clampBookshelfPower(bookshelfPower) * BetterEnchantingConfig.enchantingBaseCostPerBookshelfPower();
+        int maxBookshelfPower = BetterEnchantingConfig.maxBookshelfPower();
+        int clampedPower = clampBookshelfPower(bookshelfPower);
+        if (minCost >= maxCost || maxBookshelfPower <= 0) {
+            return minCost;
+        }
+        if (clampedPower >= maxBookshelfPower) {
+            return maxCost;
+        }
+
+        long cost = (long) minCost + (long) clampedPower * BetterEnchantingConfig.enchantingBaseCostPerBookshelfPower();
+        int cappedCost = Mth.clamp((int) Math.min(Integer.MAX_VALUE, cost), minCost, maxCost - 1);
+        return cappedCost;
+    }
+
+    static int levelCostForBookshelfPower(int bookshelfPower) {
+        int minCost = Math.min(BetterEnchantingConfig.minEnchantingLevelCost(), BetterEnchantingConfig.maxEnchantingLevelCost());
+        int maxCost = Math.max(BetterEnchantingConfig.minEnchantingLevelCost(), BetterEnchantingConfig.maxEnchantingLevelCost());
+        if (minCost >= maxCost) {
+            return minCost;
+        }
+
+        int clampedPower = clampBookshelfPower(bookshelfPower);
+        int bandSize = Math.max(1, BetterEnchantingConfig.bookshelfPowerPerLevelCost());
+        int band = clampedPower <= 0 ? 0 : (clampedPower - 1) / bandSize;
+        long cost = (long) minCost + band;
         return Mth.clamp((int) Math.min(Integer.MAX_VALUE, cost), minCost, maxCost);
     }
 
     static int rollPower(int offerCost, ItemStack target, ItemStack modifier) {
         int power = offerCost;
-        if (PoolModifierRules.isEssenceModifier(modifier) && !PoolModifierRules.isPurificationModifier(modifier)) {
+        if (PoolModifierRules.isEssenceModifier(modifier) && !PoolModifierRules.blocksOffer(modifier)) {
             power += BetterEnchantingConfig.essencePowerBonus();
         } else if (PoolModifierRules.isEnchantedBook(modifier)) {
             power += BetterEnchantingConfig.bookPowerBonus();
