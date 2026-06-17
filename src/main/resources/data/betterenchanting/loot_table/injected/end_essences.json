@@ -6,9 +6,7 @@
       "bonus_rolls": 0.0,
       "entries": [
         { "type": "minecraft:item", "name": "betterenchanting:void_essence", "weight": 8 },
-        { "type": "minecraft:item", "name": "betterenchanting:treasure_essence", "weight": 4 },
-        { "type": "minecraft:item", "name": "betterenchanting:mobility_essence", "weight": 4 },
-        { "type": "minecraft:item", "name": "betterenchanting:abyssal_essence", "weight": 1 }
+        { "type": "minecraft:item", "name": "betterenchanting:mobility_essence", "weight": 2 }
       ]
     }
   ]

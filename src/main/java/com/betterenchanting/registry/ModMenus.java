@@ -1,7 +1,7 @@
 package com.betterenchanting.registry;
 
 import com.betterenchanting.BetterEnchanting;
-import com.betterenchanting.world.inventory.ArcaneCrucibleMenu;
+import com.betterenchanting.world.inventory.EnhancedEnchantingMenu;
 import java.util.function.Supplier;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.inventory.MenuType;
@@ -13,9 +13,9 @@ public final class ModMenus {
     private static final DeferredRegister<MenuType<?>> MENUS =
             DeferredRegister.create(BuiltInRegistries.MENU, BetterEnchanting.MOD_ID);
 
-    public static final Supplier<MenuType<ArcaneCrucibleMenu>> ARCANE_CRUCIBLE = MENUS.register(
-            ModBlocks.ARCANE_CRUCIBLE_ID,
-            () -> IMenuTypeExtension.create(ArcaneCrucibleMenu::new)
+    public static final Supplier<MenuType<EnhancedEnchantingMenu>> ENHANCED_ENCHANTING = MENUS.register(
+            "enhanced_enchanting",
+            () -> IMenuTypeExtension.create(EnhancedEnchantingMenu::new)
     );
 
     private ModMenus() {

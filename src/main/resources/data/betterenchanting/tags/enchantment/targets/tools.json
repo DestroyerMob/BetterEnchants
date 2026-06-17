@@ -1,5 +1,6 @@
 {
   "values": [
+    "betterenchanting:vacuum",
     { "id": "minecraft:unbreaking", "required": false },
     { "id": "minecraft:mending", "required": false },
     { "id": "minecraft:vanishing_curse", "required": false }

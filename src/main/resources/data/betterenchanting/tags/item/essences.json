@@ -10,10 +10,6 @@
     "betterenchanting:mobility_essence",
     "betterenchanting:void_essence",
     "betterenchanting:treasure_essence",
-    "betterenchanting:thermal_essence",
-    "betterenchanting:storm_essence",
-    "betterenchanting:prospector_essence",
-    "betterenchanting:warden_essence",
-    "betterenchanting:abyssal_essence"
+    "betterenchanting:purification_essence"
   ]
 }

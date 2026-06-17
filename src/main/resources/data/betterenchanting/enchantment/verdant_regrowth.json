@@ -1,0 +1,23 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.betterenchanting.verdant_regrowth"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 45,
+    "per_level_above_first": 0
+  },
+  "max_level": 1,
+  "min_cost": {
+    "base": 12,
+    "per_level_above_first": 0
+  },
+  "primary_items": "#betterenchanting:enchantable/verdant_regrowth",
+  "slots": [
+    "hand",
+    "armor"
+  ],
+  "supported_items": "#betterenchanting:enchantable/verdant_regrowth",
+  "weight": 2
+}

@@ -1,0 +1,430 @@
+# Enhanced Enchanting Guidebook
+
+## 1. Overview and Vision
+
+**Working name:** Better Enchanting
+
+**Current mod id:** `betterenchanting`
+
+**Goal:** Turn the vanilla enchanting table into a deterministic, player-driven crafting experience. Players sculpt the enchantment pool with item tags, essences, and enchanted books, with clear feedback and controlled randomness. The focus is meaningful choice instead of pure RNG or spam rerolling.
+
+## 2. Design Pillars
+
+- Tags on enchantments and items define compatibility and affinity.
+- Essences restrict or boost the enchantment pool.
+- Enchanted books add targeted weight toward known enchantments.
+- Enchanting offers should be stable enough to prevent free reroll abuse.
+- Item type still matters, but player sculpting should dominate the feel.
+- Data packs should be able to tune tags, essences, and loot distribution.
+
+## 3. Current Implementation
+
+The project implements an enhanced enchanting flow as a NeoForge `1.21.1` mod.
+
+- By default, vanilla enchanting tables open the same essence-aware UI, so the essence system is part of the normal enchanting-table workflow.
+- If `enchanting.enhanced_table_takeover` is disabled, vanilla enchanting tables are left alone and the Arcane Crucible block opens the enhanced UI instead.
+- `EnhancedEnchantingMenu` provides slots for one target item, lapis, and three total pool modifiers that can be essences or enchanted books.
+- The three modifier slots map one-to-one to the three enchanting offers: slot 1 controls roll 1, slot 2 controls roll 2, and slot 3 controls roll 3.
+- `EnchantingRoller` computes deterministic roll previews from the player enchantment seed, selected option, target item, essences, and books.
+- `EssenceDefinitions` loads essence behavior from `data/betterenchanting/better_enchanting/essences/*.json`, falling back to Java defaults.
+- `EnchantmentLimitRules` loads item enchantment limits from `data/betterenchanting/better_enchanting/enchantment_limits/*.json`.
+- Item and enchantment tags under `data/betterenchanting/tags` drive compatibility and affinity.
+- Complete subtype sets are simplified for display: all armor pieces show as Armor, complete tool groups show as Tool, and complete weapon groups show as Weapon.
+- Global loot modifiers inject essence drops into selected vanilla loot tables.
+- Client tooltips show item, essence, and enchantment affinity tags. Do not show enchantment target tags on enchanted items.
+- The custom GUI renders the vanilla enchanting-table texture directly, with a small attached side pocket for three modifier slots to the right of the enchantment options and extra pool details kept in option tooltips.
+- The enchanting UI should stay visually close to vanilla by deriving its background from `textures/gui/container/enchanting_table.png`; do not change block or item textures unless that is explicitly requested.
+
+## 4. Core Mechanics
+
+### Tag System
+
+Every enchantment should have one or more affinity tags, such as Fire, Frost, Lightning, Mining, Vitality, Mobility, Physical, Void, and Treasure.
+
+Base items should have target tags, such as armor, weapons, tools, pickaxes, bows, swords, tridents, and similar subtypes. These tags establish the starting compatibility pool.
+
+### Enhanced Enchanting Table GUI
+
+Required slots:
+
+- Main item
+- Lapis
+- Pool modifiers, currently 3 total slots
+
+Each pool modifier slot accepts either an essence or an enchanted book. Do not split this into separate essence and book slot banks unless the design explicitly changes.
+
+Keep the modifier slots out of the inventory label area. The current placement is a compact vertical column beside the three vanilla offer rows. Do not use a custom widened enchanting-table texture for this; render the vanilla texture and draw the small modifier pocket separately. The side pocket should keep even slot padding: 3px left, 3px right, 3px top, and 3px bottom inside the border. Keep the vanilla title and inventory labels visible.
+
+The three modifier slots are independent spins, not one shared pool sculptor. A modifier in slot 1 only biases offer 1, a modifier in slot 2 only biases offer 2, and a modifier in slot 3 only biases offer 3. Empty modifier slots roll from the normal item/bookshelf pool.
+
+The current implementation uses menu-local inventory state because it modifies the vanilla enchanting table rather than adding a separate block. Longer term, persistent offer caching should be stored through a world/client-safe mechanism that does not require a custom block.
+
+### Pool Generation and Options
+
+Pool generation should combine:
+
+- Target item compatibility and target tags
+- The corresponding modifier slot's essence affinity tags and pool restriction behavior
+- The corresponding modifier slot's book-provided enchantment boosts
+- Bookshelf power as the main quality and cost driver
+- The mod's relaxed compatibility rules
+
+The current implementation shows three independent options. Each option is deterministic from the player enchantment seed and option index, but its pool sculpting comes only from the matching modifier slot.
+
+The Crucible no longer presents vanilla-style tiered power levels. All three offers use the same base XP level cost, derived from bookshelf power:
+
+- 0 bookshelves gives a very low base cost and low roll power.
+- 15 bookshelves gives the maximum base cost and maximum roll power.
+- Essences, enchanted books, and item material can provide small roll-power boosts, but bookshelves remain the main controllable power source.
+
+This means players choose between low-power cheap experimentation and high-power expensive rolls, while still getting three independent spins at the chosen power.
+
+Multi-enchant rolls should prefer synergistic combinations that represent more of the slotted essence tags. The current implementation already applies a new-tag combo multiplier after the first selection.
+
+Vanilla-style mutual exclusivity is intentionally removed across the board so players can combine enchantment families that normally exclude each other, such as multiple weapon damage boosts. The narrow exception is Fortunes Touch: Fortune and Silk Touch are allowed to meet long enough to fuse into Fortunes Touch, and Fortunes Touch is mutually exclusive with Fortune and Silk Touch afterward.
+
+### Books
+
+Enchanted books should act as a strong but controlled signal:
+
+- A book can include an enchantment in a restricted pool.
+- Repeated matching books increase weight.
+- The final offered level should be at least the strongest matching book level when the book boost wins.
+
+### Essences
+
+Essences should be data-driven and support:
+
+- The item id
+- One affinity tag
+- A weight multiplier
+- Whether the essence restricts the pool or only boosts matching options
+
+Essences should stay single-affinity; hybrid two-tag essences are intentionally not part of the current design.
+
+Current acquisition rules use about a 20% chance by default for direct mob, block, fishing, curing, and injected chest rolls.
+
+- Fire Essence: Blaze and Magma Cube drops, Nether fortress and bastion chests, and lava fishing hooks.
+- Frost Essence: Stray and Polar Bear drops, igloo/frozen-style chest routes, and shipwreck chest routes.
+- Lightning Essence: Charged Creepers killed during storms, plus lightning rod and copper crafting.
+- Physical Essence: Iron Golem and Ravager drops, armorer villager trades, and simple crafting.
+- Mining Essence: Ore mining with Fortune, mineshaft and stronghold chests, and simple crafting.
+- Defensive Essence: Iron Golem, Ravager, and Warden drops, plus bastion and ancient city chests.
+- Vitality Essence: Successful zombie villager curing, cleric villager trades, and golden apple crafting.
+- Mobility Essence: Phantom and Rabbit drops, shipwreck/end city chest routes, and simple crafting.
+- Void Essence: Enderman drops, with an extra End-dimension bonus roll, plus End city and ancient city chests.
+- Treasure Essence: Buried treasure, underwater ruin and elder guardian/ocean monument routes, Luck of the Sea fishing, librarian trades, and crafting.
+- Essence of Purification: Successful zombie villager curing.
+
+Essence of Purification is a special modifier. When placed in a modifier slot, that slot's corresponding roll is blocked, and the remaining active rolls remove curses from their pools. If the player enchants from a cleaned remaining roll, the purification essence is consumed along with the chosen roll's own modifier.
+
+### Enchantment Limits
+
+Enchanting limits are data-driven and loaded from `data/betterenchanting/better_enchanting/enchantment_limits/*.json`.
+
+Default rules:
+
+- Global base maximum: 6 enchantments
+- Armor base maximum: 4 enchantments
+- Weapon base maximum: 4 enchantments
+- Tool base maximum: 3 enchantments
+- Gold material bonus: +1 enchantment
+
+Type limits apply only when they are lower than the global base. If an item matches multiple types, such as an axe matching both weapon and tool tags, the strictest matching type limit wins. Material bonuses are applied after the base limit, so gold tools default to 4 and gold armor defaults to 5.
+
+Current JSON shape:
+
+```json
+{
+  "global_max": 6,
+  "type_limits": {
+    "armor": 4,
+    "weapon": 4,
+    "tool": 3
+  },
+  "material_bonus": {
+    "gold": 1
+  }
+}
+```
+
+Material bonus keys map to item tags. For example, `"gold": 1` uses `#betterenchanting:materials/gold`. Full namespaced tag ids may also be used. Optional `item_limits` entries can set explicit base limits for individual item ids before material bonuses are applied.
+
+Material tags are defined for vanilla tool, weapon, and armor materials under `data/betterenchanting/tags/item/materials/`, including wood, stone, iron, gold, diamond, netherite, leather, chainmail, turtle, copper, heavy core, and prismarine.
+
+### Common Config
+
+General mechanics are configured through the NeoForge common config file `betterenchanting-common.toml`.
+
+Default values:
+
+```toml
+[anvil]
+max_cost = 30
+enchantment_level_merge = "additive"
+
+[enchanting]
+enhanced_table_takeover = true
+max_bookshelf_power = 15
+min_base_cost = 1
+max_base_cost = 30
+base_cost_per_bookshelf_power = 2
+lapis_cost = 1
+essence_power_bonus = 2
+book_power_bonus = 2
+gold_material_power_bonus = 1
+book_weight_multiplier = 8.0
+new_tag_combo_multiplier = 3.0
+max_candidate_weight = 1000000
+
+[vein_miner]
+connected_blocks_per_level = 16
+
+[shocked]
+damage_multiplier = 1.2
+
+[shocking]
+duration_ticks = 100
+
+[curse_of_rebound]
+reflected_damage_ratio = 0.25
+
+[verdant_regrowth]
+base_repair_interval_ticks = 200
+fast_repair_interval_ticks = 100
+scan_horizontal_radius = 4
+scan_vertical_radius = 2
+
+[essence_acquisition]
+direct_drop_chance = 0.2
+
+[mending]
+base_chance_denominator = 10
+denominator_reduction_per_level = 1
+min_chance_denominator = 1
+durability_repaired_per_level = 2
+
+[fortunes_touch]
+secondary_drop_chance_per_level = 0.1
+secondary_drop_max_chance = 1.0
+
+[enchanting_rolls]
+multi_enchant_roll_bound = 50
+multi_enchant_level_divisor = 2
+enchantability_divisor = 4
+level_variance = 0.15
+
+[experience]
+curve = "exponential"
+linear_xp_per_level = 7
+```
+
+The `enchanting.enhanced_table_takeover` option defaults to `true`, so vanilla enchanting tables open the enhanced UI. When disabled, vanilla enchanting tables are left alone for vanilla or other mod behavior, and the Arcane Crucible block becomes the enhanced enchanting station instead. The Arcane Crucible shapelessly crafts from one enchanting table and can shapelessly craft back into one enchanting table.
+
+Enhanced enchanting balance lives in config rather than inline menu constants. Bookshelf power controls offer cost through `min_base_cost`, `max_base_cost`, and `base_cost_per_bookshelf_power`. Modifier-specific roll nudges live in `essence_power_bonus`, `book_power_bonus`, and `gold_material_power_bonus`. Candidate weighting is tuned through `book_weight_multiplier`, `new_tag_combo_multiplier`, and `max_candidate_weight`.
+
+Custom enchantment behavior that affects player-facing balance also lives in config. Vein Miner size, Shocked damage multiplier, Shocking duration, Curse of Rebound reflection ratio, Verdant Regrowth timing and scan radius, Mending repair math, Fortunes Touch secondary drop chance, and the core enhanced-enchanting roll formula can all be tuned without recompiling the mod.
+
+Event-driven essence acquisition uses `essence_acquisition.direct_drop_chance`, which defaults to 20%. Loot-table injected essence chances remain data-pack controlled. Essence villager trades are data-driven through `better_enchanting/essence_trades`.
+
+Anvils no longer use vanilla's Too Expensive cutoff. Non-material anvil operations are capped to `anvil.max_cost`, while repairing a damaged item with its repair material costs 0 XP. Repairing an item with another item, such as pickaxe plus pickaxe, still costs XP and is capped normally.
+
+Anvil enchantment level merging is configurable. `additive` makes matching enchantment levels add together, such as level 2 plus level 3 becoming level 5. `vanilla` keeps Minecraft's default behavior, where matching equal levels increase by one and mismatched levels keep the higher value.
+
+The experience curve supports two modes. `exponential` keeps vanilla's increasing XP-per-level curve. `linear` makes every level require `experience.linear_xp_per_level` XP.
+
+Mending has 5 levels by default. Each XP point rolls a repair chance: level 1 rolls 1 in 10, level 2 rolls 1 in 9, level 3 rolls 1 in 8, level 4 rolls 1 in 7, and level 5 rolls 1 in 6. Successful rolls repair 2 durability per Mending level by default.
+
+### Datapack Customization
+
+Better Enchanting keeps structured rules in datapack JSON rather than config when the rule is naturally a list, mapping, tag, or recipe.
+
+Pack-facing data folders:
+
+- `better_enchanting/essences/*.json`: essence item, affinity tag, weight multiplier, and special behavior.
+- `better_enchanting/enchantment_limits/*.json`: global, type, item, and material enchantment limits.
+- `better_enchanting/enchantment_fusions/*.json`: enchantment recipes such as Fortune plus Silk Touch into Fortunes Touch.
+- `better_enchanting/essence_trades/*.json`: villager essence trades.
+- `better_enchanting/enchantment_targets/*.json`: item-tag to enchantment-target-tag mappings.
+- `better_enchanting/tag_simplification/*.json`: display simplification groups such as Helmet, Body Armor, Leggings, and Boots becoming Armor.
+- `better_enchanting/tag_display/*.json`: visible tag labels and colors. This can be supplied as datapack data and as resource-pack assets; resource-pack assets keep client tooltips colored on multiplayer clients.
+
+Essence trade example:
+
+```json
+{
+  "trades": [
+    {
+      "profession": "minecraft:armorer",
+      "level": 2,
+      "essence": "betterenchanting:physical_essence",
+      "emerald_cost": 8,
+      "count": 1,
+      "max_uses": 8,
+      "xp": 10,
+      "price_multiplier": 0.05
+    }
+  ]
+}
+```
+
+Target mapping example:
+
+```json
+{
+  "rules": [
+    {
+      "item_tag": "my_pack:steel_tools",
+      "enchantment_tag": "betterenchanting:targets/tools"
+    }
+  ]
+}
+```
+
+Tag display example:
+
+```json
+{
+  "enchantment_tags": [
+    {
+      "tag": "my_pack:storm",
+      "label": "Storm",
+      "color": "#8fd8ff"
+    }
+  ]
+}
+```
+
+Verdant Regrowth uses tags for its environmental checks:
+
+- Growth blocks: `data/<namespace>/tags/block/verdant_regrowth_growth_blocks.json`
+- Verdant biomes: `data/<namespace>/tags/worldgen/biome/verdant_regrowth_biomes.json`
+
+### Implemented Custom Enchantments and Effects
+
+- Vacuum is a Void enchantment that moves finalized drops into the player's inventory. If inventory space runs out, leftovers drop at the player's feet.
+- Auto-Smelt is a Fire enchantment for harvestable tools. It transforms finalized block drops through smelting recipes so it works after drop modifiers such as Fortune.
+- Shocked is a harmful status effect that makes affected living entities take 20% more damage from incoming damage by default.
+- Shocking is a Lightning weapon enchantment that applies Shocked for 5 seconds by default when the enchanted weapon deals damage.
+- Curse of Rebound is a Physical curse for weapons. When a player damages a non-player living target with a cursed weapon, 25% of the final damage dealt is reflected back to the player as thorns-style damage by default.
+- Verdant Regrowth is a Vitality enchantment for tools and armor that also targets the wood target. Equipped or held enchanted items slowly repair near leaves, grass, flowers, moss, or in forest/jungle biomes; sunlight or rain uses the faster configured repair interval.
+- Vein Miner is a Mining enchantment for harvestable tools. It has 5 levels and breaks up to 16 connected matching blocks per level by default.
+- Fortunes Touch is a Mining enchantment created by combining Fortune and Silk Touch. It consumes both ingredients, acts like Silk Touch for the primary block drop, and can add the ordinary non-Silk drop as a secondary roll.
+- Fortunes Touch inherits the level of the Fortune ingredient used to create it. Its secondary ordinary-drop roll chance is 10% per level: level 1 = 10%, level 2 = 20%, level 3 = 30%, and so on, capped at 100%.
+
+### Enchantment Fusion Recipes
+
+Enchantment fusion recipes are data-driven JSON files loaded from `data/<namespace>/better_enchanting/enchantment_fusions/*.json`.
+
+Default Fortunes Touch recipe:
+
+```json
+{
+  "ingredients": [
+    "minecraft:fortune",
+    "minecraft:silk_touch"
+  ],
+  "result": {
+    "enchantment": "betterenchanting:fortunes_touch",
+    "level": {
+      "type": "ingredient",
+      "enchantment": "minecraft:fortune"
+    }
+  }
+}
+```
+
+The `result.level` rule can be a constant number, an enchantment id string, `{ "type": "ingredient", "enchantment": "<id>" }`, `{ "type": "sum_ingredients" }`, `{ "type": "max_ingredient" }`, or `{ "type": "min_ingredient" }`. Fusion results are treated as recipe outputs and are kept mutually exclusive with their ingredients by the enhanced enchanting roller. Ingredients in the same fusion recipe are allowed to meet even if another exclusivity rule would normally clash, so the recipe can complete.
+
+General enchantment exclusivity is datapack-driven through the vanilla `exclusive_set` field on enchantment JSON. Because Better Enchanting empties vanilla's broad exclusive-set tags, pack makers can add focused custom exclusivity tags without restoring the old blanket conflicts.
+
+## 5. Reroll and Anti-Exploit Design
+
+Desired behavior:
+
+- Offers should not reroll for free by removing and re-adding the same inputs.
+- A visible **Resculpt** or **Reroll Offers** action should refresh offers within the current sculpted pool.
+- Reroll should cost XP and possibly lapis or a small consumable.
+- Cost may scale with option power, consecutive rerolls, or the number of active modifiers.
+- Slot changes may provide live preview, but stable offer caching should prevent abuse.
+
+Implementation status:
+
+- Current previews are deterministic from the player enchantment seed and inputs.
+- There is no dedicated reroll button yet.
+- There is no persistent BlockEntity offer cache yet.
+
+## 6. Visual Feedback
+
+Desired behavior:
+
+- Each offer should show a colored border, glow, or icon based on its dominant affinity tag.
+- Hovering should show dominant and secondary tag breakdowns.
+- Multi-tag offers should show multiple color pips or another compact multi-tag indicator.
+- Essence changes should visibly alter pool size, mode, and likely offer colors.
+
+Implementation status:
+
+- Current GUI keeps the vanilla option rows and adds pool size, active essence tag count, and book boost count to the option tooltip.
+- The option tooltip counts are per-roll so modifiers in other slots do not appear to affect the hovered spin.
+- Tooltip support exists for item, essence, and enchantment affinity tags. Target tags should stay out of enchanted item tooltips.
+- Enchantment clue names in option hover text are colored by dominant affinity tag.
+
+## 7. Constraints and Compatibility
+
+- Keep Minecraft's identity intact: swords, hoes, armor, tools, and books should feel different.
+- Avoid vanilla-style reroll spam.
+- Pool calculation must stay fast and cacheable.
+- Data packs should be able to add or retune essences and tags.
+- Compatibility with vanilla and modded enchantments matters; optional tag entries should be preferred where possible.
+- Balance should make XP costs meaningful without making experimentation feel punishing.
+- The mod should stay focused on enchanting unless a later feature explicitly expands it into a broader ability system.
+
+## 8. Technical Architecture Direction
+
+Current architecture:
+
+- Optional Arcane Crucible block path for compatibility when vanilla enchanting table takeover is disabled
+- Custom `MenuType`
+- Custom `AbstractContainerMenu`
+- Custom `AbstractContainerScreen`
+- Data-driven essence definitions
+- Data-driven essence villager trades
+- Tag-driven item and enchantment filtering
+- `PoolModifierRules` owns modifier-slot classification, per-roll modifier lists, and modifier consumption.
+- `EnchantingPowerRules` owns bookshelf cost and roll-power math.
+- `EnchantmentTargetTags` loads item tag to enchantment target tag mappings.
+- `TagSimplifier` loads display simplification groups.
+- `TagDisplayRules` loads tag labels and colors used by tooltips and option clue names.
+
+Target architecture:
+
+- Add persistent state for cached offers without forcing the vanilla enchanting table to own extra block state.
+- Store target item, slotted essences/books, cached pool data, current offers, and reroll state.
+- Keep a dedicated pool calculator class.
+- Save persistent state through block entity NBT.
+- Keep all balancing constants easy to tune.
+
+## 9. Extensibility
+
+Potential future additions:
+
+- Ritual integration for creating essences or priming future enchanting modifiers.
+- High-tier hybrid enchants or ability-like enchantments.
+- Favorite setup saving.
+- Config toggles for strict versus flexible item compatibility.
+- Data-driven reroll cost formulas.
+
+## 10. Open Decisions
+
+- Reroll XP cost formula.
+- Whether strict or flexible item-type restrictions should be the default.
+- Whether offer updates should be live, locked, or require a commit/resculpt action.
+- Whether the public-facing name should become Tagforge, Veilweaver Enchanting, or remain Better Enchanting.
+
+## 11. Near-Term Fix List
+
+- Add persistent offer state and cached offers.
+- Add a Resculpt/Reroll Offers button with cost.
+- Move any new special-case balance into data or config when it becomes player-visible.
+- Keep build configuration machine-neutral; do not commit personal `org.gradle.java.home` paths.

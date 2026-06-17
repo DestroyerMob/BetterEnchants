@@ -1,0 +1,9 @@
+{
+  "type": "neoforge:add_table",
+  "conditions": [
+    { "condition": "neoforge:loot_table_id", "loot_table_id": "minecraft:entities/enderman" },
+    { "condition": "minecraft:location_check", "predicate": { "dimension": "minecraft:the_end" } },
+    { "condition": "minecraft:random_chance", "chance": 0.2 }
+  ],
+  "table": "betterenchanting:injected/end_bonus_essences"
+}

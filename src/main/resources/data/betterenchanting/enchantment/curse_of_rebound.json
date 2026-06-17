@@ -1,0 +1,22 @@
+{
+  "anvil_cost": 8,
+  "description": {
+    "translate": "enchantment.betterenchanting.curse_of_rebound"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 50,
+    "per_level_above_first": 0
+  },
+  "max_level": 1,
+  "min_cost": {
+    "base": 10,
+    "per_level_above_first": 0
+  },
+  "primary_items": "#betterenchanting:enchantable/curse_of_rebound",
+  "slots": [
+    "mainhand"
+  ],
+  "supported_items": "#betterenchanting:enchantable/curse_of_rebound",
+  "weight": 1
+}

@@ -1,0 +1,104 @@
+{
+  "groups": [
+    {
+      "parent": "betterenchanting:armor",
+      "children": [
+        "betterenchanting:armor/helmets",
+        "betterenchanting:armor/body_armor",
+        "betterenchanting:armor/leggings",
+        "betterenchanting:armor/boots"
+      ]
+    },
+    {
+      "parent": "betterenchanting:targets/armor",
+      "children": [
+        "betterenchanting:targets/armor/helmets",
+        "betterenchanting:targets/armor/body_armor",
+        "betterenchanting:targets/armor/leggings",
+        "betterenchanting:targets/armor/boots"
+      ]
+    },
+    {
+      "parent": "betterenchanting:tools/harvesters",
+      "children": [
+        "betterenchanting:tools/pickaxes",
+        "betterenchanting:tools/axes",
+        "betterenchanting:tools/shovels",
+        "betterenchanting:tools/hoes",
+        "betterenchanting:tools/shears"
+      ]
+    },
+    {
+      "parent": "betterenchanting:tools",
+      "children": [
+        "betterenchanting:tools/harvesters",
+        "betterenchanting:tools/fishing_rods",
+        "betterenchanting:tools/brushes",
+        "betterenchanting:tools/flint_and_steel"
+      ]
+    },
+    {
+      "parent": "betterenchanting:targets/tools/harvesters",
+      "children": [
+        "betterenchanting:targets/tools/pickaxes",
+        "betterenchanting:targets/tools/axes",
+        "betterenchanting:targets/tools/shovels",
+        "betterenchanting:targets/tools/hoes",
+        "betterenchanting:targets/tools/shears"
+      ]
+    },
+    {
+      "parent": "betterenchanting:targets/tools",
+      "children": [
+        "betterenchanting:targets/tools/harvesters",
+        "betterenchanting:targets/tools/fishing_rods",
+        "betterenchanting:targets/tools/brushes",
+        "betterenchanting:targets/tools/flint_and_steel"
+      ]
+    },
+    {
+      "parent": "betterenchanting:weapons/melee",
+      "children": [
+        "betterenchanting:weapons/swords",
+        "betterenchanting:weapons/maces"
+      ]
+    },
+    {
+      "parent": "betterenchanting:weapons/ranged",
+      "children": [
+        "betterenchanting:weapons/bows",
+        "betterenchanting:weapons/crossbows"
+      ]
+    },
+    {
+      "parent": "betterenchanting:weapons",
+      "children": [
+        "betterenchanting:weapons/melee",
+        "betterenchanting:weapons/ranged",
+        "betterenchanting:weapons/tridents"
+      ]
+    },
+    {
+      "parent": "betterenchanting:targets/weapons/melee",
+      "children": [
+        "betterenchanting:targets/weapons/swords",
+        "betterenchanting:targets/weapons/maces"
+      ]
+    },
+    {
+      "parent": "betterenchanting:targets/weapons/ranged",
+      "children": [
+        "betterenchanting:targets/weapons/bows",
+        "betterenchanting:targets/weapons/crossbows"
+      ]
+    },
+    {
+      "parent": "betterenchanting:targets/weapons",
+      "children": [
+        "betterenchanting:targets/weapons/melee",
+        "betterenchanting:targets/weapons/ranged",
+        "betterenchanting:targets/weapons/tridents"
+      ]
+    }
+  ]
+}

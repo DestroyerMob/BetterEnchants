@@ -1,0 +1,30 @@
+{
+  "rules": [
+    { "item_tag": "betterenchanting:armor", "enchantment_tag": "betterenchanting:targets/armor" },
+    { "item_tag": "betterenchanting:armor/helmets", "enchantment_tag": "betterenchanting:targets/armor/helmets" },
+    { "item_tag": "betterenchanting:armor/body_armor", "enchantment_tag": "betterenchanting:targets/armor/body_armor" },
+    { "item_tag": "betterenchanting:armor/leggings", "enchantment_tag": "betterenchanting:targets/armor/leggings" },
+    { "item_tag": "betterenchanting:armor/boots", "enchantment_tag": "betterenchanting:targets/armor/boots" },
+    { "item_tag": "betterenchanting:tools", "enchantment_tag": "betterenchanting:targets/tools" },
+    { "item_tag": "betterenchanting:harvestable", "enchantment_tag": "betterenchanting:targets/tools/harvesters" },
+    { "item_tag": "betterenchanting:harvesters", "enchantment_tag": "betterenchanting:targets/tools/harvesters" },
+    { "item_tag": "betterenchanting:tools/harvesters", "enchantment_tag": "betterenchanting:targets/tools/harvesters" },
+    { "item_tag": "betterenchanting:tools/pickaxes", "enchantment_tag": "betterenchanting:targets/tools/pickaxes" },
+    { "item_tag": "betterenchanting:tools/axes", "enchantment_tag": "betterenchanting:targets/tools/axes" },
+    { "item_tag": "betterenchanting:tools/shovels", "enchantment_tag": "betterenchanting:targets/tools/shovels" },
+    { "item_tag": "betterenchanting:tools/hoes", "enchantment_tag": "betterenchanting:targets/tools/hoes" },
+    { "item_tag": "betterenchanting:tools/shears", "enchantment_tag": "betterenchanting:targets/tools/shears" },
+    { "item_tag": "betterenchanting:tools/fishing_rods", "enchantment_tag": "betterenchanting:targets/tools/fishing_rods" },
+    { "item_tag": "betterenchanting:tools/brushes", "enchantment_tag": "betterenchanting:targets/tools/brushes" },
+    { "item_tag": "betterenchanting:tools/flint_and_steel", "enchantment_tag": "betterenchanting:targets/tools/flint_and_steel" },
+    { "item_tag": "betterenchanting:weapons", "enchantment_tag": "betterenchanting:targets/weapons" },
+    { "item_tag": "betterenchanting:weapons/melee", "enchantment_tag": "betterenchanting:targets/weapons/melee" },
+    { "item_tag": "betterenchanting:weapons/ranged", "enchantment_tag": "betterenchanting:targets/weapons/ranged" },
+    { "item_tag": "betterenchanting:weapons/swords", "enchantment_tag": "betterenchanting:targets/weapons/swords" },
+    { "item_tag": "betterenchanting:weapons/maces", "enchantment_tag": "betterenchanting:targets/weapons/maces" },
+    { "item_tag": "betterenchanting:weapons/bows", "enchantment_tag": "betterenchanting:targets/weapons/bows" },
+    { "item_tag": "betterenchanting:weapons/crossbows", "enchantment_tag": "betterenchanting:targets/weapons/crossbows" },
+    { "item_tag": "betterenchanting:weapons/tridents", "enchantment_tag": "betterenchanting:targets/weapons/tridents" },
+    { "item_tag": "betterenchanting:materials/wood", "enchantment_tag": "betterenchanting:targets/wood" }
+  ]
+}

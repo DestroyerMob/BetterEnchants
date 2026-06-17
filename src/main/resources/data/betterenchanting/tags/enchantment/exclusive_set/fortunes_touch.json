@@ -1,0 +1,13 @@
+{
+  "values": [
+    "betterenchanting:fortunes_touch",
+    {
+      "id": "minecraft:fortune",
+      "required": false
+    },
+    {
+      "id": "minecraft:silk_touch",
+      "required": false
+    }
+  ]
+}

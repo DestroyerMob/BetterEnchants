@@ -61,11 +61,7 @@ public final class EssenceDefinitions {
         add(map, "mobility_essence", 1.0, true, "mobility");
         add(map, "void_essence", 1.0, true, "void");
         add(map, "treasure_essence", 1.0, true, "treasure");
-        add(map, "thermal_essence", 1.15, true, "fire", "frost");
-        add(map, "storm_essence", 1.15, true, "lightning", "mobility");
-        add(map, "prospector_essence", 1.15, true, "mining", "treasure");
-        add(map, "warden_essence", 1.15, true, "defensive", "vitality");
-        add(map, "abyssal_essence", 1.25, true, "void", "treasure");
+        addSpecial(map, "purification_essence", 1.0, false, true, "purification");
         return Map.copyOf(map);
     }
 
@@ -76,12 +72,23 @@ public final class EssenceDefinitions {
             boolean restrictsPool,
             String... tagPaths
     ) {
+        addSpecial(map, itemPath, multiplier, restrictsPool, false, tagPaths);
+    }
+
+    private static void addSpecial(
+            Map<ResourceLocation, EssenceDefinition> map,
+            String itemPath,
+            double multiplier,
+            boolean restrictsPool,
+            boolean removesCurses,
+            String... tagPaths
+    ) {
         ResourceLocation item = BetterEnchanting.id(itemPath);
         List<ResourceLocation> tags = new ArrayList<>();
         for (String tagPath : tagPaths) {
             tags.add(BetterEnchanting.id(tagPath));
         }
-        map.put(item, new EssenceDefinition(item, List.copyOf(tags), multiplier, restrictsPool));
+        map.put(item, new EssenceDefinition(item, List.copyOf(tags), multiplier, restrictsPool, removesCurses));
     }
 
     public static final class ReloadListener extends SimpleJsonResourceReloadListener {
@@ -116,7 +123,8 @@ public final class EssenceDefinitions {
             }
             double weightMultiplier = GsonHelper.getAsDouble(object, "weight_multiplier", 1.0D);
             boolean restrictsPool = GsonHelper.getAsBoolean(object, "restricts_pool", true);
-            return new EssenceDefinition(item, List.copyOf(tags), weightMultiplier, restrictsPool);
+            boolean removesCurses = GsonHelper.getAsBoolean(object, "removes_curses", false);
+            return new EssenceDefinition(item, List.copyOf(tags), weightMultiplier, restrictsPool, removesCurses);
         }
     }
 }

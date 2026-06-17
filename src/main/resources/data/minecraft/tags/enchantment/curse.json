@@ -1,0 +1,13 @@
+{
+  "values": [
+    {
+      "id": "minecraft:binding_curse",
+      "required": false
+    },
+    {
+      "id": "minecraft:vanishing_curse",
+      "required": false
+    },
+    "betterenchanting:curse_of_rebound"
+  ]
+}

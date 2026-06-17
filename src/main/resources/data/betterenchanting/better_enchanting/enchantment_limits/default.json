@@ -1,0 +1,11 @@
+{
+  "global_max": 6,
+  "type_limits": {
+    "armor": 4,
+    "weapon": 4,
+    "tool": 3
+  },
+  "material_bonus": {
+    "gold": 1
+  }
+}

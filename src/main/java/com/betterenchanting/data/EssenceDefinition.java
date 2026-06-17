@@ -7,6 +7,7 @@ public record EssenceDefinition(
         ResourceLocation item,
         List<ResourceLocation> tags,
         double weightMultiplier,
-        boolean restrictsPool
+        boolean restrictsPool,
+        boolean removesCurses
 ) {
 }

@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "betterenchanting:arcane_crucible"
+    }
+  ],
+  "result": {
+    "count": 1,
+    "id": "minecraft:enchanting_table"
+  }
+}

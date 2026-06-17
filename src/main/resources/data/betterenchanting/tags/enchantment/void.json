@@ -1,5 +1,6 @@
 {
   "values": [
+    "betterenchanting:vacuum",
     { "id": "minecraft:vanishing_curse", "required": false },
     { "id": "minecraft:binding_curse", "required": false },
     { "id": "minecraft:multishot", "required": false }

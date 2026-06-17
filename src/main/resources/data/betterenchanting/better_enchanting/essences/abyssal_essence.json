@@ -1,9 +1,0 @@
-{
-  "item": "betterenchanting:abyssal_essence",
-  "tags": [
-    "betterenchanting:void",
-    "betterenchanting:treasure"
-  ],
-  "weight_multiplier": 1.25,
-  "restricts_pool": true
-}

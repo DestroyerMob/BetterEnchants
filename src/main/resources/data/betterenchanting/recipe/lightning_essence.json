@@ -3,7 +3,8 @@
   "category": "misc",
   "ingredients": [
     { "item": "minecraft:amethyst_shard" },
-    { "item": "minecraft:copper_ingot" }
+    { "item": "minecraft:copper_ingot" },
+    { "item": "minecraft:lightning_rod" }
   ],
   "result": {
     "count": 2,

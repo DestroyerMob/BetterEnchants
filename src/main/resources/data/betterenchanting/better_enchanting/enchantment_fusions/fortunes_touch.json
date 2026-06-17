@@ -1,0 +1,13 @@
+{
+  "ingredients": [
+    "minecraft:fortune",
+    "minecraft:silk_touch"
+  ],
+  "result": {
+    "enchantment": "betterenchanting:fortunes_touch",
+    "level": {
+      "type": "ingredient",
+      "enchantment": "minecraft:fortune"
+    }
+  }
+}

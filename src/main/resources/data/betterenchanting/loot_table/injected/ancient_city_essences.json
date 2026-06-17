@@ -5,10 +5,8 @@
       "rolls": 1.0,
       "bonus_rolls": 0.0,
       "entries": [
-        { "type": "minecraft:item", "name": "betterenchanting:warden_essence", "weight": 8 },
-        { "type": "minecraft:item", "name": "betterenchanting:void_essence", "weight": 6 },
-        { "type": "minecraft:item", "name": "betterenchanting:treasure_essence", "weight": 4 },
-        { "type": "minecraft:item", "name": "betterenchanting:abyssal_essence", "weight": 1 }
+        { "type": "minecraft:item", "name": "betterenchanting:defensive_essence", "weight": 7 },
+        { "type": "minecraft:item", "name": "betterenchanting:void_essence", "weight": 3 }
       ]
     }
   ]

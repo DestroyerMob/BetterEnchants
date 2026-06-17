@@ -1,5 +1,7 @@
 {
   "values": [
+    "betterenchanting:auto_smelt",
+    "betterenchanting:vein_miner",
     "#betterenchanting:targets/tools",
     { "id": "minecraft:efficiency", "required": false },
     { "id": "minecraft:fortune", "required": false },

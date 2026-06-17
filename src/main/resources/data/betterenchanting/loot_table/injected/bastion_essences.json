@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:empty",
+  "pools": [
+    {
+      "rolls": 1.0,
+      "bonus_rolls": 0.0,
+      "entries": [
+        { "type": "minecraft:item", "name": "betterenchanting:fire_essence", "weight": 7 },
+        { "type": "minecraft:item", "name": "betterenchanting:defensive_essence", "weight": 3 }
+      ]
+    }
+  ]
+}
