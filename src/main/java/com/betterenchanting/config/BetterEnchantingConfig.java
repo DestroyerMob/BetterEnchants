@@ -33,6 +33,7 @@ public final class BetterEnchantingConfig {
     private static final ModConfigSpec.DoubleValue SHOCKED_PARTICLE_SPEED;
     private static final ModConfigSpec.IntValue SHOCKING_DURATION_TICKS;
     private static final ModConfigSpec.DoubleValue CURSE_OF_REBOUND_REFLECTED_DAMAGE_RATIO;
+    private static final ModConfigSpec.DoubleValue SEISMIC_CUSHION_EXPLOSION_RADIUS_PER_LEVEL;
     private static final ModConfigSpec.IntValue VERDANT_REGROWTH_BASE_REPAIR_INTERVAL_TICKS;
     private static final ModConfigSpec.IntValue VERDANT_REGROWTH_FAST_REPAIR_INTERVAL_TICKS;
     private static final ModConfigSpec.IntValue VERDANT_REGROWTH_DURABILITY_REPAIRED_PER_LEVEL;
@@ -155,6 +156,12 @@ public final class BetterEnchantingConfig {
         CURSE_OF_REBOUND_REFLECTED_DAMAGE_RATIO = builder
                 .comment("Fraction of final dealt damage reflected back to the attacking player.")
                 .defineInRange("reflected_damage_ratio", 0.25D, 0.0D, 100.0D);
+        builder.pop();
+
+        builder.push("seismic_cushion");
+        SEISMIC_CUSHION_EXPLOSION_RADIUS_PER_LEVEL = builder
+                .comment("Explosion radius added by each Seismic Cushion level when crouch-landing.")
+                .defineInRange("explosion_radius_per_level", 1.0D, 0.0D, 100.0D);
         builder.pop();
 
         builder.push("verdant_regrowth");
@@ -345,6 +352,10 @@ public final class BetterEnchantingConfig {
 
     public static float curseOfReboundReflectedDamageRatio() {
         return CURSE_OF_REBOUND_REFLECTED_DAMAGE_RATIO.get().floatValue();
+    }
+
+    public static float seismicCushionExplosionRadiusPerLevel() {
+        return SEISMIC_CUSHION_EXPLOSION_RADIUS_PER_LEVEL.get().floatValue();
     }
 
     public static int verdantRegrowthBaseRepairIntervalTicks() {

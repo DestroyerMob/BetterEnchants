@@ -69,6 +69,7 @@ public final class ModTags {
     }
 
     public static final class Blocks {
+        public static final TagKey<Block> HARVEST_CROPS = block("harvest_crops");
         public static final TagKey<Block> VERDANT_REGROWTH_GROWTH_BLOCKS = block("verdant_regrowth_growth_blocks");
 
         private Blocks() {

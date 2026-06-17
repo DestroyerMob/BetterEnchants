@@ -1,0 +1,23 @@
+{
+  "anvil_cost": 6,
+  "description": {
+    "translate": "enchantment.betterenchanting.seismic_cushion"
+  },
+  "effects": {},
+  "exclusive_set": "#betterenchanting:exclusive_set/seismic_cushion",
+  "max_cost": {
+    "base": 75,
+    "per_level_above_first": 0
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 18,
+    "per_level_above_first": 6
+  },
+  "primary_items": "#betterenchanting:enchantable/seismic_cushion",
+  "slots": [
+    "feet"
+  ],
+  "supported_items": "#betterenchanting:enchantable/seismic_cushion",
+  "weight": 1
+}

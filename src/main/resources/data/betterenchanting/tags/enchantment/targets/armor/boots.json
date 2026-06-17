@@ -1,5 +1,7 @@
 {
   "values": [
+    "betterenchanting:gelbound",
+    "betterenchanting:seismic_cushion",
     "#betterenchanting:targets/armor",
     { "id": "minecraft:feather_falling", "required": false },
     { "id": "minecraft:depth_strider", "required": false },

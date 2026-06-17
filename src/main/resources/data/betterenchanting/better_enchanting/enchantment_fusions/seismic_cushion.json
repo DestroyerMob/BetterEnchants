@@ -1,0 +1,13 @@
+{
+  "ingredients": [
+    "minecraft:feather_falling",
+    "betterenchanting:gelbound"
+  ],
+  "result": {
+    "enchantment": "betterenchanting:seismic_cushion",
+    "level": {
+      "type": "ingredient",
+      "enchantment": "minecraft:feather_falling"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "values": [
+    "betterenchanting:seismic_cushion",
+    {
+      "id": "minecraft:feather_falling",
+      "required": false
+    },
+    "betterenchanting:gelbound"
+  ]
+}

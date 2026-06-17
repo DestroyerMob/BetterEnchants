@@ -202,6 +202,9 @@ duration_ticks = 100
 [curse_of_rebound]
 reflected_damage_ratio = 0.25
 
+[seismic_cushion]
+explosion_radius_per_level = 1.0
+
 [verdant_regrowth]
 base_repair_interval_ticks = 1200
 fast_repair_interval_ticks = 600
@@ -237,7 +240,9 @@ The `enchanting.enhanced_table_takeover` option defaults to `true`, so vanilla e
 
 Enhanced enchanting balance lives in config rather than inline menu constants. Bookshelf power controls offer level requirements and roll quality through `min_base_cost`, `max_base_cost`, and `base_cost_per_bookshelf_power`; those values do not have to match the levels consumed. The actual charged XP levels use `min_level_cost`, `max_level_cost`, and `bookshelf_power_per_level_cost`, which default to 0-5 power costing 1 level, 6-10 costing 2 levels, and 11-15 costing 3 levels. Modifier-specific roll nudges live in `essence_power_bonus`, `book_power_bonus`, and `gold_material_power_bonus`. Candidate weighting is tuned through `book_weight_multiplier`, `new_tag_combo_multiplier`, and `max_candidate_weight`.
 
-Custom enchantment behavior that affects player-facing balance also lives in config. Vein Miner size, Shocked damage multiplier and particles, Shocking duration, Curse of Rebound reflection ratio, Verdant Regrowth repair amount, timing, and scan radius, Mending repair math, Fortunes Touch secondary drop chance, and the core enhanced-enchanting roll formula can all be tuned without recompiling the mod.
+Custom enchantment behavior that affects player-facing balance also lives in config. Vein Miner size, Shocked damage multiplier and particles, Shocking duration, Curse of Rebound reflection ratio, Seismic Cushion explosion size, Verdant Regrowth repair amount, timing, and scan radius, Mending repair math, Fortunes Touch secondary drop chance, and the core enhanced-enchanting roll formula can all be tuned without recompiling the mod.
+
+Better Enchanting also adds the `playerGriefing` game rule. It defaults to `true` and is intended as the player-caused counterpart to vanilla `mobGriefing`. Seismic Cushion uses it for block destruction: when `playerGriefing` is false, its explosion still happens but does not break blocks.
 
 Event-driven essence acquisition uses `essence_acquisition.direct_drop_chance`, which defaults to 20%. Loot-table injected essence chances remain data-pack controlled. Essence villager trades are data-driven through `better_enchanting/essence_trades`.
 
@@ -327,6 +332,7 @@ Verdant Regrowth uses tags for its environmental checks. By default, the growth-
 
 - Growth blocks: `data/<namespace>/tags/block/verdant_regrowth_growth_blocks.json`
 - Verdant biomes: `data/<namespace>/tags/worldgen/biome/verdant_regrowth_biomes.json`
+- Harvest crops: `data/<namespace>/tags/block/harvest_crops.json`
 
 ### Implemented Custom Enchantments and Effects
 
@@ -335,10 +341,13 @@ Verdant Regrowth uses tags for its environmental checks. By default, the growth-
 - Shocked is a harmful status effect that makes affected living entities take 20% more damage from incoming damage by default. It hides the vanilla potion swirl and emits electric spark particles while active.
 - Shocking is a Lightning weapon enchantment that applies Shocked for 5 seconds by default when the enchanted weapon deals damage.
 - Curse of Rebound is a Curse affinity enchantment for weapons. When a player damages a non-player living target with a cursed weapon, 25% of the final damage dealt is reflected back to the player as thorns-style damage by default.
+- Gelbound is a single-level Mobility enchantment for boots. It negates fall damage and bounces the player upward like a slime block; sneaking suppresses the bounce and allows normal fall damage.
+- Seismic Cushion is a 5-level recipe-only Mobility enchantment for boots, created by combining Feather Falling and Gelbound. It inherits the Feather Falling level. Sneak-landing negates fall damage and creates a level-scaled explosion at the player; the player is the explosion source and is excluded from self-damage. Block destruction is controlled by the `playerGriefing` game rule.
 - Verdant Regrowth is a 5-level Vitality enchantment for tools and armor that also targets the wood target. Equipped or held enchanted items slowly repair near tagged growth blocks, with optional whole-biome healing available through data packs; sunlight uses the faster configured repair interval. Higher levels increase durability repaired per repair tick, not the repair interval.
 - Vein Miner is a Mining enchantment for harvestable tools. It has 5 levels and breaks up to 16 connected matching blocks per level by default.
 - Fortunes Touch is a Mining enchantment created by combining Fortune and Silk Touch. It consumes both ingredients, acts like Silk Touch for the primary block drop, and can add the ordinary non-Silk drop as a secondary roll.
 - Fortunes Touch inherits the level of the Fortune ingredient used to create it. Its secondary ordinary-drop roll chance is 10% per level: level 1 = 10%, level 2 = 20%, level 3 = 30%, and so on, capped at 100%.
+- Harvest is a 5-level Vitality enchantment for hoes. Right-clicking a mature tagged crop harvests it with the enchanted hoe, drops the crop loot, and resets the crop to its youngest age. Each level expands the square area by two blocks: level 1 = 1x1, level 2 = 3x3, level 3 = 5x5, level 4 = 7x7, and level 5 = 9x9.
 
 ### Enchantment Fusion Recipes
 
@@ -361,6 +370,8 @@ Default Fortunes Touch recipe:
   }
 }
 ```
+
+Default Seismic Cushion recipe fuses Feather Falling plus Gelbound and inherits the Feather Falling level.
 
 The `result.level` rule can be a constant number, an enchantment id string, `{ "type": "ingredient", "enchantment": "<id>" }`, `{ "type": "sum_ingredients" }`, `{ "type": "max_ingredient" }`, or `{ "type": "min_ingredient" }`. Fusion results are treated as recipe outputs and are kept mutually exclusive with their ingredients by the enhanced enchanting roller. Ingredients in the same fusion recipe are allowed to meet even if another exclusivity rule would normally clash, so the recipe can complete.
 

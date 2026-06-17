@@ -1,5 +1,7 @@
 {
   "values": [
+    "betterenchanting:gelbound",
+    "betterenchanting:seismic_cushion",
     { "id": "minecraft:depth_strider", "required": false },
     { "id": "minecraft:feather_falling", "required": false },
     { "id": "minecraft:frost_walker", "required": false },

@@ -1,0 +1,22 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.betterenchanting.gelbound"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 45,
+    "per_level_above_first": 0
+  },
+  "max_level": 1,
+  "min_cost": {
+    "base": 12,
+    "per_level_above_first": 0
+  },
+  "primary_items": "#betterenchanting:enchantable/gelbound",
+  "slots": [
+    "feet"
+  ],
+  "supported_items": "#betterenchanting:enchantable/gelbound",
+  "weight": 3
+}

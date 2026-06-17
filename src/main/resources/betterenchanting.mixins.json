@@ -7,7 +7,8 @@
     "AnvilMenuMixin",
     "EnchantmentHelperMixin",
     "ItemCombinerMenuAccessor",
-    "PlayerExperienceMixin"
+    "PlayerExperienceMixin",
+    "ServerPlayerMixin"
   ],
   "client": [
     "client.AnvilScreenMixin"

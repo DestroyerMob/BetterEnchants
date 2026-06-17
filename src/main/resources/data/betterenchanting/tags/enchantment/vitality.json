@@ -1,5 +1,6 @@
 {
   "values": [
+    "betterenchanting:harvest",
     "betterenchanting:verdant_regrowth",
     { "id": "minecraft:mending", "required": false },
     { "id": "minecraft:unbreaking", "required": false },
