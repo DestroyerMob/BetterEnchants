@@ -27,7 +27,7 @@ import org.slf4j.Logger;
 public final class EnchantmentTargetTags {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Gson GSON = new Gson();
-    private static volatile List<TargetTagRule> targetTagRules = List.of();
+    private static volatile List<TargetTagRule> targetTagRules = defaults();
 
     private EnchantmentTargetTags() {
     }
@@ -61,6 +61,45 @@ public final class EnchantmentTargetTags {
         );
     }
 
+    private static List<TargetTagRule> defaults() {
+        return List.of(
+                rule("durability", "targets/durability"),
+                rule("armor", "targets/armor"),
+                rule("armor/helmets", "targets/armor/helmets"),
+                rule("armor/body_armor", "targets/armor/body_armor"),
+                rule("armor/leggings", "targets/armor/leggings"),
+                rule("armor/boots", "targets/armor/boots"),
+                rule("tools", "targets/tools"),
+                rule("harvestable", "targets/tools/harvesters"),
+                rule("harvesters", "targets/tools/harvesters"),
+                rule("tools/harvesters", "targets/tools/harvesters"),
+                rule("tools/pickaxes", "targets/tools/pickaxes"),
+                rule("tools/axes", "targets/tools/axes"),
+                rule("tools/shovels", "targets/tools/shovels"),
+                rule("tools/hoes", "targets/tools/hoes"),
+                rule("tools/shears", "targets/tools/shears"),
+                rule("tools/fishing_rods", "targets/tools/fishing_rods"),
+                rule("tools/brushes", "targets/tools/brushes"),
+                rule("tools/flint_and_steel", "targets/tools/flint_and_steel"),
+                rule("weapons", "targets/weapons"),
+                rule("weapons/melee", "targets/weapons/melee"),
+                rule("weapons/ranged", "targets/weapons/ranged"),
+                rule("weapons/swords", "targets/weapons/swords"),
+                rule("weapons/maces", "targets/weapons/maces"),
+                rule("weapons/bows", "targets/weapons/bows"),
+                rule("weapons/crossbows", "targets/weapons/crossbows"),
+                rule("weapons/tridents", "targets/weapons/tridents"),
+                rule("materials/wood", "targets/wood")
+        );
+    }
+
+    private static TargetTagRule rule(String itemTag, String enchantmentTag) {
+        return new TargetTagRule(
+                TagKey.create(Registries.ITEM, BetterEnchanting.id(itemTag)),
+                TagKey.create(Registries.ENCHANTMENT, BetterEnchanting.id(enchantmentTag))
+        );
+    }
+
     private static ResourceLocation parseTagId(String value) {
         String normalized = value.startsWith("#") ? value.substring(1) : value;
         if (normalized.indexOf(':') >= 0) {
@@ -76,7 +115,7 @@ public final class EnchantmentTargetTags {
 
         @Override
         protected void apply(Map<ResourceLocation, JsonElement> resources, ResourceManager manager, ProfilerFiller profiler) {
-            Set<TargetTagRule> loaded = new LinkedHashSet<>();
+            Set<TargetTagRule> loaded = new LinkedHashSet<>(defaults());
             for (Map.Entry<ResourceLocation, JsonElement> entry : resources.entrySet()) {
                 try {
                     JsonObject object = GsonHelper.convertToJsonObject(entry.getValue(), "enchantment target rules");
@@ -90,7 +129,7 @@ public final class EnchantmentTargetTags {
                 }
             }
             targetTagRules = List.copyOf(loaded);
-            LOGGER.info("Loaded {} Better Enchanting target tag rule(s)", targetTagRules.size());
+            LOGGER.info("Loaded {} Better Enchanting target tag rule(s) from {} file(s)", targetTagRules.size(), resources.size());
         }
     }
 

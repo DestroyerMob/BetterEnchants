@@ -1,5 +1,6 @@
 {
   "values": [
+    "betterenchanting:beheading",
     "betterenchanting:perfect_strike",
     "#betterenchanting:targets/weapons/melee",
     { "id": "minecraft:knockback", "required": false },

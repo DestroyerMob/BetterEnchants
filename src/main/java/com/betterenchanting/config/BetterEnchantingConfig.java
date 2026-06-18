@@ -50,6 +50,13 @@ public final class BetterEnchantingConfig {
     private static final ModConfigSpec.IntValue OVERCHARGED_STRENGTH_MAX_AMPLIFIER;
     private static final ModConfigSpec.IntValue OVERCHARGED_REGENERATION_MAX_AMPLIFIER;
     private static final ModConfigSpec.IntValue OVERCHARGED_SPEED_MAX_AMPLIFIER;
+    private static final ModConfigSpec.DoubleValue BEHEADING_BASE_HEAD_DROP_CHANCE;
+    private static final ModConfigSpec.DoubleValue BEHEADING_HEAD_DROP_CHANCE_PER_LOOTING_LEVEL;
+    private static final ModConfigSpec.DoubleValue BEHEADING_HEADSHOT_UPPER_EYE_BAND;
+    private static final ModConfigSpec.DoubleValue BEHEADING_HEADSHOT_LOWER_EYE_BAND;
+    private static final ModConfigSpec.DoubleValue HEADSHOT_DAMAGE_BONUS_PER_LEVEL;
+    private static final ModConfigSpec.DoubleValue HEADSHOT_UPPER_EYE_BAND;
+    private static final ModConfigSpec.DoubleValue HEADSHOT_LOWER_EYE_BAND;
     private static final ModConfigSpec.DoubleValue CURSE_OF_FRAGILITY_DURABILITY_DAMAGE_MULTIPLIER;
     private static final ModConfigSpec.DoubleValue CURSE_OF_REBOUND_REFLECTED_DAMAGE_RATIO;
     private static final ModConfigSpec.DoubleValue SEISMIC_CUSHION_EXPLOSION_RADIUS_PER_LEVEL;
@@ -241,6 +248,33 @@ public final class BetterEnchantingConfig {
         OVERCHARGED_SPEED_MAX_AMPLIFIER = builder
                 .comment("Highest vanilla Speed amplifier Overcharged can apply at max enchantment level. Amplifier 0 is Speed I.")
                 .defineInRange("speed_max_amplifier", 0, 0, 255);
+        builder.pop();
+
+        builder.push("beheading");
+        BEHEADING_BASE_HEAD_DROP_CHANCE = builder
+                .comment("Base chance for Beheading to add one matching head when a player kills a supported mob or player with a melee headshot from an enchanted sword or axe.")
+                .defineInRange("base_head_drop_chance", 0.10D, 0.0D, 1.0D);
+        BEHEADING_HEAD_DROP_CHANCE_PER_LOOTING_LEVEL = builder
+                .comment("Additional Beheading head drop chance added by each active Looting level on the killing weapon. The final chance is capped at 100% and still drops at most one head.")
+                .defineInRange("head_drop_chance_per_looting_level", 0.05D, 0.0D, 1.0D);
+        BEHEADING_HEADSHOT_UPPER_EYE_BAND = builder
+                .comment("Highest valid melee hit position above the victim's eye height, measured as a fraction of the victim's full hitbox height.")
+                .defineInRange("headshot_upper_eye_band", 0.20D, -1.0D, 1.0D);
+        BEHEADING_HEADSHOT_LOWER_EYE_BAND = builder
+                .comment("Lowest valid melee hit position below the victim's eye height, measured as a fraction of the victim's full hitbox height.")
+                .defineInRange("headshot_lower_eye_band", -0.10D, -1.0D, 1.0D);
+        builder.pop();
+
+        builder.push("headshot");
+        HEADSHOT_DAMAGE_BONUS_PER_LEVEL = builder
+                .comment("Extra ranged projectile damage applied by each Headshot level when the projectile strikes the target's head. The default 0.10 means +50% at level 5.")
+                .defineInRange("damage_bonus_per_level", 0.10D, 0.0D, 100.0D);
+        HEADSHOT_UPPER_EYE_BAND = builder
+                .comment("Highest valid ranged projectile hit position above the victim's eye height, measured as a fraction of the victim's full hitbox height.")
+                .defineInRange("upper_eye_band", 0.20D, -1.0D, 1.0D);
+        HEADSHOT_LOWER_EYE_BAND = builder
+                .comment("Lowest valid ranged projectile hit position below the victim's eye height, measured as a fraction of the victim's full hitbox height.")
+                .defineInRange("lower_eye_band", -0.10D, -1.0D, 1.0D);
         builder.pop();
 
         builder.push("curse_of_rebound");
@@ -518,6 +552,34 @@ public final class BetterEnchantingConfig {
 
     public static int overchargedSpeedMaxAmplifier() {
         return OVERCHARGED_SPEED_MAX_AMPLIFIER.get();
+    }
+
+    public static float beheadingBaseHeadDropChance() {
+        return BEHEADING_BASE_HEAD_DROP_CHANCE.get().floatValue();
+    }
+
+    public static float beheadingHeadDropChancePerLootingLevel() {
+        return BEHEADING_HEAD_DROP_CHANCE_PER_LOOTING_LEVEL.get().floatValue();
+    }
+
+    public static double beheadingHeadshotUpperEyeBand() {
+        return BEHEADING_HEADSHOT_UPPER_EYE_BAND.get();
+    }
+
+    public static double beheadingHeadshotLowerEyeBand() {
+        return BEHEADING_HEADSHOT_LOWER_EYE_BAND.get();
+    }
+
+    public static float headshotDamageBonusPerLevel() {
+        return HEADSHOT_DAMAGE_BONUS_PER_LEVEL.get().floatValue();
+    }
+
+    public static double headshotUpperEyeBand() {
+        return HEADSHOT_UPPER_EYE_BAND.get();
+    }
+
+    public static double headshotLowerEyeBand() {
+        return HEADSHOT_LOWER_EYE_BAND.get();
     }
 
     public static float curseOfReboundReflectedDamageRatio() {

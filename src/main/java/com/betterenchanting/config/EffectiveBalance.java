@@ -403,6 +403,34 @@ public final class EffectiveBalance {
         return BetterEnchantingConfig.overchargedSpeedMaxAmplifier();
     }
 
+    public static float beheadingBaseHeadDropChance() {
+        return BetterEnchantingConfig.beheadingBaseHeadDropChance();
+    }
+
+    public static float beheadingHeadDropChancePerLootingLevel() {
+        return BetterEnchantingConfig.beheadingHeadDropChancePerLootingLevel();
+    }
+
+    public static double beheadingHeadshotUpperEyeBand() {
+        return BetterEnchantingConfig.beheadingHeadshotUpperEyeBand();
+    }
+
+    public static double beheadingHeadshotLowerEyeBand() {
+        return BetterEnchantingConfig.beheadingHeadshotLowerEyeBand();
+    }
+
+    public static float headshotDamageBonusPerLevel() {
+        return BetterEnchantingConfig.headshotDamageBonusPerLevel();
+    }
+
+    public static double headshotUpperEyeBand() {
+        return BetterEnchantingConfig.headshotUpperEyeBand();
+    }
+
+    public static double headshotLowerEyeBand() {
+        return BetterEnchantingConfig.headshotLowerEyeBand();
+    }
+
     public static float curseOfReboundReflectedDamageRatio() {
         BalanceValues values = presetValues();
         return (float) (values == null ? BetterEnchantingConfig.curseOfReboundReflectedDamageRatio() : values.curseOfReboundReflectedDamageRatio());

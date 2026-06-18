@@ -34,6 +34,8 @@ import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 public final class EnchantingRoller {
+    private static final int TAG_TARGET_FALLBACK_ENCHANTABILITY = 1;
+
     private EnchantingRoller() {
     }
 
@@ -63,25 +65,28 @@ public final class EnchantingRoller {
         Set<Holder<Enchantment>> existingEnchantments = existingEnchantments(target);
         int maxEnchantments = EnchantmentLimitRules.maxEnchantments(target);
         int level = adjustedLevel(random, target, cost);
+        if (level <= 0) {
+            return new RollPreview(List.of(), 0, profile, EmptyReason.NO_ROLL_POWER);
+        }
+
         List<WeightedCandidate> candidates = buildCandidates(registryAccess, target, level, profile);
+        int poolSize = candidates.size();
         List<EnchantmentInstance> selected = new ArrayList<>();
         filterOverLimitCandidates(registryAccess, candidates, existingEnchantments, Set.of(), maxEnchantments);
         if (candidates.isEmpty()) {
-            return new RollPreview(List.of(), 0, profile);
+            return new RollPreview(List.of(), poolSize, profile, emptyReason(profile, poolSize));
         }
 
         Set<ResourceLocation> representedEssenceTags = new LinkedHashSet<>();
         WeightedCandidate first = pick(random, candidates, representedEssenceTags, profile);
         if (first == null) {
-            return new RollPreview(List.of(), candidates.size(), profile);
+            return new RollPreview(List.of(), candidates.size(), profile, EmptyReason.WEIGHT_SELECTION_FAILED);
         }
 
         selected.add(first.instance());
         representedEssenceTags.addAll(first.matchingEssenceTags());
         Set<Holder<Enchantment>> selectedEnchantments = new LinkedHashSet<>();
         selectedEnchantments.add(first.instance().enchantment);
-        int poolSize = candidates.size();
-
         while (selected.size() < maxEnchantments + 1 && random.nextInt(EffectiveBalance.rollerMultiEnchantRollBound()) <= level) {
             candidates.removeIf(candidate -> selectedEnchantments.contains(candidate.instance().enchantment)
                     || EnchantmentFusionRecipes.conflictsWithFusionIngredient(registryAccess, candidate.instance().enchantment, selectedEnchantments)
@@ -101,7 +106,7 @@ public final class EnchantingRoller {
             level /= EffectiveBalance.rollerMultiEnchantLevelDivisor();
         }
 
-        return new RollPreview(List.copyOf(selected), poolSize, profile);
+        return new RollPreview(List.copyOf(selected), poolSize, profile, EmptyReason.NONE);
     }
 
     public static InputProfile profile(ItemStack target, List<ItemStack> essences, List<ItemStack> books) {
@@ -137,6 +142,9 @@ public final class EnchantingRoller {
     private static int adjustedLevel(RandomSource random, ItemStack target, int cost) {
         ItemStack enchantabilityTarget = target.is(Items.ENCHANTED_BOOK) ? new ItemStack(Items.BOOK) : target;
         int enchantability = enchantabilityTarget.getItem().getEnchantmentValue(enchantabilityTarget);
+        if (enchantability <= 0 && !EnchantmentTargetTags.resolve(target).isEmpty()) {
+            enchantability = TAG_TARGET_FALLBACK_ENCHANTABILITY;
+        }
         if (enchantability <= 0) {
             return 0;
         }
@@ -145,6 +153,19 @@ public final class EnchantingRoller {
         int level = cost + 1 + random.nextInt(enchantabilityBonusBound) + random.nextInt(enchantabilityBonusBound);
         float variance = (random.nextFloat() + random.nextFloat() - 1.0F) * EffectiveBalance.rollerLevelVariance();
         return Mth.clamp(Math.round((float) level + (float) level * variance), 1, Integer.MAX_VALUE);
+    }
+
+    private static EmptyReason emptyReason(InputProfile profile, int poolSizeBeforeCapacity) {
+        if (poolSizeBeforeCapacity > 0) {
+            return EmptyReason.ENCHANTMENT_LIMIT;
+        }
+        if (profile.restricted()) {
+            return EmptyReason.RESTRICTED_POOL_EMPTY;
+        }
+        if (!profile.removedTags().isEmpty()) {
+            return EmptyReason.REMOVED_TAGS_EMPTY;
+        }
+        return EmptyReason.NO_COMPATIBLE_ENCHANTMENTS;
     }
 
     private static List<WeightedCandidate> buildCandidates(RegistryAccess registryAccess, ItemStack target, int level, InputProfile profile) {
@@ -406,6 +427,19 @@ public final class EnchantingRoller {
         }
     }
 
-    public record RollPreview(List<EnchantmentInstance> enchantments, int poolSize, InputProfile profile) {
+    public enum EmptyReason {
+        NONE,
+        NO_ROLL_POWER,
+        NO_COMPATIBLE_ENCHANTMENTS,
+        RESTRICTED_POOL_EMPTY,
+        REMOVED_TAGS_EMPTY,
+        ENCHANTMENT_LIMIT,
+        WEIGHT_SELECTION_FAILED
+    }
+
+    public record RollPreview(List<EnchantmentInstance> enchantments, int poolSize, InputProfile profile, EmptyReason emptyReason) {
+        public RollPreview(List<EnchantmentInstance> enchantments, int poolSize, InputProfile profile) {
+            this(enchantments, poolSize, profile, EmptyReason.NONE);
+        }
     }
 }

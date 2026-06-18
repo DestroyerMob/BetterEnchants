@@ -1,0 +1,22 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.betterenchanting.headshot"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 75,
+    "per_level_above_first": 0
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 14,
+    "per_level_above_first": 6
+  },
+  "primary_items": "#betterenchanting:enchantable/headshot",
+  "slots": [
+    "mainhand"
+  ],
+  "supported_items": "#betterenchanting:enchantable/headshot",
+  "weight": 2
+}

@@ -5,10 +5,14 @@ import com.betterenchanting.data.EnchantmentLimitRules;
 import com.betterenchanting.data.EssenceDefinitions;
 import com.betterenchanting.data.TagDisplayRules;
 import com.betterenchanting.data.TagDisplayRules.TagLabel;
+import com.betterenchanting.registry.ModEnchantments;
 import com.betterenchanting.world.EnchantmentActivationEvents;
 import com.betterenchanting.world.EnchantmentActivationEvents.InactiveReason;
 import com.betterenchanting.world.EnchantmentActivationEvents.TooltipEntry;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.Holder;
@@ -16,11 +20,13 @@ import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.TextColor;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.Enchantments;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -28,6 +34,11 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 @EventBusSubscriber(modid = BetterEnchanting.MOD_ID, value = Dist.CLIENT)
 public final class ClientTooltipEvents {
+    private static final List<SynergyDefinition> SYNERGY_DEFINITIONS = List.of(
+            new SynergyDefinition(ModEnchantments.BEHEADING, Enchantments.LOOTING, "◆", 0xFFD44D),
+            new SynergyDefinition(ModEnchantments.HEADSHOT, Enchantments.POWER, "◆◆", 0x55D6FF)
+    );
+
     private ClientTooltipEvents() {
     }
 
@@ -47,7 +58,10 @@ public final class ClientTooltipEvents {
         List<TooltipEntry> enchantmentEntries = registries == null
                 ? List.of()
                 : EnchantmentActivationEvents.tooltipEntries(stack, registries);
-        recolorEnchantmentTooltips(tooltip, enchantmentEntries);
+        List<ActiveSynergy> activeSynergies = activeSynergies(enchantmentEntries);
+        Map<ResourceKey<Enchantment>, List<SynergyMarker>> synergyMarkers = synergyMarkers(activeSynergies);
+        recolorEnchantmentTooltips(tooltip, enchantmentEntries, synergyMarkers);
+        addSynergyLines(tooltip, activeSynergies);
         addEnchantmentLimitLine(tooltip, stack, enchantmentEntries);
 
         List<TagLabel> essenceTags = essenceTags(stack);
@@ -61,7 +75,11 @@ public final class ClientTooltipEvents {
         addTagLine(tooltip, Component.translatable("tooltip.betterenchanting.can_apply_to"), targetTags);
     }
 
-    private static void recolorEnchantmentTooltips(List<Component> tooltip, List<TooltipEntry> enchantmentEntries) {
+    private static void recolorEnchantmentTooltips(
+            List<Component> tooltip,
+            List<TooltipEntry> enchantmentEntries,
+            Map<ResourceKey<Enchantment>, List<SynergyMarker>> synergyMarkers
+    ) {
         if (enchantmentEntries.isEmpty()) {
             return;
         }
@@ -72,8 +90,94 @@ public final class ClientTooltipEvents {
             if (lineIndex < 0) {
                 continue;
             }
-            tooltip.set(lineIndex, styledEnchantmentLine(entry));
+            tooltip.set(lineIndex, styledEnchantmentLine(entry, markersFor(entry, synergyMarkers)));
             searchFrom = lineIndex + 1;
+        }
+    }
+
+    private static List<ActiveSynergy> activeSynergies(List<TooltipEntry> enchantmentEntries) {
+        if (enchantmentEntries.isEmpty()) {
+            return List.of();
+        }
+
+        List<ActiveSynergy> synergies = new ArrayList<>();
+        for (SynergyDefinition definition : SYNERGY_DEFINITIONS) {
+            TooltipEntry first = activeEntry(enchantmentEntries, definition.first());
+            TooltipEntry second = activeEntry(enchantmentEntries, definition.second());
+            if (first != null && second != null) {
+                synergies.add(new ActiveSynergy(definition, first, second));
+            }
+        }
+        return synergies;
+    }
+
+    private static TooltipEntry activeEntry(List<TooltipEntry> enchantmentEntries, ResourceKey<Enchantment> key) {
+        for (TooltipEntry entry : enchantmentEntries) {
+            if (entry.status().active() && isEnchantment(entry, key)) {
+                return entry;
+            }
+        }
+        return null;
+    }
+
+    private static boolean isEnchantment(TooltipEntry entry, ResourceKey<Enchantment> key) {
+        return entry.enchantment().unwrapKey()
+                .map(key::equals)
+                .orElse(false);
+    }
+
+    private static Map<ResourceKey<Enchantment>, List<SynergyMarker>> synergyMarkers(List<ActiveSynergy> synergies) {
+        if (synergies.isEmpty()) {
+            return Map.of();
+        }
+
+        Map<ResourceKey<Enchantment>, List<SynergyMarker>> markers = new HashMap<>();
+        for (ActiveSynergy synergy : synergies) {
+            SynergyMarker marker = new SynergyMarker(synergy.definition().marker(), synergy.definition().color());
+            addSynergyMarker(markers, synergy.definition().first(), marker);
+            addSynergyMarker(markers, synergy.definition().second(), marker);
+        }
+        return markers;
+    }
+
+    private static void addSynergyMarker(
+            Map<ResourceKey<Enchantment>, List<SynergyMarker>> markers,
+            ResourceKey<Enchantment> enchantment,
+            SynergyMarker marker
+    ) {
+        markers.computeIfAbsent(enchantment, ignored -> new ArrayList<>()).add(marker);
+    }
+
+    private static List<SynergyMarker> markersFor(
+            TooltipEntry entry,
+            Map<ResourceKey<Enchantment>, List<SynergyMarker>> synergyMarkers
+    ) {
+        return entry.enchantment().unwrapKey()
+                .map(key -> synergyMarkers.getOrDefault(key, List.of()))
+                .orElse(List.of());
+    }
+
+    private static void addSynergyLines(List<Component> tooltip, List<ActiveSynergy> synergies) {
+        if (synergies.isEmpty()) {
+            return;
+        }
+
+        tooltip.add(Component.translatable("tooltip.betterenchanting.synergy_links").withStyle(ChatFormatting.DARK_GRAY));
+        for (ActiveSynergy synergy : synergies) {
+            tooltip.add(Component.empty()
+                    .append(Component.literal("  ").withStyle(ChatFormatting.DARK_GRAY))
+                    .append(synergyMarkerComponent(new SynergyMarker(
+                            synergy.definition().marker(),
+                            synergy.definition().color()
+                    )))
+                    .append(Component.literal(" ").withStyle(ChatFormatting.DARK_GRAY))
+                    .append(Enchantment.getFullname(synergy.first().enchantment(), synergy.first().level())
+                            .copy()
+                            .withStyle(ChatFormatting.GRAY))
+                    .append(Component.literal(" + ").withStyle(ChatFormatting.DARK_GRAY))
+                    .append(Enchantment.getFullname(synergy.second().enchantment(), synergy.second().level())
+                            .copy()
+                            .withStyle(ChatFormatting.GRAY)));
         }
     }
 
@@ -171,7 +275,7 @@ public final class ClientTooltipEvents {
         return lineText.equals(vanillaText) || lineText.endsWith(vanillaText);
     }
 
-    private static Component styledEnchantmentLine(TooltipEntry entry) {
+    private static Component styledEnchantmentLine(TooltipEntry entry, List<SynergyMarker> synergyMarkers) {
         MutableComponent line = Enchantment.getFullname(entry.enchantment(), entry.level()).copy()
                 .withStyle(style -> style.withColor(dominantAffinityColor(entry.enchantment())));
         if (entry.usesBonusCapacity() || entry.status().has(InactiveReason.OVER_LIMIT)) {
@@ -182,7 +286,22 @@ public final class ClientTooltipEvents {
             appendInactiveReason(line, entry, InactiveReason.WRONG_TAG);
             appendInactiveReason(line, entry, InactiveReason.OVER_LIMIT);
         }
+        appendSynergyMarkers(line, synergyMarkers);
         return line;
+    }
+
+    private static void appendSynergyMarkers(MutableComponent line, List<SynergyMarker> synergyMarkers) {
+        for (SynergyMarker marker : synergyMarkers) {
+            line.append(Component.literal(" ").withStyle(ChatFormatting.DARK_GRAY))
+                    .append(synergyMarkerComponent(marker));
+        }
+    }
+
+    private static Component synergyMarkerComponent(SynergyMarker marker) {
+        return Component.literal(marker.marker()).withStyle(style -> style
+                .withColor(TextColor.fromRgb(marker.color()))
+                .withBold(true)
+                .withItalic(false));
     }
 
     private static void appendInactiveReason(MutableComponent line, TooltipEntry entry, InactiveReason reason) {
@@ -225,5 +344,19 @@ public final class ClientTooltipEvents {
                     .withUnderlined(true)));
         }
         return line;
+    }
+
+    private record SynergyDefinition(
+            ResourceKey<Enchantment> first,
+            ResourceKey<Enchantment> second,
+            String marker,
+            int color
+    ) {
+    }
+
+    private record ActiveSynergy(SynergyDefinition definition, TooltipEntry first, TooltipEntry second) {
+    }
+
+    private record SynergyMarker(String marker, int color) {
     }
 }

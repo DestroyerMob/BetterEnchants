@@ -65,8 +65,12 @@ final class PoolModifierRules {
 
         ModifierPlanner.Plan plan = ModifierPlanner.plan(plannerInputs, slotCount, enchantmentSeed);
         ModifierInput[] directModifiers = new ModifierInput[slotCount];
+        ModifierInput[] blockingModifiers = new ModifierInput[slotCount];
         for (int option = 0; option < slotCount; option++) {
             directModifiers[option] = plan.directModifiers().get(option)
+                    .map(input -> bySlot.get(input.slot()))
+                    .orElse(null);
+            blockingModifiers[option] = plan.blockingModifiers().get(option)
                     .map(input -> bySlot.get(input.slot()))
                     .orElse(null);
         }
@@ -74,7 +78,7 @@ final class PoolModifierRules {
                 .map(input -> bySlot.get(input.slot()))
                 .toList();
 
-        return new ModifierPlan(globalModifiers, directModifiers, plan.blockedOffers());
+        return new ModifierPlan(globalModifiers, directModifiers, blockingModifiers, plan.blockedOffers());
     }
 
     static boolean blocksOffer(ModifierPlan plan, int option) {
@@ -83,6 +87,12 @@ final class PoolModifierRules {
 
     static ItemStack modifierStack(ModifierPlan plan, int option) {
         return plan.directModifier(option)
+                .map(ModifierInput::stack)
+                .orElse(ItemStack.EMPTY);
+    }
+
+    static ItemStack blockingModifierStack(ModifierPlan plan, int option) {
+        return plan.blockingModifier(option)
                 .map(ModifierInput::stack)
                 .orElse(ItemStack.EMPTY);
     }
@@ -168,11 +178,13 @@ final class PoolModifierRules {
     static final class ModifierPlan {
         private final List<ModifierInput> globalModifiers;
         private final ModifierInput[] directModifiers;
+        private final ModifierInput[] blockingModifiers;
         private final boolean[] blockedOffers;
 
-        private ModifierPlan(List<ModifierInput> globalModifiers, ModifierInput[] directModifiers, boolean[] blockedOffers) {
+        private ModifierPlan(List<ModifierInput> globalModifiers, ModifierInput[] directModifiers, ModifierInput[] blockingModifiers, boolean[] blockedOffers) {
             this.globalModifiers = globalModifiers;
             this.directModifiers = directModifiers.clone();
+            this.blockingModifiers = blockingModifiers.clone();
             this.blockedOffers = blockedOffers.clone();
         }
 
@@ -185,6 +197,13 @@ final class PoolModifierRules {
                 return java.util.Optional.empty();
             }
             return java.util.Optional.ofNullable(this.directModifiers[option]);
+        }
+
+        private java.util.Optional<ModifierInput> blockingModifier(int option) {
+            if (option < 0 || option >= this.blockingModifiers.length) {
+                return java.util.Optional.empty();
+            }
+            return java.util.Optional.ofNullable(this.blockingModifiers[option]);
         }
 
         private List<ModifierInput> globalModifiers() {

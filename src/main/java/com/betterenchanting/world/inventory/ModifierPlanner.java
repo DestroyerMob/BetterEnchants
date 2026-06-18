@@ -15,11 +15,13 @@ final class ModifierPlanner {
                 .sorted(Comparator.comparing(Input::sortKey).thenComparingInt(Input::slot))
                 .toList();
         List<Optional<Input>> directModifiers = new ArrayList<>(slotCount);
+        List<Optional<Input>> blockingModifiers = new ArrayList<>(slotCount);
         boolean[] blockedOffers = new boolean[slotCount];
         List<Input> globalModifiers = new ArrayList<>();
         List<Integer> availableOffers = new ArrayList<>();
         for (int option = 0; option < slotCount; option++) {
             directModifiers.add(Optional.empty());
+            blockingModifiers.add(Optional.empty());
             availableOffers.add(option);
         }
 
@@ -40,12 +42,13 @@ final class ModifierPlanner {
             int offerIndex = availableOffers.remove(random.nextInt(availableOffers.size()));
             if (modifier.blocksOffer()) {
                 blockedOffers[offerIndex] = true;
+                blockingModifiers.set(offerIndex, Optional.of(modifier));
             } else {
                 directModifiers.set(offerIndex, Optional.of(modifier));
             }
         }
 
-        return new Plan(List.copyOf(globalModifiers), List.copyOf(directModifiers), blockedOffers);
+        return new Plan(List.copyOf(globalModifiers), List.copyOf(directModifiers), List.copyOf(blockingModifiers), blockedOffers);
     }
 
     private static long planSeed(int enchantmentSeed, List<Input> modifiers) {
@@ -70,7 +73,7 @@ final class ModifierPlanner {
     record Input(int slot, String sortKey, boolean appliesToAllOffers, boolean blocksOffer) {
     }
 
-    record Plan(List<Input> globalModifiers, List<Optional<Input>> directModifiers, boolean[] blockedOffers) {
+    record Plan(List<Input> globalModifiers, List<Optional<Input>> directModifiers, List<Optional<Input>> blockingModifiers, boolean[] blockedOffers) {
         Plan {
             blockedOffers = blockedOffers.clone();
         }

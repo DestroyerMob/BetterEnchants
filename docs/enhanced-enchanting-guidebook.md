@@ -234,6 +234,17 @@ strength_max_amplifier = 4
 regeneration_max_amplifier = 2
 speed_max_amplifier = 0
 
+[beheading]
+base_head_drop_chance = 0.10
+head_drop_chance_per_looting_level = 0.05
+headshot_upper_eye_band = 0.20
+headshot_lower_eye_band = -0.10
+
+[headshot]
+damage_bonus_per_level = 0.10
+upper_eye_band = 0.20
+lower_eye_band = -0.10
+
 [curse_of_rebound]
 reflected_damage_ratio = 0.25
 
@@ -413,6 +424,8 @@ Verdant Regrowth uses tags for its environmental checks. By default, the growth-
 - Shocking is a Lightning weapon enchantment that applies Shocked for 5 seconds by default when the enchanted weapon deals damage.
 - Overcharged is a 5-level Lightning and Defensive enchantment for body armor. When the wearer is struck by lightning, they gain Strength, Regeneration, and Speed for 10 seconds by default. The lightning strike is not canceled; Overcharged rewards the rare strike rather than replacing lightning damage prevention.
 - Frostbite is a 5-level Frost weapon enchantment. Damaging hits add vanilla frozen ticks until the target reaches its freeze threshold, then apply Frozen for 5 seconds by default. Frozen targets are tinted blue, held at the freeze threshold, and have their movement, flying speed, and jump strength reduced to zero while remaining affected by knockback and gravity. Frostbite does not add more frost while Frozen is active.
+- Beheading is a single-level Physical and Treasure enchantment for swords and axes. When a player directly kills a supported mob or another player with a melee headshot from the enchanted weapon, Beheading can add one matching head drop. The default chance is 10%, plus 5% per active Looting level on the killing weapon, capped at one head. Player heads preserve the defeated player's profile. Looting supports the same sword and axe item pool so this synergy works on both Beheading weapon types.
+- Headshot is a 5-level Physical enchantment for ranged weapons. When a player lands a projectile headshot with an enchanted bow, crossbow, or trident, the final damage is increased by 10% per level by default. The valid headshot band and per-level bonus are configurable.
 - Curse of Fragility is a single-level Vitality and Curse enchantment for damageable items. After vanilla durability processing such as Unbreaking, it multiplies the final durability damage by `curse_of_fragility.durability_damage_multiplier`, which defaults to 2.0.
 - Curse of Rebound is a Curse affinity enchantment for weapons. When a player damages a non-player living target with a cursed weapon, 25% of the final damage dealt is reflected back to the player as thorns-style damage by default.
 - Gelbound is a single-level Mobility enchantment for boots. It negates fall damage and bounces the player upward like a slime block; sneaking suppresses the bounce and allows normal fall damage.

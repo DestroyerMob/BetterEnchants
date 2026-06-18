@@ -1,6 +1,8 @@
 {
   "values": [
+    "betterenchanting:beheading",
     "betterenchanting:curse_of_rebound",
+    "betterenchanting:headshot",
     "betterenchanting:perfect_strike",
     { "id": "minecraft:sharpness", "required": false },
     { "id": "minecraft:smite", "required": false },

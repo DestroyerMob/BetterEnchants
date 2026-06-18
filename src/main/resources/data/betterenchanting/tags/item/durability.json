@@ -1,5 +1,7 @@
 {
   "values": [
-    "#minecraft:enchantable/durability"
+    "#minecraft:enchantable/durability",
+    "minecraft:flint_and_steel",
+    "minecraft:shears"
   ]
 }

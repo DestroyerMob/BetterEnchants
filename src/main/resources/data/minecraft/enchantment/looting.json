@@ -37,6 +37,6 @@
   "slots": [
     "mainhand"
   ],
-  "supported_items": "#minecraft:enchantable/sword",
+  "supported_items": "#betterenchanting:enchantable/beheading",
   "weight": 2
 }

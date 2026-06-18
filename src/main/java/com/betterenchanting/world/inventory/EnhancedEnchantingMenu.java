@@ -45,6 +45,15 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     public static final int FIRST_MODIFIER_SLOT = 2;
     public static final int MODIFIER_SLOT_COUNT = 3;
     public static final int ENCHANTING_SLOT_COUNT = 5;
+    public static final int DISABLED_BLOCKED_BY_MODIFIER = 1;
+    public static final int DISABLED_NO_ROLL_POWER = 1 << 1;
+    public static final int DISABLED_NO_COMPATIBLE_ENCHANTMENTS = 1 << 2;
+    public static final int DISABLED_RESTRICTED_POOL_EMPTY = 1 << 3;
+    public static final int DISABLED_REMOVED_TAGS_EMPTY = 1 << 4;
+    public static final int DISABLED_ENCHANTMENT_LIMIT = 1 << 5;
+    public static final int DISABLED_WEIGHT_SELECTION_FAILED = 1 << 6;
+    public static final int DISABLED_NO_OFFER_POWER = 1 << 7;
+    public static final int DISABLED_FUSION_LIMIT = 1 << 8;
 
     private static final int PLAYER_INVENTORY_START = ENCHANTING_SLOT_COUNT;
     private static final int PLAYER_INVENTORY_END = PLAYER_INVENTORY_START + 27;
@@ -69,6 +78,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     private final int[] poolSizes = new int[]{0, 0, 0};
     private final int[] activeTagCounts = new int[]{0, 0, 0};
     private final int[] bookBoostCounts = new int[]{0, 0, 0};
+    private final int[] disabledReasonFlags = new int[]{0, 0, 0};
 
     public EnhancedEnchantingMenu(int containerId, Inventory playerInventory) {
         this(containerId, playerInventory, ContainerLevelAccess.NULL, BlockPos.ZERO);
@@ -151,6 +161,9 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         this.addDataSlot(DataSlot.shared(this.bookBoostCounts, 0));
         this.addDataSlot(DataSlot.shared(this.bookBoostCounts, 1));
         this.addDataSlot(DataSlot.shared(this.bookBoostCounts, 2));
+        this.addDataSlot(DataSlot.shared(this.disabledReasonFlags, 0));
+        this.addDataSlot(DataSlot.shared(this.disabledReasonFlags, 1));
+        this.addDataSlot(DataSlot.shared(this.disabledReasonFlags, 2));
     }
 
     @Override
@@ -180,10 +193,12 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 this.poolSizes[option] = 0;
                 this.activeTagCounts[option] = 0;
                 this.bookBoostCounts[option] = 0;
+                this.disabledReasonFlags[option] = 0;
                 this.requirements[option] = 0;
                 this.costs[option] = 0;
 
                 if (PoolModifierRules.blocksOffer(modifierPlan, option)) {
+                    this.disabledReasonFlags[option] = DISABLED_BLOCKED_BY_MODIFIER;
                     continue;
                 }
                 ItemStack modifier = modifierStack(modifierPlan, option);
@@ -200,6 +215,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 this.costs[option] = levelCost;
                 if (this.requirements[option] <= 0) {
                     this.costs[option] = 0;
+                    this.disabledReasonFlags[option] = DISABLED_NO_OFFER_POWER;
                     continue;
                 }
 
@@ -215,7 +231,12 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 this.poolSizes[option] = preview.poolSize();
                 this.activeTagCounts[option] = preview.profile().essenceTags().size();
                 this.bookBoostCounts[option] = preview.profile().bookBoostCount();
+                this.disabledReasonFlags[option] = disabledReasonFlags(preview);
                 if (!preview.enchantments().isEmpty()) {
+                    if (!canApplyWithFusion(level.registryAccess(), target, preview.enchantments())) {
+                        this.disabledReasonFlags[option] |= DISABLED_FUSION_LIMIT;
+                        continue;
+                    }
                     EnchantmentInstance clue = preview.enchantments().get(this.random.nextInt(preview.enchantments().size()));
                     this.enchantClue[option] = ids.getId(clue.enchantment);
                     this.levelClue[option] = clue.level;
@@ -386,6 +407,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         return option < 0 || option >= this.bookBoostCounts.length ? 0 : this.bookBoostCounts[option];
     }
 
+    public int getDisabledReasonFlags(int option) {
+        return option < 0 || option >= this.disabledReasonFlags.length ? 0 : this.disabledReasonFlags[option];
+    }
+
     public OptionDetails getOptionDetails(int option) {
         PoolModifierRules.ModifierPlan plan = modifierPlan();
         ItemStack target = this.enchantingSlots.getItem(TARGET_SLOT);
@@ -394,6 +419,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         return new OptionDetails(
                 EnchantingRoller.profile(target, essences, books),
                 modifierStack(plan, option).copy(),
+                PoolModifierRules.blockingModifierStack(plan, option).copy(),
                 PoolModifierRules.globalModifierStacks(plan).stream().map(ItemStack::copy).toList(),
                 books.stream().map(ItemStack::copy).toList()
         );
@@ -413,6 +439,21 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
     private List<ItemStack> optionBookStacks(PoolModifierRules.ModifierPlan plan, int option) {
         return PoolModifierRules.optionBooks(plan, option);
+    }
+
+    private static int disabledReasonFlags(EnchantingRoller.RollPreview preview) {
+        if (!preview.enchantments().isEmpty()) {
+            return 0;
+        }
+        return switch (preview.emptyReason()) {
+            case NONE -> DISABLED_NO_COMPATIBLE_ENCHANTMENTS;
+            case NO_ROLL_POWER -> DISABLED_NO_ROLL_POWER;
+            case NO_COMPATIBLE_ENCHANTMENTS -> DISABLED_NO_COMPATIBLE_ENCHANTMENTS;
+            case RESTRICTED_POOL_EMPTY -> DISABLED_RESTRICTED_POOL_EMPTY;
+            case REMOVED_TAGS_EMPTY -> DISABLED_REMOVED_TAGS_EMPTY;
+            case ENCHANTMENT_LIMIT -> DISABLED_ENCHANTMENT_LIMIT;
+            case WEIGHT_SELECTION_FAILED -> DISABLED_WEIGHT_SELECTION_FAILED;
+        };
     }
 
     private static boolean canApplyWithFusion(RegistryAccess registryAccess, ItemStack target, List<EnchantmentInstance> enchantments) {
@@ -440,6 +481,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             this.enchantClue[index] = -1;
             this.levelClue[index] = -1;
             this.poolSizes[index] = 0;
+            this.disabledReasonFlags[index] = 0;
         }
         for (int index = 0; index < 3; index++) {
             this.activeTagCounts[index] = 0;
@@ -451,6 +493,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     public record OptionDetails(
             EnchantingRoller.InputProfile profile,
             ItemStack directModifier,
+            ItemStack blockingModifier,
             List<ItemStack> globalModifiers,
             List<ItemStack> bookModifiers
     ) {

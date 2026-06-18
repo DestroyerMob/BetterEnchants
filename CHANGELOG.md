@@ -24,4 +24,11 @@ All notable changes to Better Enchanting will be documented in this file.
 - Added Frostbite, a Frost weapon enchantment that stacks vanilla frozen ticks into a temporary Frozen immobilize effect.
 - Added Cinderstep, a Fire boot enchantment that grants a short speed boost after taking fire damage.
 - Added Overcharged, a Lightning and Defensive body-armor enchantment that grants Strength, Regeneration, and Speed after the wearer is struck by lightning.
+- Added Beheading, a sword and axe enchantment that can add one head drop from melee headshot kills against supported mobs and players, with Looting increasing the drop chance.
+- Allowed Looting on axes so Beheading's Looting synergy works across both supported weapon types.
+- Added Headshot, a 5-level ranged weapon enchantment that increases projectile damage on confirmed headshots.
+- Fixed a startup crash caused by Cinderstep reading common config values during mob-effect registration before NeoForge had loaded config.
+- Allowed zero-enchantability tag-targeted tools such as shears and flint and steel to receive enhanced enchanting offers.
+- Added built-in default target-tag rules so item target resolution works before datapack reloads provide custom rules.
+- Added disabled-offer tooltip reasons for blocked modifiers, empty pools, item enchantment limits, fusion-capacity failures, level costs, and lapis costs.
 - Added Enchantment Descriptions compatibility keys for all Better Enchanting enchantments.

@@ -51,6 +51,10 @@ class ModifierPlannerTest {
                 .map(ModifierPlanner.Input::sortKey)
                 .toList());
         assertEquals(1, blockedOfferCount(plan));
+        assertEquals(List.of("betterenchanting:purification_essence"), plan.blockingModifiers().stream()
+                .flatMap(java.util.Optional::stream)
+                .map(ModifierPlanner.Input::sortKey)
+                .toList());
     }
 
     private static ModifierPlanner.Input input(int slot, String sortKey) {

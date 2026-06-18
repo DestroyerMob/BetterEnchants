@@ -146,7 +146,8 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                 int textColor = 6839882;
                 boolean disabled = (lapisCost > 0 && lapisCount < lapisCost || this.minecraft.player.experienceLevel < Math.max(requiredLevel, xpCost))
                         && !this.minecraft.player.getAbilities().instabuild
-                        || this.menu.enchantClue[option] == -1;
+                        || this.menu.enchantClue[option] == -1
+                        || this.menu.getDisabledReasonFlags(option) != 0;
 
                 if (disabled) {
                     RenderSystem.enableBlend();
@@ -243,25 +244,29 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
         for (int option = 0; option < 3; option++) {
             int requiredLevel = this.menu.requirements[option];
             int xpCost = this.menu.costs[option];
-            Optional<Holder.Reference<Enchantment>> clue = this.minecraft
-                    .level
-                    .registryAccess()
-                    .registryOrThrow(Registries.ENCHANTMENT)
-                    .getHolder(this.menu.enchantClue[option]);
-
-            if (this.isHovering(60, 14 + 19 * option, 108, 17, mouseX, mouseY) && requiredLevel > 0 && xpCost > 0) {
+            if (this.isHovering(60, 14 + 19 * option, 108, 17, mouseX, mouseY)) {
+                Optional<Holder.Reference<Enchantment>> clue = this.minecraft
+                        .level
+                        .registryAccess()
+                        .registryOrThrow(Registries.ENCHANTMENT)
+                        .getHolder(this.menu.enchantClue[option]);
                 int clueLevel = this.menu.levelClue[option];
                 int lapisCost = this.menu.getLapisCost();
                 List<Component> tooltip = Lists.newArrayList();
-                tooltip.add(Component.translatable(
-                        "container.enchant.clue",
-                        clue.<Component>map(holder -> coloredClueName(holder, clueLevel)).orElse(CommonComponents.EMPTY)
-                ).withStyle(ChatFormatting.WHITE));
+                boolean hasOfferPower = requiredLevel > 0 && xpCost > 0;
+                OptionDetails details = this.menu.getOptionDetails(option);
+                if (hasOfferPower) {
+                    tooltip.add(Component.translatable(
+                            "container.enchant.clue",
+                            clue.<Component>map(holder -> coloredClueName(holder, clueLevel)).orElse(CommonComponents.EMPTY)
+                    ).withStyle(ChatFormatting.WHITE));
+                } else {
+                    tooltip.add(Component.translatable("tooltip.betterenchanting.option.unavailable").withStyle(ChatFormatting.WHITE));
+                }
 
-                if (clue.isEmpty()) {
-                    tooltip.add(CommonComponents.EMPTY);
-                    tooltip.add(Component.translatable("neoforge.container.enchant.limitedEnchantability").withStyle(ChatFormatting.RED));
-                } else if (!creative) {
+                addDisabledReasonLines(tooltip, option, details, requiredLevel, xpCost, lapisCost, lapisCount, creative, clue.isEmpty());
+
+                if (clue.isPresent() && hasOfferPower && !creative) {
                     tooltip.add(CommonComponents.EMPTY);
                     boolean meetsRequirement = this.minecraft.player.experienceLevel >= requiredLevel;
                     boolean canPayLevels = this.minecraft.player.experienceLevel >= xpCost;
@@ -282,7 +287,7 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                 }
 
                 tooltip.add(CommonComponents.EMPTY);
-                this.addSystemTooltipLines(tooltip, option);
+                this.addSystemTooltipLines(tooltip, option, details);
                 guiGraphics.renderComponentTooltip(this.font, tooltip, mouseX, mouseY);
                 return;
             }
@@ -290,7 +295,10 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
     }
 
     private void addSystemTooltipLines(List<Component> tooltip, int option) {
-        OptionDetails details = this.menu.getOptionDetails(option);
+        addSystemTooltipLines(tooltip, option, this.menu.getOptionDetails(option));
+    }
+
+    private void addSystemTooltipLines(List<Component> tooltip, int option, OptionDetails details) {
         tooltip.add(detailLine(
                 "tooltip.betterenchanting.option.mode",
                 Component.translatable(details.profile().restricted()
@@ -306,6 +314,9 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
         if (!details.directModifier().isEmpty()) {
             tooltip.add(detailLine("tooltip.betterenchanting.option.direct_modifier", details.directModifier().getHoverName()));
         }
+        if (!details.blockingModifier().isEmpty()) {
+            tooltip.add(detailLine("tooltip.betterenchanting.option.blocking_modifier", details.blockingModifier().getHoverName()));
+        }
         if (!details.globalModifiers().isEmpty()) {
             tooltip.add(detailLine("tooltip.betterenchanting.option.global_modifier", joinedItemNames(details.globalModifiers())));
         }
@@ -315,6 +326,71 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
             tooltip.add(detailLine("tooltip.betterenchanting.option.book_boost", bookBoosts));
         }
         tooltip.add(detailLine("tooltip.betterenchanting.option.pool", Component.literal(Integer.toString(this.menu.getPoolSize(option)))));
+    }
+
+    private void addDisabledReasonLines(
+            List<Component> tooltip,
+            int option,
+            OptionDetails details,
+            int requiredLevel,
+            int xpCost,
+            int lapisCost,
+            int lapisCount,
+            boolean creative,
+            boolean missingClue
+    ) {
+        List<Component> reasons = Lists.newArrayList();
+        int flags = this.menu.getDisabledReasonFlags(option);
+        if ((flags & EnhancedEnchantingMenu.DISABLED_BLOCKED_BY_MODIFIER) != 0) {
+            Component blocker = details.blockingModifier().isEmpty()
+                    ? Component.translatable("tooltip.betterenchanting.option.modifier")
+                    : details.blockingModifier().getHoverName();
+            reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.blocked_by_modifier", blocker).withStyle(ChatFormatting.RED));
+        }
+        if ((flags & EnhancedEnchantingMenu.DISABLED_NO_ROLL_POWER) != 0) {
+            reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.no_roll_power").withStyle(ChatFormatting.RED));
+        }
+        if ((flags & EnhancedEnchantingMenu.DISABLED_NO_COMPATIBLE_ENCHANTMENTS) != 0) {
+            reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.no_compatible_enchantments").withStyle(ChatFormatting.RED));
+        }
+        if ((flags & EnhancedEnchantingMenu.DISABLED_RESTRICTED_POOL_EMPTY) != 0) {
+            reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.restricted_pool_empty").withStyle(ChatFormatting.RED));
+        }
+        if ((flags & EnhancedEnchantingMenu.DISABLED_REMOVED_TAGS_EMPTY) != 0) {
+            reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.removed_tags_empty").withStyle(ChatFormatting.RED));
+        }
+        if ((flags & EnhancedEnchantingMenu.DISABLED_ENCHANTMENT_LIMIT) != 0) {
+            reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.enchantment_limit").withStyle(ChatFormatting.RED));
+        }
+        if ((flags & EnhancedEnchantingMenu.DISABLED_WEIGHT_SELECTION_FAILED) != 0) {
+            reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.weight_selection_failed").withStyle(ChatFormatting.RED));
+        }
+        if ((flags & EnhancedEnchantingMenu.DISABLED_NO_OFFER_POWER) != 0) {
+            reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.no_offer_power").withStyle(ChatFormatting.RED));
+        }
+        if ((flags & EnhancedEnchantingMenu.DISABLED_FUSION_LIMIT) != 0) {
+            reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.fusion_limit").withStyle(ChatFormatting.RED));
+        }
+        if (!creative && requiredLevel > 0 && xpCost > 0) {
+            if (lapisCost > 0 && lapisCount < lapisCost) {
+                reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.not_enough_lapis", lapisCost).withStyle(ChatFormatting.RED));
+            }
+            if (requiredLevel > 0 && this.minecraft.player.experienceLevel < requiredLevel) {
+                reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.not_enough_level", requiredLevel).withStyle(ChatFormatting.RED));
+            } else if (xpCost > 0 && this.minecraft.player.experienceLevel < xpCost) {
+                reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.not_enough_xp_cost", xpCost).withStyle(ChatFormatting.RED));
+            }
+        }
+        if (flags == 0 && missingClue && requiredLevel > 0 && xpCost > 0) {
+            reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.no_clue").withStyle(ChatFormatting.RED));
+        }
+        if (reasons.isEmpty()) {
+            return;
+        }
+
+        tooltip.add(CommonComponents.EMPTY);
+        tooltip.add(Component.translatable("tooltip.betterenchanting.option.disabled").withStyle(ChatFormatting.RED));
+        tooltip.addAll(reasons);
     }
 
     private static Component detailLine(String key, Component value) {
