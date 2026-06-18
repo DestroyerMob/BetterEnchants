@@ -1,10 +1,10 @@
 {
   "parent": "minecraft:block/block",
   "textures": {
-    "particle": "minecraft:block/enchanting_table_bottom",
-    "bottom": "minecraft:block/enchanting_table_bottom",
-    "top": "minecraft:block/enchanting_table_top",
-    "side": "minecraft:block/enchanting_table_side"
+    "particle": "betterenchanting:block/arcane_crucible_bottom",
+    "bottom": "betterenchanting:block/arcane_crucible_bottom",
+    "top": "betterenchanting:block/arcane_crucible_top",
+    "side": "betterenchanting:block/arcane_crucible_side"
   },
   "elements": [
     {

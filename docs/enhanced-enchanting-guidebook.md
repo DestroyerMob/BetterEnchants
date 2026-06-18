@@ -126,6 +126,8 @@ Essence of Purification is a special modifier defined through essence behavior f
 
 Enchanting limits are data-driven and loaded from `data/betterenchanting/better_enchanting/enchantment_limits/*.json`.
 
+The common config option `enchanting.override_vanilla_enchantment_limits` controls whether these Better Enchanting limit systems are active. It defaults to `true`. When set to `false`, Better Enchanting's table and anvil paths clamp vanilla enchantments back to their known vanilla max levels and stop enforcing the custom per-item enchantment capacity limits.
+
 Default rules:
 
 - Global base maximum: 6 enchantments
@@ -156,7 +158,7 @@ Material bonus keys map to item tags. For example, `"gold": 1` uses `#betterench
 
 Material tags are defined for vanilla tool, weapon, and armor materials under `data/betterenchanting/tags/item/materials/`, including wood, stone, iron, gold, diamond, netherite, leather, chainmail, turtle, copper, heavy core, and prismarine.
 
-Silent Gear tools, weapons, and armor are also treated as having virtual Better Enchanting material tags based on the primary material of their main part. No item tag JSON is required for those virtual tags. A Silent Gear item with a `silentgear:mythril` head/main part resolves as `#betterenchanting:materials/mythril` and `#betterenchanting:materials/silentgear/mythril` for target mappings, testing, material bonuses, and current-material checks. Coatings do not change the material tag used here.
+Silent Gear tools, weapons, and armor are also treated as having virtual Better Enchanting material tags based on the primary material of their main part. No item tag JSON is required for those virtual tags. A Silent Gear item with a `silentgear:mythril` head/main part resolves as `#betterenchanting:materials/mythril` and `#betterenchanting:materials/silentgear/mythril` for target mappings, testing, material bonuses, and current-material checks. Vanilla wood-family materials such as oak, spruce, birch, crimson, warped, bamboo, and similar variants are normalized to `#betterenchanting:materials/wood` instead of creating per-species wood tags. Coatings do not change the material tag used here.
 
 Silent Gear virtual material tags can apply `material_bonus` capacity increases. Enchantments that fit only because of that material bonus are marked as bonus-capacity enchantments in the tooltip. If the Silent Gear head or armor part is swapped and the new material no longer provides the bonus, those later enchantments become over-limit and dormant instead of being deleted.
 
@@ -177,6 +179,7 @@ enchantment_level_merge = "additive"
 
 [enchanting]
 enhanced_table_takeover = true
+override_vanilla_enchantment_limits = true
 max_bookshelf_power = 15
 min_base_cost = 1
 max_base_cost = 30

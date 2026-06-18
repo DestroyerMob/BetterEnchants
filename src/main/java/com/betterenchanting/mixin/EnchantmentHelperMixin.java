@@ -2,6 +2,7 @@ package com.betterenchanting.mixin;
 
 import com.betterenchanting.config.BetterEnchantingConfig;
 import com.betterenchanting.config.EffectiveBalance;
+import com.betterenchanting.data.EnchantmentLevelRules;
 import com.betterenchanting.registry.ModEnchantments;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
@@ -53,7 +54,7 @@ public abstract class EnchantmentHelperMixin {
         return level.registryAccess()
                 .registryOrThrow(Registries.ENCHANTMENT)
                 .getHolder(Enchantments.MENDING)
-                .map(stack::getEnchantmentLevel)
+                .map(holder -> EnchantmentLevelRules.clampLevel(holder, stack.getEnchantmentLevel(holder)))
                 .orElse(0);
     }
 
@@ -61,7 +62,7 @@ public abstract class EnchantmentHelperMixin {
         return level.registryAccess()
                 .registryOrThrow(Registries.ENCHANTMENT)
                 .getHolder(ModEnchantments.CURSE_OF_FRAGILITY)
-                .map(stack::getEnchantmentLevel)
+                .map(holder -> EnchantmentLevelRules.clampLevel(holder, stack.getEnchantmentLevel(holder)))
                 .orElse(0);
     }
 }

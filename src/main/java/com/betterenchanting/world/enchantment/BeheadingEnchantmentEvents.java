@@ -1,6 +1,7 @@
 package com.betterenchanting.world.enchantment;
 
 import com.betterenchanting.config.EffectiveBalance;
+import com.betterenchanting.data.EnchantmentLevelRules;
 import com.betterenchanting.registry.ModEnchantments;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
@@ -124,7 +125,7 @@ public final class BeheadingEnchantmentEvents {
         return level.registryAccess()
                 .registryOrThrow(Registries.ENCHANTMENT)
                 .getHolder(enchantment)
-                .map(stack::getEnchantmentLevel)
+                .map(holder -> EnchantmentLevelRules.clampLevel(holder, stack.getEnchantmentLevel(holder)))
                 .orElse(0);
     }
 }

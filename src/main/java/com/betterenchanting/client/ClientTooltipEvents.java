@@ -182,7 +182,7 @@ public final class ClientTooltipEvents {
     }
 
     private static void addEnchantmentLimitLine(List<Component> tooltip, ItemStack stack, List<TooltipEntry> enchantmentEntries) {
-        if (stack.is(Items.BOOK) || stack.is(Items.ENCHANTED_BOOK)) {
+        if (!EnchantmentLimitRules.overridesVanillaLimits() || stack.is(Items.BOOK) || stack.is(Items.ENCHANTED_BOOK)) {
             return;
         }
 

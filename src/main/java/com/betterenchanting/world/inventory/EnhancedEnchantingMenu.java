@@ -2,6 +2,7 @@ package com.betterenchanting.world.inventory;
 
 import com.mojang.datafixers.util.Pair;
 import com.betterenchanting.config.EffectiveBalance;
+import com.betterenchanting.data.EnchantmentLevelRules;
 import com.betterenchanting.data.EnchantmentLimitRules;
 import com.betterenchanting.registry.ModBlocks;
 import com.betterenchanting.registry.ModMenus;
@@ -292,6 +293,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             player.onEnchantmentPerformed(target, xpCost);
             ItemStack enchanted = target.getItem().applyEnchantments(target, enchantments);
             FortunesTouchEnchantmentEvents.fuseFortunesTouch(level.registryAccess(), enchanted);
+            EnchantmentLevelRules.clampEnchantments(enchanted);
             this.enchantingSlots.setItem(TARGET_SLOT, enchanted);
             net.neoforged.neoforge.common.CommonHooks.onPlayerEnchantItem(player, enchanted, enchantments);
 
@@ -457,9 +459,14 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     }
 
     private static boolean canApplyWithFusion(RegistryAccess registryAccess, ItemStack target, List<EnchantmentInstance> enchantments) {
+        if (!EnchantmentLimitRules.overridesVanillaLimits()) {
+            return true;
+        }
+
         ItemStack simulatedTarget = target.copy();
         ItemStack simulatedResult = simulatedTarget.getItem().applyEnchantments(simulatedTarget, enchantments);
         FortunesTouchEnchantmentEvents.fuseFortunesTouch(registryAccess, simulatedResult);
+        EnchantmentLevelRules.clampEnchantments(simulatedResult);
         return EnchantmentLimitRules.currentEnchantmentCount(simulatedResult) <= EnchantmentLimitRules.maxEnchantments(simulatedResult);
     }
 

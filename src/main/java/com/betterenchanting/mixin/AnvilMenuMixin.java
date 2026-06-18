@@ -2,6 +2,7 @@ package com.betterenchanting.mixin;
 
 import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.data.EnchantmentFusionRecipes;
+import com.betterenchanting.data.EnchantmentLevelRules;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
@@ -43,6 +44,7 @@ public abstract class AnvilMenuMixin {
             betterenchanting$applyAdditiveAnvilLevels(menu);
         }
         EnchantmentFusionRecipes.apply(betterenchanting$getPlayer().level().registryAccess(), menu.getSlot(AnvilMenu.RESULT_SLOT).getItem());
+        EnchantmentLevelRules.clampEnchantments(menu.getSlot(AnvilMenu.RESULT_SLOT).getItem());
 
         if (betterenchanting$isMaterialRepair(menu)) {
             this.cost.set(0);
@@ -113,7 +115,7 @@ public abstract class AnvilMenuMixin {
                 int leftLevel = leftEnchantments.getLevel(enchantment);
                 int rightLevel = entry.getIntValue();
                 if (leftLevel > 0 && rightLevel > 0 && mutable.getLevel(enchantment) > 0) {
-                    mutable.set(enchantment, leftLevel + rightLevel);
+                    mutable.set(enchantment, EnchantmentLevelRules.clampLevel(enchantment, leftLevel + rightLevel));
                 }
             }
         });

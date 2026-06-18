@@ -218,6 +218,10 @@ public final class EffectiveBalance {
         return values == null ? BetterEnchantingConfig.takesOverEnchantingTable() : values.enhancedTableTakeover();
     }
 
+    public static boolean overridesVanillaEnchantmentLimits() {
+        return BetterEnchantingConfig.overridesVanillaEnchantmentLimits();
+    }
+
     public static int maxBookshelfPower() {
         BalanceValues values = presetValues();
         return values == null ? BetterEnchantingConfig.maxBookshelfPower() : values.maxBookshelfPower();

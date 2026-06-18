@@ -10,6 +10,7 @@ public final class BetterEnchantingConfig {
     private static final ModConfigSpec.IntValue ANVIL_MAX_COST;
     private static final ModConfigSpec.EnumValue<AnvilLevelMergeMode> ANVIL_LEVEL_MERGE_MODE;
     private static final ModConfigSpec.BooleanValue ENHANCED_TABLE_TAKEOVER;
+    private static final ModConfigSpec.BooleanValue OVERRIDE_VANILLA_ENCHANTMENT_LIMITS;
     private static final ModConfigSpec.IntValue ENCHANTING_MAX_BOOKSHELF_POWER;
     private static final ModConfigSpec.IntValue ENCHANTING_MIN_BASE_COST;
     private static final ModConfigSpec.IntValue ENCHANTING_MAX_BASE_COST;
@@ -104,6 +105,9 @@ public final class BetterEnchantingConfig {
         ENHANCED_TABLE_TAKEOVER = builder
                 .comment("When true, vanilla enchanting tables open Better Enchanting's enhanced UI. Disable this to leave vanilla/other mods' enchanting table behavior alone and use the Arcane Crucible block instead.")
                 .define("enhanced_table_takeover", true);
+        OVERRIDE_VANILLA_ENCHANTMENT_LIMITS = builder
+                .comment("When true, Better Enchanting applies its raised vanilla enchantment max levels and item enchantment capacity rules. When false, Better Enchanting's table and anvil paths clamp vanilla enchantments to their vanilla max levels and do not enforce Better Enchanting's per-item capacity limits.")
+                .define("override_vanilla_enchantment_limits", true);
         ENCHANTING_MAX_BOOKSHELF_POWER = builder
                 .comment("Bookshelf power used as the maximum for enhanced enchanting requirements, charged-level bands, and roll quality.")
                 .defineInRange("max_bookshelf_power", 15, 0, 64);
@@ -392,6 +396,10 @@ public final class BetterEnchantingConfig {
 
     public static boolean takesOverEnchantingTable() {
         return ENHANCED_TABLE_TAKEOVER.get();
+    }
+
+    public static boolean overridesVanillaEnchantmentLimits() {
+        return OVERRIDE_VANILLA_ENCHANTMENT_LIMITS.get();
     }
 
     public static int maxBookshelfPower() {

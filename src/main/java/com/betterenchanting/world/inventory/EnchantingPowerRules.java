@@ -1,6 +1,7 @@
 package com.betterenchanting.world.inventory;
 
 import com.betterenchanting.config.EffectiveBalance;
+import com.betterenchanting.compat.SilentGearCompat;
 import com.betterenchanting.registry.ModTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
@@ -51,7 +52,7 @@ final class EnchantingPowerRules {
         } else if (PoolModifierRules.isEnchantedBook(modifier)) {
             power += EffectiveBalance.bookPowerBonus();
         }
-        if (target.is(ModTags.Items.MATERIAL_GOLD)) {
+        if (target.is(ModTags.Items.MATERIAL_GOLD) || SilentGearCompat.hasMaterialItemTag(target, ModTags.Items.MATERIAL_GOLD)) {
             power += EffectiveBalance.goldMaterialPowerBonus();
         }
         return Math.max(1, power);

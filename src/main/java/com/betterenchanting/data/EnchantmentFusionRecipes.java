@@ -55,9 +55,10 @@ public final class EnchantmentFusionRecipes {
                         continue;
                     }
 
-                    int resultLevel = recipe.resultLevel(mutable);
+                    int resultLevel = EnchantmentLevelRules.clampLevel(recipe.result(), recipe.resultLevel(mutable));
+                    int currentResultLevel = EnchantmentLevelRules.clampLevel(recipe.result(), mutable.getLevel(recipe.result()));
                     mutable.removeIf(recipe::isIngredient);
-                    mutable.set(recipe.result(), Math.max(resultLevel, mutable.getLevel(recipe.result())));
+                    mutable.set(recipe.result(), Math.max(resultLevel, currentResultLevel));
                     changed[0] = true;
                     changedThisPass = true;
                 }

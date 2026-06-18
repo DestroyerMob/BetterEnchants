@@ -1,6 +1,7 @@
 package com.betterenchanting.data;
 
 import com.betterenchanting.BetterEnchanting;
+import com.betterenchanting.compat.SilentGearCompat;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -44,15 +45,24 @@ public final class TagDisplayRules {
     }
 
     public static List<TagLabel> itemLabels(ItemStack stack) {
-        List<ResourceLocation> ids = new ArrayList<>();
+        Set<ResourceLocation> ids = new LinkedHashSet<>();
         Map<ResourceLocation, TagLabel> labelsById = new LinkedHashMap<>();
+        List<ResourceLocation> virtualMaterialTags = SilentGearCompat.materialItemTags(stack);
+        boolean displayedVirtualMaterial = false;
         for (DisplayTag tag : itemTags) {
             labelsById.put(tag.id(), tag.label());
-            if (stack.is(TagKey.create(Registries.ITEM, tag.id()))) {
+            boolean virtualMatch = virtualMaterialTags.contains(tag.id());
+            if (stack.is(TagKey.create(Registries.ITEM, tag.id())) || virtualMatch) {
                 ids.add(tag.id());
+                displayedVirtualMaterial |= virtualMatch;
             }
         }
-        return labelsFor(ids, labelsById);
+        if (!displayedVirtualMaterial && !virtualMaterialTags.isEmpty()) {
+            ResourceLocation primaryVirtualTag = virtualMaterialTags.getFirst();
+            labelsById.putIfAbsent(primaryVirtualTag, labelFor(primaryVirtualTag));
+            ids.add(primaryVirtualTag);
+        }
+        return labelsFor(List.copyOf(ids), labelsById);
     }
 
     public static List<TagLabel> enchantmentLabels(ItemStack stack) {
@@ -64,6 +74,11 @@ public final class TagDisplayRules {
     }
 
     public static TagLabel labelFor(ResourceLocation tag) {
+        for (DisplayTag candidate : itemTags) {
+            if (candidate.id().equals(tag)) {
+                return candidate.label();
+            }
+        }
         for (DisplayTag candidate : enchantmentTags) {
             if (candidate.id().equals(tag)) {
                 return candidate.label();

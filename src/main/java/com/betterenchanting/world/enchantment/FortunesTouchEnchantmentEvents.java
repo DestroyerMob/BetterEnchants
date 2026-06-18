@@ -2,6 +2,7 @@ package com.betterenchanting.world.enchantment;
 
 import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.data.EnchantmentFusionRecipes;
+import com.betterenchanting.data.EnchantmentLevelRules;
 import com.betterenchanting.registry.ModEnchantments;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -64,7 +65,7 @@ public final class FortunesTouchEnchantmentEvents {
 
         return registryAccess.registryOrThrow(Registries.ENCHANTMENT)
                 .getHolder(ModEnchantments.FORTUNES_TOUCH)
-                .map(stack::getEnchantmentLevel)
+                .map(holder -> EnchantmentLevelRules.clampLevel(holder, stack.getEnchantmentLevel(holder)))
                 .orElse(0);
     }
 

@@ -2,6 +2,7 @@ package com.betterenchanting.data;
 
 import com.betterenchanting.BetterEnchanting;
 import com.betterenchanting.compat.SilentGearCompat;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.registry.ModTags;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -38,10 +39,16 @@ public final class EnchantmentLimitRules {
     }
 
     public static int maxEnchantments(ItemStack stack) {
+        if (!overridesVanillaLimits()) {
+            return Integer.MAX_VALUE;
+        }
         return rules.maxEnchantments(stack);
     }
 
     public static int baseMaxEnchantments(ItemStack stack) {
+        if (!overridesVanillaLimits()) {
+            return Integer.MAX_VALUE;
+        }
         return rules.baseMaxEnchantments(stack);
     }
 
@@ -53,10 +60,16 @@ public final class EnchantmentLimitRules {
     }
 
     public static int remainingCapacity(ItemStack stack) {
+        if (!overridesVanillaLimits()) {
+            return Integer.MAX_VALUE;
+        }
         return Math.max(0, maxEnchantments(stack) - currentEnchantmentCount(stack));
     }
 
     public static boolean canApplyAll(ItemStack target, Iterable<EnchantmentInstance> additions) {
+        if (!overridesVanillaLimits()) {
+            return true;
+        }
         Map<Holder<Enchantment>, Integer> enchantments = new HashMap<>();
         addEnchantments(enchantments, target.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY));
         addEnchantments(enchantments, target.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY));
@@ -64,6 +77,10 @@ public final class EnchantmentLimitRules {
             enchantments.put(addition.enchantment, addition.level);
         }
         return enchantments.size() <= maxEnchantments(target);
+    }
+
+    public static boolean overridesVanillaLimits() {
+        return EffectiveBalance.overridesVanillaEnchantmentLimits();
     }
 
     private static void addEnchantments(Map<Holder<Enchantment>, Integer> enchantments, ItemEnchantments source) {

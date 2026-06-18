@@ -4,6 +4,7 @@ import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.data.EssenceDefinition;
 import com.betterenchanting.data.EssenceDefinitions;
 import com.betterenchanting.data.EnchantmentFusionRecipes;
+import com.betterenchanting.data.EnchantmentLevelRules;
 import com.betterenchanting.data.EnchantmentLimitRules;
 import com.betterenchanting.data.TagSimplifier;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -64,6 +65,7 @@ public final class EnchantingRoller {
         InputProfile profile = profile(target, essences, books);
         Set<Holder<Enchantment>> existingEnchantments = existingEnchantments(target);
         int maxEnchantments = EnchantmentLimitRules.maxEnchantments(target);
+        int selectionLimit = selectionLimit(maxEnchantments);
         int level = adjustedLevel(random, target, cost);
         if (level <= 0) {
             return new RollPreview(List.of(), 0, profile, EmptyReason.NO_ROLL_POWER);
@@ -87,7 +89,7 @@ public final class EnchantingRoller {
         representedEssenceTags.addAll(first.matchingEssenceTags());
         Set<Holder<Enchantment>> selectedEnchantments = new LinkedHashSet<>();
         selectedEnchantments.add(first.instance().enchantment);
-        while (selected.size() < maxEnchantments + 1 && random.nextInt(EffectiveBalance.rollerMultiEnchantRollBound()) <= level) {
+        while (selected.size() < selectionLimit && random.nextInt(EffectiveBalance.rollerMultiEnchantRollBound()) <= level) {
             candidates.removeIf(candidate -> selectedEnchantments.contains(candidate.instance().enchantment)
                     || EnchantmentFusionRecipes.conflictsWithFusionIngredient(registryAccess, candidate.instance().enchantment, selectedEnchantments)
                     || conflictsWithExisting(registryAccess, candidate.instance().enchantment, selectedEnchantments));
@@ -204,12 +206,12 @@ public final class EnchantingRoller {
                 return;
             }
 
-            int rolledLevel = bestLevelForCost(holder.value(), level);
+            int rolledLevel = bestLevelForCost(holder, level);
             if (rolledLevel <= 0 && bookBoost == null) {
                 return;
             }
 
-            int finalLevel = bookBoost == null ? rolledLevel : Math.max(rolledLevel, bookBoost.level());
+            int finalLevel = EnchantmentLevelRules.clampLevel(holder, bookBoost == null ? rolledLevel : Math.max(rolledLevel, bookBoost.level()));
             if (finalLevel <= 0) {
                 return;
             }
@@ -243,6 +245,13 @@ public final class EnchantingRoller {
         for (Object2IntMap.Entry<Holder<Enchantment>> entry : source.entrySet()) {
             enchantments.add(entry.getKey());
         }
+    }
+
+    private static int selectionLimit(int maxEnchantments) {
+        if (!EnchantmentLimitRules.overridesVanillaLimits() || maxEnchantments == Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return Math.max(1, maxEnchantments + 1);
     }
 
     private static boolean conflictsWithExisting(
@@ -282,6 +291,10 @@ public final class EnchantingRoller {
             Holder<Enchantment> candidate,
             int maxEnchantments
     ) {
+        if (!EnchantmentLimitRules.overridesVanillaLimits()) {
+            return true;
+        }
+
         Set<Holder<Enchantment>> enchantments = new LinkedHashSet<>(existingEnchantments);
         enchantments.addAll(selectedEnchantments);
         enchantments.add(candidate);
@@ -305,9 +318,9 @@ public final class EnchantingRoller {
         return boosts;
     }
 
-    private static int bestLevelForCost(Enchantment enchantment, int level) {
-        for (int enchantmentLevel = enchantment.getMaxLevel(); enchantmentLevel >= enchantment.getMinLevel(); enchantmentLevel--) {
-            if (level >= enchantment.getMinCost(enchantmentLevel) && level <= enchantment.getMaxCost(enchantmentLevel)) {
+    private static int bestLevelForCost(Holder<Enchantment> enchantment, int level) {
+        for (int enchantmentLevel = EnchantmentLevelRules.maxLevel(enchantment); enchantmentLevel >= enchantment.value().getMinLevel(); enchantmentLevel--) {
+            if (level >= enchantment.value().getMinCost(enchantmentLevel) && level <= enchantment.value().getMaxCost(enchantmentLevel)) {
                 return enchantmentLevel;
             }
         }
