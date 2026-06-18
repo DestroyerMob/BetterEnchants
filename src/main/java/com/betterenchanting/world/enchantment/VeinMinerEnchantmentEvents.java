@@ -1,6 +1,6 @@
 package com.betterenchanting.world.enchantment;
 
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.registry.ModEnchantments;
 import java.util.ArrayDeque;
 import java.util.HashSet;
@@ -41,7 +41,7 @@ public final class VeinMinerEnchantmentEvents {
 
         VEIN_MINING.set(true);
         try {
-            veinMine(level, player, event.getPos(), originState, veinMinerLevel * BetterEnchantingConfig.veinMinerConnectedBlocksPerLevel());
+            veinMine(level, player, event.getPos(), originState, veinMinerLevel * EffectiveBalance.veinMinerConnectedBlocksPerLevel());
         } finally {
             VEIN_MINING.set(false);
         }

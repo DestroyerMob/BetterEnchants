@@ -1,6 +1,6 @@
 package com.betterenchanting.world.level.block;
 
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.registry.ModBlocks;
 import com.betterenchanting.world.inventory.EnhancedEnchantingMenu;
 import net.minecraft.core.BlockPos;
@@ -32,7 +32,7 @@ public final class EnchantingTableEvents {
         BlockPos pos = event.getPos();
         BlockState state = level.getBlockState(pos);
         boolean isCrucible = state.is(ModBlocks.ARCANE_CRUCIBLE.get());
-        boolean isEnhancedTable = state.is(Blocks.ENCHANTING_TABLE) && BetterEnchantingConfig.takesOverEnchantingTable();
+        boolean isEnhancedTable = state.is(Blocks.ENCHANTING_TABLE) && EffectiveBalance.takesOverEnchantingTable();
         if ((!isCrucible && !isEnhancedTable) || shouldPreserveSneakItemUse(event.getEntity(), level, pos)) {
             return;
         }

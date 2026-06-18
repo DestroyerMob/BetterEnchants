@@ -1,6 +1,6 @@
 package com.betterenchanting.world.enchantment;
 
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.registry.ModEffects;
 import com.betterenchanting.registry.ModEnchantments;
 import net.minecraft.core.particles.ParticleOptions;
@@ -24,7 +24,7 @@ public final class ShockingEnchantmentEvents {
 
     public static void increaseShockedDamage(LivingDamageEvent.Pre event) {
         if (event.getEntity().hasEffect(ModEffects.SHOCKED)) {
-            event.setNewDamage(event.getNewDamage() * BetterEnchantingConfig.shockedDamageMultiplier());
+            event.setNewDamage(event.getNewDamage() * EffectiveBalance.shockedDamageMultiplier());
         }
     }
 
@@ -40,7 +40,7 @@ public final class ShockingEnchantmentEvents {
         }
 
         Entity source = event.getSource().getEntity();
-        MobEffectInstance shocked = new MobEffectInstance(ModEffects.SHOCKED, BetterEnchantingConfig.shockingDurationTicks(), 0, false, false, true);
+        MobEffectInstance shocked = new MobEffectInstance(ModEffects.SHOCKED, EffectiveBalance.shockingDurationTicks(), 0, false, false, true);
         if (source == null) {
             target.addEffect(shocked);
         } else {
@@ -49,13 +49,13 @@ public final class ShockingEnchantmentEvents {
     }
 
     public static void emitShockedParticles(EntityTickEvent.Post event) {
-        if (!BetterEnchantingConfig.shockedParticlesEnabled() || !(event.getEntity() instanceof LivingEntity entity)) {
+        if (!EffectiveBalance.shockedParticlesEnabled() || !(event.getEntity() instanceof LivingEntity entity)) {
             return;
         }
         if (!(entity.level() instanceof ServerLevel level) || !entity.hasEffect(ModEffects.SHOCKED)) {
             return;
         }
-        if (entity.tickCount % BetterEnchantingConfig.shockedParticleIntervalTicks() != 0) {
+        if (entity.tickCount % EffectiveBalance.shockedParticleIntervalTicks() != 0) {
             return;
         }
 
@@ -65,11 +65,11 @@ public final class ShockingEnchantmentEvents {
                 entity.getX(),
                 y,
                 entity.getZ(),
-                BetterEnchantingConfig.shockedParticleCount(),
-                Math.max(entity.getBbWidth() * 0.5D, BetterEnchantingConfig.shockedParticleHorizontalSpread()),
-                Math.max(entity.getBbHeight() * 0.35D, BetterEnchantingConfig.shockedParticleVerticalSpread()),
-                Math.max(entity.getBbWidth() * 0.5D, BetterEnchantingConfig.shockedParticleHorizontalSpread()),
-                BetterEnchantingConfig.shockedParticleSpeed()
+                EffectiveBalance.shockedParticleCount(),
+                Math.max(entity.getBbWidth() * 0.5D, EffectiveBalance.shockedParticleHorizontalSpread()),
+                Math.max(entity.getBbHeight() * 0.35D, EffectiveBalance.shockedParticleVerticalSpread()),
+                Math.max(entity.getBbWidth() * 0.5D, EffectiveBalance.shockedParticleHorizontalSpread()),
+                EffectiveBalance.shockedParticleSpeed()
         );
     }
 
@@ -87,7 +87,7 @@ public final class ShockingEnchantmentEvents {
 
     private static ParticleOptions shockedParticle() {
         try {
-            ResourceLocation id = ResourceLocation.parse(BetterEnchantingConfig.shockedParticleType());
+            ResourceLocation id = ResourceLocation.parse(EffectiveBalance.shockedParticleType());
             if (BuiltInRegistries.PARTICLE_TYPE.getOptional(id).orElse(null) instanceof SimpleParticleType particle) {
                 return particle;
             }

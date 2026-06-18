@@ -1,6 +1,6 @@
 package com.betterenchanting.mixin;
 
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.data.EnchantmentFusionRecipes;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.core.Holder;
@@ -39,7 +39,7 @@ public abstract class AnvilMenuMixin {
             return;
         }
 
-        if (BetterEnchantingConfig.usesAdditiveAnvilLevelMerging()) {
+        if (EffectiveBalance.usesAdditiveAnvilLevelMerging()) {
             betterenchanting$applyAdditiveAnvilLevels(menu);
         }
         EnchantmentFusionRecipes.apply(betterenchanting$getPlayer().level().registryAccess(), menu.getSlot(AnvilMenu.RESULT_SLOT).getItem());
@@ -50,7 +50,7 @@ public abstract class AnvilMenuMixin {
             return;
         }
 
-        this.cost.set(Math.min(this.getCost(), BetterEnchantingConfig.anvilMaxCost()));
+        this.cost.set(Math.min(this.getCost(), EffectiveBalance.anvilMaxCost()));
     }
 
     @Inject(method = "mayPickup", at = @At("HEAD"), cancellable = true)

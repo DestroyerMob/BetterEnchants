@@ -1,6 +1,6 @@
 package com.betterenchanting.world.enchantment;
 
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.registry.ModEnchantments;
 import com.betterenchanting.registry.ModTags;
 import java.util.ArrayDeque;
@@ -58,7 +58,7 @@ public final class TreeCapitatorEnchantmentEvents {
     }
 
     private static Set<BlockPos> collectConnectedLogs(ServerLevel level, BlockPos origin, BlockState originState) {
-        int maxLogs = BetterEnchantingConfig.treeCapitatorMaxLogs();
+        int maxLogs = EffectiveBalance.treeCapitatorMaxLogs();
         Queue<BlockPos> searchQueue = new ArrayDeque<>();
         Set<BlockPos> visited = new HashSet<>();
         Set<BlockPos> logs = new LinkedHashSet<>();
@@ -92,12 +92,12 @@ public final class TreeCapitatorEnchantmentEvents {
     }
 
     private static boolean hasEnoughNaturalLeaves(ServerLevel level, Set<BlockPos> logs) {
-        int requiredLeaves = BetterEnchantingConfig.treeCapitatorMinNaturalLeaves();
+        int requiredLeaves = EffectiveBalance.treeCapitatorMinNaturalLeaves();
         if (requiredLeaves <= 0) {
             return true;
         }
 
-        int scanRadius = BetterEnchantingConfig.treeCapitatorLeafScanRadius();
+        int scanRadius = EffectiveBalance.treeCapitatorLeafScanRadius();
         Set<BlockPos> scanned = new HashSet<>();
         int naturalLeaves = 0;
 

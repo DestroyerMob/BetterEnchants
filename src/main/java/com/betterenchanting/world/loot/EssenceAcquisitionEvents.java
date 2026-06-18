@@ -1,6 +1,6 @@
 package com.betterenchanting.world.loot;
 
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.data.EssenceTradeDefinitions;
 import com.betterenchanting.data.EssenceTradeDefinitions.EssenceTrade;
 import com.betterenchanting.registry.ModItems;
@@ -121,7 +121,7 @@ public final class EssenceAcquisitionEvents {
     }
 
     private static boolean roll(RandomSource random) {
-        return random.nextFloat() < BetterEnchantingConfig.essenceDirectDropChance();
+        return random.nextFloat() < EffectiveBalance.essenceDirectDropChance();
     }
 
     private static ItemEntity itemEntity(ServerLevel level, double x, double y, double z, Item item) {

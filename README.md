@@ -15,6 +15,7 @@ Pre-alpha / internal playtesting.
 - Data-driven enchantment limits
 - Enchantment fusion
 - Custom enchantments
+- Balance presets for vanilla-plus, balanced, overhaul, power-fantasy, and custom setups
 - Configurable anvil, mending, XP, and roll behaviour
 - Optional Silent Gear material support
 

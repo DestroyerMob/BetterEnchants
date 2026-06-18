@@ -1,6 +1,6 @@
 package com.betterenchanting.mixin;
 
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.item.ItemStack;
@@ -21,10 +21,10 @@ public abstract class EnchantmentHelperMixin {
         }
 
         int denominator = Math.max(
-                BetterEnchantingConfig.mendingMinChanceDenominator(),
-                BetterEnchantingConfig.mendingBaseChanceDenominator() - mendingLevel * BetterEnchantingConfig.mendingDenominatorReductionPerLevel() + 1
+                EffectiveBalance.mendingMinChanceDenominator(),
+                EffectiveBalance.mendingBaseChanceDenominator() - mendingLevel * EffectiveBalance.mendingDenominatorReductionPerLevel() + 1
         );
-        int durabilityPerSuccess = mendingLevel * BetterEnchantingConfig.mendingDurabilityRepairedPerLevel();
+        int durabilityPerSuccess = mendingLevel * EffectiveBalance.mendingDurabilityRepairedPerLevel();
         int repaired = 0;
         for (int roll = 0; roll < repairBudget; roll++) {
             if (level.getRandom().nextInt(denominator) == 0) {

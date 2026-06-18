@@ -1,6 +1,6 @@
 package com.betterenchanting.world.enchantment;
 
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.registry.ModEnchantments;
 import com.betterenchanting.registry.ModTags;
 import net.minecraft.core.BlockPos;
@@ -22,8 +22,8 @@ public final class VerdantRegrowthEnchantmentEvents {
             return;
         }
 
-        int baseInterval = BetterEnchantingConfig.verdantRegrowthBaseRepairIntervalTicks();
-        int fastInterval = BetterEnchantingConfig.verdantRegrowthFastRepairIntervalTicks();
+        int baseInterval = EffectiveBalance.verdantRegrowthBaseRepairIntervalTicks();
+        int fastInterval = EffectiveBalance.verdantRegrowthFastRepairIntervalTicks();
         if (player.tickCount % baseInterval != 0 && player.tickCount % fastInterval != 0) {
             return;
         }
@@ -53,7 +53,7 @@ public final class VerdantRegrowthEnchantmentEvents {
             }
 
             int enchantmentLevel = verdantRegrowthLevel(level, stack);
-            int repairAmount = enchantmentLevel * BetterEnchantingConfig.verdantRegrowthDurabilityRepairedPerLevel();
+            int repairAmount = enchantmentLevel * EffectiveBalance.verdantRegrowthDurabilityRepairedPerLevel();
             if (repairAmount > 0) {
                 stack.setDamageValue(Math.max(0, stack.getDamageValue() - repairAmount));
                 repaired = true;
@@ -83,8 +83,8 @@ public final class VerdantRegrowthEnchantmentEvents {
     }
 
     private static boolean hasNearbyGrowth(ServerLevel level, BlockPos center) {
-        int horizontalRadius = BetterEnchantingConfig.verdantRegrowthScanHorizontalRadius();
-        int verticalRadius = BetterEnchantingConfig.verdantRegrowthScanVerticalRadius();
+        int horizontalRadius = EffectiveBalance.verdantRegrowthScanHorizontalRadius();
+        int verticalRadius = EffectiveBalance.verdantRegrowthScanVerticalRadius();
         BlockPos min = center.offset(-horizontalRadius, -verticalRadius, -horizontalRadius);
         BlockPos max = center.offset(horizontalRadius, verticalRadius, horizontalRadius);
         for (BlockPos pos : BlockPos.betweenClosed(min, max)) {

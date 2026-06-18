@@ -166,6 +166,10 @@ General mechanics are configured through the NeoForge common config file `better
 Default values:
 
 ```toml
+[general]
+preset = "balanced"
+allow_advanced_overrides = false
+
 [anvil]
 max_cost = 30
 enchantment_level_merge = "additive"
@@ -189,6 +193,18 @@ max_candidate_weight = 1000000
 
 [vein_miner]
 connected_blocks_per_level = 16
+
+[tree_capitator]
+max_logs = 96
+leaf_scan_radius = 4
+min_natural_leaves = 4
+
+[perfect_strike]
+ready_threshold = 1.0
+window_ticks = 4
+damage_multiplier = 2.0
+min_cooldown_variance = -0.12
+max_cooldown_variance = 0.12
 
 [shocked]
 damage_multiplier = 1.2
@@ -240,9 +256,13 @@ curve = "exponential"
 linear_xp_per_level = 7
 ```
 
-The `enchanting.enhanced_table_takeover` option defaults to `true`, so vanilla enchanting tables open the enhanced UI. When disabled, vanilla enchanting tables are left alone for vanilla or other mod behavior, and the Arcane Crucible block becomes the enhanced enchanting station instead. The Arcane Crucible shapelessly crafts from one enchanting table and can shapelessly craft back into one enchanting table.
+The `general.preset` option is the normal-player control surface. Available presets are `vanilla_plus`, `balanced`, `overhaul`, `power_fantasy`, and `custom`. The default `balanced` preset matches the mod's current intended defaults. `vanilla_plus` is conservative and leaves the vanilla enchanting table alone by default. `overhaul` makes essences/books stronger and treats Better Enchanting as a core gear-progression system. `power_fantasy` is intentionally generous and not meant as a balanced default. `custom` makes the advanced values in the config file the source of truth.
 
-Enhanced enchanting balance lives in config rather than inline menu constants. Bookshelf power controls offer level requirements and roll quality through `min_base_cost`, `max_base_cost`, and `base_cost_per_bookshelf_power`; those values do not have to match the levels consumed. The actual charged XP levels use `min_level_cost`, `max_level_cost`, and `bookshelf_power_per_level_cost`, which default to 0-5 power costing 1 level, 6-10 costing 2 levels, and 11-15 costing 3 levels. Modifier-specific roll nudges live in `essence_power_bonus`, `book_power_bonus`, and `gold_material_power_bonus`. Candidate weighting is tuned through `book_weight_multiplier`, `new_tag_combo_multiplier`, and `max_candidate_weight`.
+When `general.allow_advanced_overrides` is `false`, any preset other than `custom` fully controls balance values and the detailed sections act as the editable `custom` baseline. When it is `true`, the advanced values below override the selected preset. Cosmetic particle settings for Shocked are always read directly from config.
+
+The effective `enchanting.enhanced_table_takeover` value defaults to `true` in the `balanced`, `overhaul`, and `power_fantasy` presets, so vanilla enchanting tables open the enhanced UI. In `vanilla_plus`, it defaults to `false`; vanilla enchanting tables are left alone and the Arcane Crucible block becomes the enhanced enchanting station instead. The Arcane Crucible shapelessly crafts from one enchanting table and can shapelessly craft back into one enchanting table.
+
+Enhanced enchanting balance lives behind the effective balance layer rather than inline menu constants. Bookshelf power controls offer level requirements and roll quality through `min_base_cost`, `max_base_cost`, and `base_cost_per_bookshelf_power`; those values do not have to match the levels consumed. The actual charged XP levels use `min_level_cost`, `max_level_cost`, and `bookshelf_power_per_level_cost`, which default to 0-5 power costing 1 level, 6-10 costing 2 levels, and 11-15 costing 3 levels. Modifier-specific roll nudges live in `essence_power_bonus`, `book_power_bonus`, and `gold_material_power_bonus`. Candidate weighting is tuned through `book_weight_multiplier`, `new_tag_combo_multiplier`, and `max_candidate_weight`.
 
 Custom enchantment behavior that affects player-facing balance also lives in config. Vein Miner size, Tree Capitator log and natural-leaf checks, Perfect Strike timing, damage, and cooldown variance, Shocked damage multiplier and particles, Shocking duration, Curse of Rebound reflection ratio, Seismic Cushion explosion size, Verdant Regrowth repair amount, timing, and scan radius, Mending repair math, Fortunes Touch secondary drop chance, and the core enhanced-enchanting roll formula can all be tuned without recompiling the mod.
 

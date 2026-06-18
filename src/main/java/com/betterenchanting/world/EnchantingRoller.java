@@ -1,6 +1,6 @@
 package com.betterenchanting.world;
 
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.data.EssenceDefinition;
 import com.betterenchanting.data.EssenceDefinitions;
 import com.betterenchanting.data.EnchantmentFusionRecipes;
@@ -82,7 +82,7 @@ public final class EnchantingRoller {
         selectedEnchantments.add(first.instance().enchantment);
         int poolSize = candidates.size();
 
-        while (selected.size() < maxEnchantments + 1 && random.nextInt(BetterEnchantingConfig.rollerMultiEnchantRollBound()) <= level) {
+        while (selected.size() < maxEnchantments + 1 && random.nextInt(EffectiveBalance.rollerMultiEnchantRollBound()) <= level) {
             candidates.removeIf(candidate -> selectedEnchantments.contains(candidate.instance().enchantment)
                     || EnchantmentFusionRecipes.conflictsWithFusionIngredient(registryAccess, candidate.instance().enchantment, selectedEnchantments)
                     || conflictsWithExisting(registryAccess, candidate.instance().enchantment, selectedEnchantments));
@@ -98,7 +98,7 @@ public final class EnchantingRoller {
             selected.add(next.instance());
             selectedEnchantments.add(next.instance().enchantment);
             representedEssenceTags.addAll(next.matchingEssenceTags());
-            level /= BetterEnchantingConfig.rollerMultiEnchantLevelDivisor();
+            level /= EffectiveBalance.rollerMultiEnchantLevelDivisor();
         }
 
         return new RollPreview(List.copyOf(selected), poolSize, profile);
@@ -140,10 +140,10 @@ public final class EnchantingRoller {
         if (enchantability <= 0) {
             return 0;
         }
-        int enchantabilityDivisor = BetterEnchantingConfig.rollerEnchantabilityDivisor();
+        int enchantabilityDivisor = EffectiveBalance.rollerEnchantabilityDivisor();
         int enchantabilityBonusBound = enchantability / enchantabilityDivisor + 1;
         int level = cost + 1 + random.nextInt(enchantabilityBonusBound) + random.nextInt(enchantabilityBonusBound);
-        float variance = (random.nextFloat() + random.nextFloat() - 1.0F) * BetterEnchantingConfig.rollerLevelVariance();
+        float variance = (random.nextFloat() + random.nextFloat() - 1.0F) * EffectiveBalance.rollerLevelVariance();
         return Mth.clamp(Math.round((float) level + (float) level * variance), 1, Integer.MAX_VALUE);
     }
 
@@ -198,13 +198,13 @@ public final class EnchantingRoller {
                 weight *= profile.essenceWeightMultiplier();
             }
             if (bookBoost != null) {
-                weight *= Math.pow(BetterEnchantingConfig.bookWeightMultiplier(), bookBoost.count());
+                weight *= Math.pow(EffectiveBalance.bookWeightMultiplier(), bookBoost.count());
             }
 
             candidates.add(new WeightedCandidate(
                     new EnchantmentInstance(holder, finalLevel),
                     List.copyOf(essenceMatches),
-                    WeightedSelection.cappedWeight(weight, BetterEnchantingConfig.maxCandidateWeight())
+                    WeightedSelection.cappedWeight(weight, EffectiveBalance.maxCandidateWeight())
             ));
         });
 
@@ -332,8 +332,8 @@ public final class EnchantingRoller {
         int pickedIndex = WeightedSelection.pickIndex(
                 baseWeights,
                 receivesComboBonus,
-                BetterEnchantingConfig.maxCandidateWeight(),
-                BetterEnchantingConfig.newTagComboMultiplier(),
+                EffectiveBalance.maxCandidateWeight(),
+                EffectiveBalance.newTagComboMultiplier(),
                 bound -> nextLong(random, bound)
         );
         if (pickedIndex < 0) {

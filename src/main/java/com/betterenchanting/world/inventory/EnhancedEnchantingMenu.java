@@ -1,7 +1,7 @@
 package com.betterenchanting.world.inventory;
 
 import com.mojang.datafixers.util.Pair;
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.data.EnchantmentLimitRules;
 import com.betterenchanting.registry.ModBlocks;
 import com.betterenchanting.registry.ModMenus;
@@ -234,7 +234,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
         ItemStack target = this.enchantingSlots.getItem(TARGET_SLOT);
         ItemStack lapis = this.enchantingSlots.getItem(LAPIS_SLOT);
-        int lapisCost = BetterEnchantingConfig.enchantingLapisCost();
+        int lapisCost = EffectiveBalance.enchantingLapisCost();
         if (lapisCost > 0 && (lapis.isEmpty() || lapis.getCount() < lapisCost) && !player.hasInfiniteMaterials()) {
             return false;
         }
@@ -307,7 +307,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         return this.access.evaluate((level, blockPos) -> {
             BlockState state = level.getBlockState(blockPos);
             boolean validStation = state.is(ModBlocks.ARCANE_CRUCIBLE.get())
-                    || state.is(Blocks.ENCHANTING_TABLE) && BetterEnchantingConfig.takesOverEnchantingTable();
+                    || state.is(Blocks.ENCHANTING_TABLE) && EffectiveBalance.takesOverEnchantingTable();
             return validStation && player.canInteractWithBlock(blockPos, 4.0D);
         }, true);
     }
@@ -366,7 +366,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     }
 
     public int getLapisCost() {
-        return BetterEnchantingConfig.enchantingLapisCost();
+        return EffectiveBalance.enchantingLapisCost();
     }
 
     public int getEnchantmentSeed() {

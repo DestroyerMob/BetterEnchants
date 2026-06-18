@@ -1,6 +1,6 @@
 package com.betterenchanting.world.enchantment;
 
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.registry.ModGameRules;
 import com.betterenchanting.registry.ModEnchantments;
 import net.minecraft.core.registries.Registries;
@@ -26,7 +26,7 @@ public final class SeismicCushionEnchantmentEvents {
             return;
         }
 
-        float radius = enchantmentLevel * BetterEnchantingConfig.seismicCushionExplosionRadiusPerLevel();
+        float radius = enchantmentLevel * EffectiveBalance.seismicCushionExplosionRadiusPerLevel();
         if (radius > 0.0F) {
             Level.ExplosionInteraction interaction = level.getGameRules().getBoolean(ModGameRules.RULE_PLAYER_GRIEFING)
                     ? Level.ExplosionInteraction.TNT

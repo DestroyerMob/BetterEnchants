@@ -5,6 +5,7 @@ Status: source-data balance pass for pre-alpha defaults. This pass reviews the c
 ## Method
 
 - Balance against default config values first. Wider configurability should not be used to hide weak defaults.
+- Treat `balanced` as the shipping baseline. Other config presets are templates for different audiences, not replacements for measured default playtesting.
 - Treat source tags as the player's main deterministic acquisition path.
 - Treat enchanted books as targeted boosters, not the primary way to make missing source tags work.
 - Vanilla exclusive-set tags are intentionally empty in this mod. Conflicts below only list Better Enchanting's active special conflicts.

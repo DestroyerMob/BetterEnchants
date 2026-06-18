@@ -1,6 +1,6 @@
 package com.betterenchanting.world.inventory;
 
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.registry.ModTags;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
@@ -10,13 +10,13 @@ final class EnchantingPowerRules {
     }
 
     static int clampBookshelfPower(int bookshelfPower) {
-        return Mth.clamp(bookshelfPower, 0, BetterEnchantingConfig.maxBookshelfPower());
+        return Mth.clamp(bookshelfPower, 0, EffectiveBalance.maxBookshelfPower());
     }
 
     static int offerRequirementForBookshelfPower(int bookshelfPower) {
-        int minCost = Math.min(BetterEnchantingConfig.minEnchantingBaseCost(), BetterEnchantingConfig.maxEnchantingBaseCost());
-        int maxCost = Math.max(BetterEnchantingConfig.minEnchantingBaseCost(), BetterEnchantingConfig.maxEnchantingBaseCost());
-        int maxBookshelfPower = BetterEnchantingConfig.maxBookshelfPower();
+        int minCost = Math.min(EffectiveBalance.minEnchantingBaseCost(), EffectiveBalance.maxEnchantingBaseCost());
+        int maxCost = Math.max(EffectiveBalance.minEnchantingBaseCost(), EffectiveBalance.maxEnchantingBaseCost());
+        int maxBookshelfPower = EffectiveBalance.maxBookshelfPower();
         int clampedPower = clampBookshelfPower(bookshelfPower);
         if (minCost >= maxCost || maxBookshelfPower <= 0) {
             return minCost;
@@ -25,20 +25,20 @@ final class EnchantingPowerRules {
             return maxCost;
         }
 
-        long cost = (long) minCost + (long) clampedPower * BetterEnchantingConfig.enchantingBaseCostPerBookshelfPower();
+        long cost = (long) minCost + (long) clampedPower * EffectiveBalance.enchantingBaseCostPerBookshelfPower();
         int cappedCost = Mth.clamp((int) Math.min(Integer.MAX_VALUE, cost), minCost, maxCost - 1);
         return cappedCost;
     }
 
     static int levelCostForBookshelfPower(int bookshelfPower) {
-        int minCost = Math.min(BetterEnchantingConfig.minEnchantingLevelCost(), BetterEnchantingConfig.maxEnchantingLevelCost());
-        int maxCost = Math.max(BetterEnchantingConfig.minEnchantingLevelCost(), BetterEnchantingConfig.maxEnchantingLevelCost());
+        int minCost = Math.min(EffectiveBalance.minEnchantingLevelCost(), EffectiveBalance.maxEnchantingLevelCost());
+        int maxCost = Math.max(EffectiveBalance.minEnchantingLevelCost(), EffectiveBalance.maxEnchantingLevelCost());
         if (minCost >= maxCost) {
             return minCost;
         }
 
         int clampedPower = clampBookshelfPower(bookshelfPower);
-        int bandSize = Math.max(1, BetterEnchantingConfig.bookshelfPowerPerLevelCost());
+        int bandSize = Math.max(1, EffectiveBalance.bookshelfPowerPerLevelCost());
         int band = clampedPower <= 0 ? 0 : (clampedPower - 1) / bandSize;
         long cost = (long) minCost + band;
         return Mth.clamp((int) Math.min(Integer.MAX_VALUE, cost), minCost, maxCost);
@@ -47,12 +47,12 @@ final class EnchantingPowerRules {
     static int rollPower(int offerCost, ItemStack target, ItemStack modifier) {
         int power = offerCost;
         if (PoolModifierRules.isEssenceModifier(modifier) && !PoolModifierRules.blocksOffer(modifier)) {
-            power += BetterEnchantingConfig.essencePowerBonus();
+            power += EffectiveBalance.essencePowerBonus();
         } else if (PoolModifierRules.isEnchantedBook(modifier)) {
-            power += BetterEnchantingConfig.bookPowerBonus();
+            power += EffectiveBalance.bookPowerBonus();
         }
         if (target.is(ModTags.Items.MATERIAL_GOLD)) {
-            power += BetterEnchantingConfig.goldMaterialPowerBonus();
+            power += EffectiveBalance.goldMaterialPowerBonus();
         }
         return Math.max(1, power);
     }

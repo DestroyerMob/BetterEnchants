@@ -11,3 +11,4 @@ All notable changes to Better Enchanting will be documented in this file.
 - Polished essence display names and moved tag tooltip section labels to translation keys.
 - Expanded enhanced enchanting offer tooltips with mode, active tags, direct/global modifiers, book boosts, and pool size.
 - Added a default-focused enchantment balance pass worksheet and routed loot/fishing enchantments through the Treasure affinity tag.
+- Added balance presets with an effective balance layer for normal-player templates and advanced/custom config control.

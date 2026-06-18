@@ -1,6 +1,6 @@
 package com.betterenchanting.world.enchantment;
 
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.registry.ModEnchantments;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
@@ -32,7 +32,7 @@ public final class CurseOfReboundEnchantmentEvents {
             return;
         }
 
-        float reflectedDamage = event.getNewDamage() * BetterEnchantingConfig.curseOfReboundReflectedDamageRatio();
+        float reflectedDamage = event.getNewDamage() * EffectiveBalance.curseOfReboundReflectedDamageRatio();
         if (reflectedDamage <= 0.0F) {
             return;
         }

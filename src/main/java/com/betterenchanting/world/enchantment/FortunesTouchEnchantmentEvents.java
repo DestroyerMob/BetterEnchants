@@ -1,6 +1,6 @@
 package com.betterenchanting.world.enchantment;
 
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.data.EnchantmentFusionRecipes;
 import com.betterenchanting.registry.ModEnchantments;
 import java.util.ArrayList;
@@ -70,8 +70,8 @@ public final class FortunesTouchEnchantmentEvents {
 
     private static float secondaryDropChance(int fortunesTouchLevel) {
         return Math.min(
-                BetterEnchantingConfig.fortunesTouchSecondaryDropMaxChance(),
-                fortunesTouchLevel * BetterEnchantingConfig.fortunesTouchSecondaryDropChancePerLevel()
+                EffectiveBalance.fortunesTouchSecondaryDropMaxChance(),
+                fortunesTouchLevel * EffectiveBalance.fortunesTouchSecondaryDropChancePerLevel()
         );
     }
 

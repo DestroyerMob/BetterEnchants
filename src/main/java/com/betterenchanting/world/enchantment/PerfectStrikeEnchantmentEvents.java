@@ -1,7 +1,7 @@
 package com.betterenchanting.world.enchantment;
 
 import com.betterenchanting.BetterEnchanting;
-import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.registry.ModEnchantments;
 import com.betterenchanting.registry.ModTags;
 import java.util.Map;
@@ -57,7 +57,7 @@ public final class PerfectStrikeEnchantmentEvents {
         }
 
         state = STATES.computeIfAbsent(player, ignored -> new PerfectStrikeState());
-        float readyThreshold = BetterEnchantingConfig.perfectStrikeReadyThreshold();
+        float readyThreshold = EffectiveBalance.perfectStrikeReadyThreshold();
         float attackStrength = player.getAttackStrengthScale(0.0F);
 
         if (state.pendingCooldownReset && attackStrength < readyThreshold) {
@@ -74,7 +74,7 @@ public final class PerfectStrikeEnchantmentEvents {
         }
 
         if (state.canOpenWindow && attackStrength >= readyThreshold) {
-            int windowTicks = BetterEnchantingConfig.perfectStrikeWindowTicks();
+            int windowTicks = EffectiveBalance.perfectStrikeWindowTicks();
             state.canOpenWindow = false;
             state.windowExpiresTick = windowTicks > 0 ? player.tickCount + windowTicks : -1;
         }
@@ -94,7 +94,7 @@ public final class PerfectStrikeEnchantmentEvents {
             return;
         }
 
-        event.setNewDamage(event.getNewDamage() * BetterEnchantingConfig.perfectStrikeDamageMultiplier());
+        event.setNewDamage(event.getNewDamage() * EffectiveBalance.perfectStrikeDamageMultiplier());
         state.windowExpiresTick = -1;
     }
 
@@ -140,8 +140,8 @@ public final class PerfectStrikeEnchantmentEvents {
             return;
         }
 
-        double min = Math.min(BetterEnchantingConfig.perfectStrikeMinCooldownVariance(), BetterEnchantingConfig.perfectStrikeMaxCooldownVariance());
-        double max = Math.max(BetterEnchantingConfig.perfectStrikeMinCooldownVariance(), BetterEnchantingConfig.perfectStrikeMaxCooldownVariance());
+        double min = Math.min(EffectiveBalance.perfectStrikeMinCooldownVariance(), EffectiveBalance.perfectStrikeMaxCooldownVariance());
+        double max = Math.max(EffectiveBalance.perfectStrikeMinCooldownVariance(), EffectiveBalance.perfectStrikeMaxCooldownVariance());
         double variance = min == max ? min : min + player.getRandom().nextDouble() * (max - min);
         attackSpeed.addOrUpdateTransientModifier(new AttributeModifier(
                 COOLDOWN_VARIANCE_ID,

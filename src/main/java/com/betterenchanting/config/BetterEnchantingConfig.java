@@ -5,6 +5,8 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 
 public final class BetterEnchantingConfig {
     public static final ModConfigSpec SPEC;
+    private static final ModConfigSpec.EnumValue<BalancePreset> BALANCE_PRESET;
+    private static final ModConfigSpec.BooleanValue ALLOW_ADVANCED_OVERRIDES;
     private static final ModConfigSpec.IntValue ANVIL_MAX_COST;
     private static final ModConfigSpec.EnumValue<AnvilLevelMergeMode> ANVIL_LEVEL_MERGE_MODE;
     private static final ModConfigSpec.BooleanValue ENHANCED_TABLE_TAKEOVER;
@@ -63,6 +65,15 @@ public final class BetterEnchantingConfig {
 
     static {
         ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
+
+        builder.push("general");
+        BALANCE_PRESET = builder
+                .comment("High-level balance template. Use CUSTOM to make the advanced config values below the source of truth.")
+                .defineEnum("preset", BalancePreset.BALANCED);
+        ALLOW_ADVANCED_OVERRIDES = builder
+                .comment("When true, advanced config values below override the selected preset. CUSTOM always uses advanced config values.")
+                .define("allow_advanced_overrides", false);
+        builder.pop();
 
         builder.push("anvil");
         ANVIL_MAX_COST = builder
@@ -278,6 +289,15 @@ public final class BetterEnchantingConfig {
     }
 
     private BetterEnchantingConfig() {
+    }
+
+    // These accessors expose raw config inputs. Runtime gameplay should read EffectiveBalance instead.
+    public static BalancePreset preset() {
+        return BALANCE_PRESET.get();
+    }
+
+    public static boolean allowsAdvancedOverrides() {
+        return ALLOW_ADVANCED_OVERRIDES.get();
     }
 
     public static int anvilMaxCost() {
@@ -513,6 +533,19 @@ public final class BetterEnchantingConfig {
     public enum AnvilLevelMergeMode {
         VANILLA,
         ADDITIVE;
+
+        @Override
+        public String toString() {
+            return name().toLowerCase(Locale.ROOT);
+        }
+    }
+
+    public enum BalancePreset {
+        VANILLA_PLUS,
+        BALANCED,
+        OVERHAUL,
+        POWER_FANTASY,
+        CUSTOM;
 
         @Override
         public String toString() {
