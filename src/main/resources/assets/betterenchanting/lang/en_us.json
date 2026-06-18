@@ -48,7 +48,16 @@
   "tooltip.betterenchanting.can_apply_to": "Can Apply To",
   "tooltip.betterenchanting.inactive.wrong_tag": "Wrong tag",
   "tooltip.betterenchanting.inactive.over_limit": "Over limit",
+  "tooltip.betterenchanting.none": "None",
   "tooltip.betterenchanting.pool_size": "Current pool size: %s",
   "tooltip.betterenchanting.tags": "Active essence tags: %s",
-  "tooltip.betterenchanting.books": "Book weight boosts: %s"
+  "tooltip.betterenchanting.books": "Book weight boosts: %s",
+  "tooltip.betterenchanting.option.mode": "Mode: %s",
+  "tooltip.betterenchanting.option.mode.restricted": "Restricted",
+  "tooltip.betterenchanting.option.mode.weighted": "Weighted",
+  "tooltip.betterenchanting.option.active_tags": "Active tags: %s",
+  "tooltip.betterenchanting.option.direct_modifier": "Direct modifier: %s",
+  "tooltip.betterenchanting.option.global_modifier": "Global modifier: %s",
+  "tooltip.betterenchanting.option.book_boost": "Book boost: %s",
+  "tooltip.betterenchanting.option.pool": "Pool: %s possible enchantments"
 }

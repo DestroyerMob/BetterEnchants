@@ -1,11 +1,14 @@
 package com.betterenchanting.client;
 
 import com.betterenchanting.world.inventory.EnhancedEnchantingMenu;
+import com.betterenchanting.world.inventory.EnhancedEnchantingMenu.OptionDetails;
+import com.betterenchanting.world.EnchantingRoller;
 import com.google.common.collect.Lists;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.ChatFormatting;
@@ -15,6 +18,7 @@ import net.minecraft.client.gui.screens.inventory.EnchantmentNames;
 import net.minecraft.client.model.BookModel;
 import net.minecraft.client.model.geom.ModelLayers;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.CommonComponents;
@@ -27,6 +31,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEnchantingMenu> {
     private static final int BASE_IMAGE_WIDTH = 176;
@@ -277,13 +282,70 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                 }
 
                 tooltip.add(CommonComponents.EMPTY);
-                tooltip.add(Component.translatable("tooltip.betterenchanting.pool_size", this.menu.getPoolSize(option)).withStyle(ChatFormatting.GRAY));
-                tooltip.add(Component.translatable("tooltip.betterenchanting.tags", this.menu.getActiveTagCount(option)).withStyle(ChatFormatting.GRAY));
-                tooltip.add(Component.translatable("tooltip.betterenchanting.books", this.menu.getBookBoostCount(option)).withStyle(ChatFormatting.GRAY));
+                this.addSystemTooltipLines(tooltip, option);
                 guiGraphics.renderComponentTooltip(this.font, tooltip, mouseX, mouseY);
                 return;
             }
         }
+    }
+
+    private void addSystemTooltipLines(List<Component> tooltip, int option) {
+        OptionDetails details = this.menu.getOptionDetails(option);
+        tooltip.add(detailLine(
+                "tooltip.betterenchanting.option.mode",
+                Component.translatable(details.profile().restricted()
+                        ? "tooltip.betterenchanting.option.mode.restricted"
+                        : "tooltip.betterenchanting.option.mode.weighted")
+        ));
+        tooltip.add(detailLine(
+                "tooltip.betterenchanting.option.active_tags",
+                details.profile().essenceTags().isEmpty()
+                        ? Component.translatable("tooltip.betterenchanting.none")
+                        : Component.literal(EnchantingRoller.tagSummary(details.profile().essenceTags()))
+        ));
+        if (!details.directModifier().isEmpty()) {
+            tooltip.add(detailLine("tooltip.betterenchanting.option.direct_modifier", details.directModifier().getHoverName()));
+        }
+        if (!details.globalModifiers().isEmpty()) {
+            tooltip.add(detailLine("tooltip.betterenchanting.option.global_modifier", joinedItemNames(details.globalModifiers())));
+        }
+
+        Component bookBoosts = joinedBookBoosts(details.bookModifiers());
+        if (bookBoosts != null) {
+            tooltip.add(detailLine("tooltip.betterenchanting.option.book_boost", bookBoosts));
+        }
+        tooltip.add(detailLine("tooltip.betterenchanting.option.pool", Component.literal(Integer.toString(this.menu.getPoolSize(option)))));
+    }
+
+    private static Component detailLine(String key, Component value) {
+        return Component.translatable(key, value).withStyle(ChatFormatting.GRAY);
+    }
+
+    private static Component joinedItemNames(List<ItemStack> stacks) {
+        MutableComponent joined = Component.empty();
+        for (int index = 0; index < stacks.size(); index++) {
+            if (index > 0) {
+                joined.append(Component.literal(", "));
+            }
+            joined.append(stacks.get(index).getHoverName());
+        }
+        return joined;
+    }
+
+    private static Component joinedBookBoosts(List<ItemStack> books) {
+        MutableComponent joined = Component.empty();
+        int count = 0;
+        for (ItemStack book : books) {
+            ItemEnchantments enchantments = book.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY);
+            for (Object2IntMap.Entry<Holder<Enchantment>> entry : enchantments.entrySet()) {
+                if (count > 0) {
+                    joined.append(Component.literal(", "));
+                }
+                joined.append(Enchantment.getFullname(entry.getKey(), entry.getIntValue()));
+                count++;
+            }
+        }
+        return count == 0 ? null : joined;
     }
 
     private static Component coloredClueName(Holder<Enchantment> enchantment, int level) {

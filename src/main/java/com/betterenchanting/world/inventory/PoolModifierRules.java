@@ -6,12 +6,13 @@ import com.betterenchanting.registry.ModTags;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -50,40 +51,30 @@ final class PoolModifierRules {
 
     static ModifierPlan plan(Container container, int firstSlot, int slotCount, int enchantmentSeed) {
         List<ModifierInput> modifiers = normalizedModifiers(container, firstSlot, slotCount);
+        Map<Integer, ModifierInput> bySlot = new LinkedHashMap<>();
+        List<ModifierPlanner.Input> plannerInputs = new ArrayList<>();
+        for (ModifierInput modifier : modifiers) {
+            bySlot.put(modifier.slot(), modifier);
+            plannerInputs.add(new ModifierPlanner.Input(
+                    modifier.slot(),
+                    modifier.sortKey(),
+                    appliesToAllOffers(modifier.stack()),
+                    blocksOffer(modifier.stack())
+            ));
+        }
+
+        ModifierPlanner.Plan plan = ModifierPlanner.plan(plannerInputs, slotCount, enchantmentSeed);
         ModifierInput[] directModifiers = new ModifierInput[slotCount];
-        boolean[] blockedOffers = new boolean[slotCount];
-        List<ModifierInput> globalModifiers = new ArrayList<>();
-        List<Integer> availableOffers = new ArrayList<>();
         for (int option = 0; option < slotCount; option++) {
-            availableOffers.add(option);
+            directModifiers[option] = plan.directModifiers().get(option)
+                    .map(input -> bySlot.get(input.slot()))
+                    .orElse(null);
         }
+        List<ModifierInput> globalModifiers = plan.globalModifiers().stream()
+                .map(input -> bySlot.get(input.slot()))
+                .toList();
 
-        List<ModifierInput> shuffledModifiers = new ArrayList<>(modifiers);
-        RandomSource random = RandomSource.create(planSeed(enchantmentSeed, modifiers));
-        shuffle(shuffledModifiers, random);
-        for (ModifierInput modifier : shuffledModifiers) {
-            ItemStack stack = modifier.stack();
-            boolean appliesToAllOffers = appliesToAllOffers(stack);
-            boolean blocksOffer = blocksOffer(stack);
-            if (appliesToAllOffers) {
-                globalModifiers.add(modifier);
-                if (!blocksOffer) {
-                    continue;
-                }
-            }
-            if (availableOffers.isEmpty()) {
-                continue;
-            }
-
-            int offerIndex = availableOffers.remove(random.nextInt(availableOffers.size()));
-            if (blocksOffer) {
-                blockedOffers[offerIndex] = true;
-            } else {
-                directModifiers[offerIndex] = modifier;
-            }
-        }
-
-        return new ModifierPlan(List.copyOf(globalModifiers), directModifiers, blockedOffers);
+        return new ModifierPlan(globalModifiers, directModifiers, plan.blockedOffers());
     }
 
     static boolean blocksOffer(ModifierPlan plan, int option) {
@@ -115,6 +106,12 @@ final class PoolModifierRules {
         return isEnchantedBook(modifier) ? List.of(modifier) : List.of();
     }
 
+    static List<ItemStack> globalModifierStacks(ModifierPlan plan) {
+        return plan.globalModifiers().stream()
+                .map(ModifierInput::stack)
+                .toList();
+    }
+
     static void consumeForOption(Container container, ModifierPlan plan, int option, Player player) {
         List<Integer> slotsToConsume = new ArrayList<>();
         plan.directModifier(option).ifPresent(modifier -> slotsToConsume.add(modifier.slot()));
@@ -123,25 +120,6 @@ final class PoolModifierRules {
         }
         for (int slot : slotsToConsume.stream().distinct().toList()) {
             consumeInputSlot(container, slot, player);
-        }
-    }
-
-    private static long planSeed(int enchantmentSeed, List<ModifierInput> modifiers) {
-        long seed = enchantmentSeed;
-        for (ModifierInput modifier : modifiers) {
-            seed = seed * 31L + modifier.sortKey().hashCode();
-        }
-        return seed;
-    }
-
-    private static void shuffle(List<ModifierInput> modifiers, RandomSource random) {
-        for (int index = modifiers.size() - 1; index > 0; index--) {
-            int swapIndex = random.nextInt(index + 1);
-            if (swapIndex != index) {
-                ModifierInput current = modifiers.get(index);
-                modifiers.set(index, modifiers.get(swapIndex));
-                modifiers.set(swapIndex, current);
-            }
         }
     }
 

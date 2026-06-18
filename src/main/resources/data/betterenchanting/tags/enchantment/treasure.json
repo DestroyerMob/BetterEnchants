@@ -2,6 +2,9 @@
   "values": [
     { "id": "minecraft:mending", "required": false },
     { "id": "minecraft:infinity", "required": false },
+    { "id": "minecraft:looting", "required": false },
+    { "id": "minecraft:luck_of_the_sea", "required": false },
+    { "id": "minecraft:lure", "required": false },
     { "id": "minecraft:frost_walker", "required": false },
     { "id": "minecraft:soul_speed", "required": false },
     { "id": "minecraft:swift_sneak", "required": false },

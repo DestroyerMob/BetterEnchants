@@ -204,7 +204,7 @@ public final class EnchantingRoller {
             candidates.add(new WeightedCandidate(
                     new EnchantmentInstance(holder, finalLevel),
                     List.copyOf(essenceMatches),
-                    cappedCandidateWeight(weight)
+                    WeightedSelection.cappedWeight(weight, BetterEnchantingConfig.maxCandidateWeight())
             ));
         });
 
@@ -322,29 +322,24 @@ public final class EnchantingRoller {
             Set<ResourceLocation> representedEssenceTags,
             InputProfile profile
     ) {
-        long totalWeight = 0L;
-        List<Integer> adjustedWeights = new ArrayList<>(candidates.size());
+        List<Integer> baseWeights = new ArrayList<>(candidates.size());
+        List<Boolean> receivesComboBonus = new ArrayList<>(candidates.size());
         for (WeightedCandidate candidate : candidates) {
-            int adjusted = candidate.baseWeight();
-            if (profile.essenceTags().size() > 1 && contributesNewTag(candidate, representedEssenceTags)) {
-                adjusted = cappedCandidateWeight((double) adjusted * BetterEnchantingConfig.newTagComboMultiplier());
-            }
-            adjustedWeights.add(adjusted);
-            totalWeight += adjusted;
+            baseWeights.add(candidate.baseWeight());
+            receivesComboBonus.add(profile.essenceTags().size() > 1 && contributesNewTag(candidate, representedEssenceTags));
         }
 
-        if (totalWeight <= 0) {
+        int pickedIndex = WeightedSelection.pickIndex(
+                baseWeights,
+                receivesComboBonus,
+                BetterEnchantingConfig.maxCandidateWeight(),
+                BetterEnchantingConfig.newTagComboMultiplier(),
+                bound -> nextLong(random, bound)
+        );
+        if (pickedIndex < 0) {
             return null;
         }
-
-        long roll = nextLong(random, totalWeight);
-        for (int index = 0; index < candidates.size(); index++) {
-            roll -= adjustedWeights.get(index);
-            if (roll < 0) {
-                return candidates.get(index);
-            }
-        }
-        return candidates.get(candidates.size() - 1);
+        return candidates.get(pickedIndex);
     }
 
     private static boolean contributesNewTag(WeightedCandidate candidate, Set<ResourceLocation> representedEssenceTags) {
@@ -357,14 +352,6 @@ public final class EnchantingRoller {
             }
         }
         return false;
-    }
-
-    private static int cappedCandidateWeight(double weight) {
-        int maxWeight = BetterEnchantingConfig.maxCandidateWeight();
-        if (!Double.isFinite(weight) || weight >= maxWeight) {
-            return maxWeight;
-        }
-        return Math.max(1, (int) Math.round(weight));
     }
 
     private static long nextLong(RandomSource random, long bound) {

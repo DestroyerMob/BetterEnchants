@@ -385,6 +385,19 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         return option < 0 || option >= this.bookBoostCounts.length ? 0 : this.bookBoostCounts[option];
     }
 
+    public OptionDetails getOptionDetails(int option) {
+        PoolModifierRules.ModifierPlan plan = modifierPlan();
+        ItemStack target = this.enchantingSlots.getItem(TARGET_SLOT);
+        List<ItemStack> essences = optionEssenceStacks(plan, option);
+        List<ItemStack> books = optionBookStacks(plan, option);
+        return new OptionDetails(
+                EnchantingRoller.profile(target, essences, books),
+                modifierStack(plan, option).copy(),
+                PoolModifierRules.globalModifierStacks(plan).stream().map(ItemStack::copy).toList(),
+                books.stream().map(ItemStack::copy).toList()
+        );
+    }
+
     private PoolModifierRules.ModifierPlan modifierPlan() {
         return PoolModifierRules.plan(this.enchantingSlots, FIRST_MODIFIER_SLOT, MODIFIER_SLOT_COUNT, this.enchantmentSeed.get());
     }
@@ -429,5 +442,13 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             this.bookBoostCounts[index] = 0;
         }
         this.broadcastChanges();
+    }
+
+    public record OptionDetails(
+            EnchantingRoller.InputProfile profile,
+            ItemStack directModifier,
+            List<ItemStack> globalModifiers,
+            List<ItemStack> bookModifiers
+    ) {
     }
 }

@@ -46,6 +46,8 @@ Put the jar in your mods folder.
 
 See [docs/enhanced-enchanting-guidebook.md](docs/enhanced-enchanting-guidebook.md).
 
+Balance notes live in [docs/enchantment-balance-pass.md](docs/enchantment-balance-pass.md).
+
 ## Known issues
 
 - Pre-alpha balance is not final.
