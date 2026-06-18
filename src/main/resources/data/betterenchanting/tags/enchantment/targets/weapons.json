@@ -1,6 +1,7 @@
 {
   "values": [
     "betterenchanting:curse_of_rebound",
+    "betterenchanting:frostbite",
     "betterenchanting:shocking",
     "betterenchanting:vacuum",
     { "id": "minecraft:unbreaking", "required": false },

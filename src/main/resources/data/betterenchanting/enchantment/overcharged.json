@@ -1,0 +1,22 @@
+{
+  "anvil_cost": 6,
+  "description": {
+    "translate": "enchantment.betterenchanting.overcharged"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 75,
+    "per_level_above_first": 0
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 18,
+    "per_level_above_first": 6
+  },
+  "primary_items": "#betterenchanting:enchantable/overcharged",
+  "slots": [
+    "chest"
+  ],
+  "supported_items": "#betterenchanting:enchantable/overcharged",
+  "weight": 1
+}

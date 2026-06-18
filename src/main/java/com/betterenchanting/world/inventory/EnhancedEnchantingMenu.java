@@ -6,6 +6,7 @@ import com.betterenchanting.data.EnchantmentLimitRules;
 import com.betterenchanting.registry.ModBlocks;
 import com.betterenchanting.registry.ModMenus;
 import com.betterenchanting.world.EnchantingRoller;
+import com.betterenchanting.world.EnchantmentTargetTags;
 import com.betterenchanting.world.enchantment.FortunesTouchEnchantmentEvents;
 import com.betterenchanting.world.level.block.EnchantingTablePower;
 import java.util.List;
@@ -422,7 +423,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     }
 
     private static boolean isEnchantingTarget(ItemStack stack) {
-        return !stack.isEmpty() && (stack.getItem().isEnchantable(stack) || stack.is(Items.ENCHANTED_BOOK));
+        return !stack.isEmpty()
+                && (stack.getItem().isEnchantable(stack)
+                || stack.is(Items.ENCHANTED_BOOK)
+                || !EnchantmentTargetTags.resolve(stack).isEmpty());
     }
 
     private static ItemStack costTarget(ItemStack stack) {

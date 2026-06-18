@@ -8,6 +8,7 @@ Status: source-data balance pass for pre-alpha defaults. This pass reviews the c
 - Treat `balanced` as the shipping baseline. Other config presets are templates for different audiences, not replacements for measured default playtesting.
 - Treat source tags as the player's main deterministic acquisition path.
 - Treat enchanted books as targeted boosters, not the primary way to make missing source tags work.
+- Evaluate durability systems as a three-way choice: Mending for XP convenience, material repair for resource certainty, and passive environmental repair for slow recovery.
 - Vanilla exclusive-set tags are intentionally empty in this mod. Conflicts below only list Better Enchanting's active special conflicts.
 - Stage labels: Early game, First diamonds, First enchanting setup, Nether, End, Post-game gear.
 - Tier labels: Utility, Standard, Strong, Premium, Capstone, Risk.
@@ -15,17 +16,21 @@ Status: source-data balance pass for pre-alpha defaults. This pass reviews the c
 ## Default Adjustment Log
 
 - Added `minecraft:looting`, `minecraft:luck_of_the_sea`, and `minecraft:lure` to the Treasure source tag so Essence of Fortune can deliberately target loot and fishing enchantments.
-- No numeric defaults changed in this pass. Timing, damage, repair, and drop-rate numbers should change only after measured in-game notes are recorded.
+- Set `essence_power_bonus` to 0 for the raw custom default and serious presets so essences control roll contents without increasing roll strength. `power_fantasy` keeps an essence power bonus because that preset is intentionally generous.
 
 ## Enchantment Table
 
 | Enchantment | Max level | Source tags | Expected acquisition stage | Intended power tier | Conflicts | Config values | Playtest notes |
 | --- | ---: | --- | --- | --- | --- | --- | --- |
 | Auto-Smelt | 1 | Fire | Nether | Strong utility | None | weight 2; cost 15-55; anvil 4 | Watch interaction with Fortune, Vein Miner, and XP loss from smelting ores. Keep as convenience, not ore duplication. |
+| Cinderstep | 5 | Fire | Nether | Utility mobility | None | weight 2; cost 12+5/75; anvil 4; `cinderstep.duration_ticks=60`; `cinderstep.speed_bonus_per_level=0.06` | Gives Fire a boot identity without reducing fire damage. Test lava/magma traversal and Nether combat escape value. |
+| Curse of Fragility | 1 | Vitality, Curse | First enchanting setup | Risk | None | weight 1; cost 10-45; anvil 8; `curse_of_fragility.durability_damage_multiplier=2.0` | Bad roll in Vitality pools. Verify it feels meaningfully punishing without making cursed early tools instantly unusable. |
 | Curse of Rebound | 1 | Physical, Curse | First enchanting setup | Risk | None | weight 1; cost 10-50; anvil 8; `curse_of_rebound.reflected_damage_ratio=0.25` | Good as a bad roll in Physical pools. Verify reflected damage is noticeable but not instantly lethal to careless players. |
 | Fortunes Touch | 5 | Mining | Post-game gear | Capstone | Fortune, Silk Touch | weight 1; cost 15+3/75; anvil 8; `fortunes_touch.secondary_drop_chance_per_level=0.1`, max 1.0 | Fusion-only feel is right. Main risk is becoming strictly better than both Fortune and Silk Touch too early. |
+| Frostbite | 5 | Frost | First diamonds | Strong combat control | None | weight 2; cost 14+6/75; anvil 4; `frostbite.frost_ticks_per_level=25`; frozen duration 100 ticks | Gives Frost its first combat identity. Watch ranged chaining and whether 5 seconds of movement lock feels too oppressive in PvP. |
 | Gelbound | 1 | Mobility | First enchanting setup | Strong utility | Seismic Cushion set | weight 3; cost 12-45; anvil 4 | Full fall immunity is powerful, but boot-only and disabled by Seismic Cushion. Watch how early Mobility essence appears from rabbits, phantoms, and shipwrecks. |
 | Harvest | 5 | Vitality | First enchanting setup | Utility | None | weight 4; cost 10+5/75; anvil 4 | Strong quality-of-life enchant. Radius scaling to 9x9 at level 5 is high but mostly farm labor reduction. |
+| Overcharged | 5 | Lightning, Defensive | Nether | Rare-event combat burst | None | weight 1; cost 18+6/75; anvil 6; `overcharged.duration_ticks=200`; strength max amplifier 4, regeneration max amplifier 2, speed max amplifier 0 | Lightning-triggered payoff for body armor. Test with Channeling setups and lightning rods; rare trigger can be strong, but should not become generic always-on defense. |
 | Perfect Strike | 1 | Physical | First enchanting setup | Strong combat | None | weight 2; cost 16-55; anvil 4; ready 1.0, window 4 ticks, damage x2.0, cooldown variance -0.12 to 0.12 | Needs hands-on combat testing. Default should reward timing without making crit swords delete bosses. |
 | Seismic Cushion | 5 | Mobility | Nether | Capstone utility | Gelbound, Feather Falling | weight 1; cost 18+6/75; anvil 6; `seismic_cushion.explosion_radius_per_level=1.0`; gated by `playerGriefing` | Very high griefing/blast utility. Keep rare and fusion-adjacent. Test server-safe defaults with `playerGriefing=false`. |
 | Shocking | 1 | Lightning | First diamonds | Strong combat | None | weight 2; cost 15-50; anvil 4; duration 100 ticks; Shocked damage x1.2 | Lightning essence is not trivial, so x1.2 is reasonable. Check stacking with Perfect Strike and crits. |
@@ -87,10 +92,21 @@ Status: source-data balance pass for pre-alpha defaults. This pass reviews the c
 | End | Enderman/End city Void and Mobility routes; better chance at Treasure-style gear | Void, Mobility, Treasure | Does Vacuum arrive at a sensible time? Are Swift Sneak, Wind Burst, Mending, and Infinity too easy through Treasure? | Watch. Treasure is intentionally broad and now includes loot/fishing enchants, so Essence of Fortune must stay scarce enough. | TODO in-game |
 | Post-game gear | Max shelves, curated essences, book boosters, anvil merging, fusion recipes, Silent Gear material swaps | All tags | Can players build exciting gear while capacity limits still bite? Do fusion recipes respect capacity and inactive ordering? Are modular materials prevented from carrying wrong-tag bonuses? | Pass with watch item. Capacity/inactive behavior protects material swapping, but stacked vanilla protection and damage families need combat testing. | TODO in-game |
 
+## Durability Route Tests
+
+The release question is not whether Mending is weak or strong in isolation. The question is whether each repair route has a situation where it feels like the sensible choice.
+
+| Repair route | Should feel good when | Watch for |
+| --- | --- | --- |
+| Mending | The player is actively adventuring, XP is naturally coming in, and the item is valuable enough to deserve long-term sustain | Do not over-nerf it into "bad vanilla Mending"; it still needs to feel worth taking |
+| Material repair | The player has spare repair materials, wants immediate durability back, or is maintaining lower/mid-tier gear | Resource cost should matter, but the removed XP tax should make repair feel understandable rather than punitive |
+| Verdant Regrowth | The player is around their base, idling near growth, farming, sorting inventory, or topping up nature-themed gear | Keep it slow enough that it is passive sustain, not dominant idle repair |
+
 ## Release-Gate Questions
 
 - Does Fortune V plus Vein Miner create resource gains that force every server to retune defaults?
 - Does Mending V repair too quickly with common XP farms?
+- Does each durability route have a clear moment where it is the sensible choice?
 - Does removing vanilla damage/protection exclusivity make post-game combat flat rather than interesting?
 - Does Essence of Fortune become too broad now that it covers Looting, Luck of the Sea, and Lure?
 - Are Tree Capitator's natural-leaf checks enough to keep it distinct from Vein Miner?

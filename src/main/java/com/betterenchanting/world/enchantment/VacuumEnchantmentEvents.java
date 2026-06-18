@@ -3,11 +3,13 @@ package com.betterenchanting.world.enchantment;
 import com.betterenchanting.registry.ModEnchantments;
 import java.util.Collection;
 import java.util.Iterator;
+import javax.annotation.Nullable;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.neoforged.neoforge.event.level.BlockDropsEvent;
@@ -30,19 +32,30 @@ public final class VacuumEnchantmentEvents {
             return;
         }
 
-        ItemStack weapon = event.getSource().getWeaponItem();
-        if (weapon.isEmpty()) {
-            weapon = player.getMainHandItem();
-        }
-        if (!hasVacuum(player.level(), weapon)) {
+        if (!sourceHasVacuum(player, event.getSource().getDirectEntity(), event.getSource().getWeaponItem())) {
             return;
         }
 
         vacuumDrops(player, event.getDrops());
     }
 
-    private static boolean hasVacuum(net.minecraft.world.level.Level level, ItemStack stack) {
-        if (!(level instanceof ServerLevel serverLevel) || stack.isEmpty()) {
+    private static boolean sourceHasVacuum(Player player, @Nullable Entity directEntity, @Nullable ItemStack weapon) {
+        if (hasVacuum(player.level(), weapon)) {
+            return true;
+        }
+        if (weapon != null && !weapon.isEmpty()) {
+            return false;
+        }
+
+        if (!(directEntity instanceof Projectile)) {
+            return false;
+        }
+
+        return hasVacuum(player.level(), player.getMainHandItem()) || hasVacuum(player.level(), player.getOffhandItem());
+    }
+
+    private static boolean hasVacuum(net.minecraft.world.level.Level level, @Nullable ItemStack stack) {
+        if (!(level instanceof ServerLevel serverLevel) || stack == null || stack.isEmpty()) {
             return false;
         }
 

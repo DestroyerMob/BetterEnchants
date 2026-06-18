@@ -1,6 +1,7 @@
 package com.betterenchanting.data;
 
 import com.betterenchanting.BetterEnchanting;
+import com.betterenchanting.compat.SilentGearCompat;
 import com.betterenchanting.registry.ModTags;
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -38,6 +39,10 @@ public final class EnchantmentLimitRules {
 
     public static int maxEnchantments(ItemStack stack) {
         return rules.maxEnchantments(stack);
+    }
+
+    public static int baseMaxEnchantments(ItemStack stack) {
+        return rules.baseMaxEnchantments(stack);
     }
 
     public static int currentEnchantmentCount(ItemStack stack) {
@@ -133,19 +138,25 @@ public final class EnchantmentLimitRules {
         }
 
         private int maxEnchantments(ItemStack stack) {
+            int baseLimit = baseMaxEnchantments(stack);
+            int bonus = 0;
+            Set<ResourceLocation> virtualMaterialTags = Set.copyOf(SilentGearCompat.materialItemTags(stack));
+            for (Map.Entry<ResourceLocation, Integer> entry : this.materialBonuses.entrySet()) {
+                if (stack.is(TagKey.create(Registries.ITEM, entry.getKey()))
+                        || virtualMaterialTags.contains(entry.getKey())) {
+                    bonus += entry.getValue();
+                }
+            }
+            return Math.max(0, baseLimit + bonus);
+        }
+
+        private int baseMaxEnchantments(ItemStack stack) {
             if (stack.isEmpty()) {
                 return this.globalMax;
             }
 
             ResourceLocation itemId = BuiltInRegistries.ITEM.getKey(stack.getItem());
-            int baseLimit = this.itemLimits.getOrDefault(itemId, baseLimitForType(stack));
-            int bonus = 0;
-            for (Map.Entry<ResourceLocation, Integer> entry : this.materialBonuses.entrySet()) {
-                if (stack.is(TagKey.create(Registries.ITEM, entry.getKey()))) {
-                    bonus += entry.getValue();
-                }
-            }
-            return Math.max(0, baseLimit + bonus);
+            return Math.max(0, this.itemLimits.getOrDefault(itemId, baseLimitForType(stack)));
         }
 
         private int baseLimitForType(ItemStack stack) {

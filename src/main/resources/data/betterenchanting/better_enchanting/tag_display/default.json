@@ -52,6 +52,7 @@
     { "tag": "betterenchanting:purification", "label": "Purification", "color": "#ffffff" }
   ],
   "enchantment_target_tags": [
+    { "tag": "betterenchanting:targets/durability", "label": "Durability", "color": "#a0a0a0" },
     { "tag": "betterenchanting:targets/armor", "label": "Armor", "color": "#5b8cff" },
     { "tag": "betterenchanting:targets/armor/helmets", "label": "Helmet", "color": "#5b8cff" },
     { "tag": "betterenchanting:targets/armor/body_armor", "label": "Body Armor", "color": "#5b8cff" },

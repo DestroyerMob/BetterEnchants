@@ -1,6 +1,7 @@
 package com.betterenchanting.client;
 
 import com.betterenchanting.BetterEnchanting;
+import com.betterenchanting.data.EnchantmentLimitRules;
 import com.betterenchanting.data.EssenceDefinitions;
 import com.betterenchanting.data.TagDisplayRules;
 import com.betterenchanting.data.TagDisplayRules.TagLabel;
@@ -9,12 +10,14 @@ import com.betterenchanting.world.EnchantmentActivationEvents.InactiveReason;
 import com.betterenchanting.world.EnchantmentActivationEvents.TooltipEntry;
 import java.util.List;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.core.Holder;
 import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -40,7 +43,12 @@ public final class ClientTooltipEvents {
         }
 
         List<Component> tooltip = event.getToolTip();
-        recolorEnchantmentTooltips(event, tooltip);
+        HolderLookup.Provider registries = tooltipRegistries(event);
+        List<TooltipEntry> enchantmentEntries = registries == null
+                ? List.of()
+                : EnchantmentActivationEvents.tooltipEntries(stack, registries);
+        recolorEnchantmentTooltips(tooltip, enchantmentEntries);
+        addEnchantmentLimitLine(tooltip, stack, enchantmentEntries);
 
         List<TagLabel> essenceTags = essenceTags(stack);
         List<TagLabel> itemTags = TagDisplayRules.itemLabels(stack);
@@ -53,16 +61,14 @@ public final class ClientTooltipEvents {
         addTagLine(tooltip, Component.translatable("tooltip.betterenchanting.can_apply_to"), targetTags);
     }
 
-    private static void recolorEnchantmentTooltips(ItemTooltipEvent event, List<Component> tooltip) {
-        HolderLookup.Provider registries = event.getContext().registries();
-        if (registries == null) {
+    private static void recolorEnchantmentTooltips(List<Component> tooltip, List<TooltipEntry> enchantmentEntries) {
+        if (enchantmentEntries.isEmpty()) {
             return;
         }
 
         int searchFrom = 0;
-        for (TooltipEntry entry : EnchantmentActivationEvents.tooltipEntries(event.getItemStack(), registries)) {
-            String vanillaText = Enchantment.getFullname(entry.enchantment(), entry.level()).getString();
-            int lineIndex = findTooltipLine(tooltip, vanillaText, searchFrom);
+        for (TooltipEntry entry : enchantmentEntries) {
+            int lineIndex = findTooltipLine(tooltip, entry, searchFrom);
             if (lineIndex < 0) {
                 continue;
             }
@@ -71,18 +77,106 @@ public final class ClientTooltipEvents {
         }
     }
 
-    private static int findTooltipLine(List<Component> tooltip, String text, int startIndex) {
+    private static void addEnchantmentLimitLine(List<Component> tooltip, ItemStack stack, List<TooltipEntry> enchantmentEntries) {
+        if (stack.is(Items.BOOK) || stack.is(Items.ENCHANTED_BOOK)) {
+            return;
+        }
+
+        int count = enchantmentEntries.isEmpty()
+                ? EnchantmentLimitRules.currentEnchantmentCount(stack)
+                : capacityRelevantEnchantmentCount(enchantmentEntries);
+        if (count <= 0) {
+            return;
+        }
+
+        int limit = EnchantmentLimitRules.maxEnchantments(stack);
+        int baseLimit = EnchantmentLimitRules.baseMaxEnchantments(stack);
+        ChatFormatting valueColor = capacityValueColor(enchantmentEntries, count, baseLimit, limit);
+        MutableComponent line = Component.empty()
+                .append(Component.translatable("tooltip.betterenchanting.enchantment_limit").withStyle(ChatFormatting.DARK_GRAY))
+                .append(Component.literal(": ").withStyle(ChatFormatting.DARK_GRAY))
+                .append(Component.literal(count + "/" + limit).withStyle(valueColor));
+        if (baseLimit != limit) {
+            line.append(Component.literal(" (").withStyle(ChatFormatting.DARK_GRAY))
+                    .append(Component.translatable("tooltip.betterenchanting.enchantment_limit.base", baseLimit).withStyle(ChatFormatting.DARK_GRAY))
+                    .append(Component.literal(")").withStyle(ChatFormatting.DARK_GRAY));
+        }
+        tooltip.add(line);
+    }
+
+    private static int capacityRelevantEnchantmentCount(List<TooltipEntry> enchantmentEntries) {
+        int count = 0;
+        for (TooltipEntry entry : enchantmentEntries) {
+            if (!entry.status().has(InactiveReason.WRONG_TAG)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean hasOverLimitEntry(List<TooltipEntry> enchantmentEntries) {
+        for (TooltipEntry entry : enchantmentEntries) {
+            if (entry.status().has(InactiveReason.OVER_LIMIT)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static ChatFormatting capacityValueColor(List<TooltipEntry> enchantmentEntries, int count, int baseLimit, int limit) {
+        if (hasOverLimitEntry(enchantmentEntries) || count > limit) {
+            return ChatFormatting.RED;
+        }
+        if (hasBonusCapacityEntry(enchantmentEntries) || count > baseLimit) {
+            return ChatFormatting.YELLOW;
+        }
+        return ChatFormatting.GRAY;
+    }
+
+    private static boolean hasBonusCapacityEntry(List<TooltipEntry> enchantmentEntries) {
+        for (TooltipEntry entry : enchantmentEntries) {
+            if (entry.usesBonusCapacity()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static HolderLookup.Provider tooltipRegistries(ItemTooltipEvent event) {
+        HolderLookup.Provider registries = event.getContext().registries();
+        if (registries != null) {
+            return registries;
+        }
+
+        Player player = event.getEntity();
+        if (player != null) {
+            return player.level().registryAccess();
+        }
+
+        Minecraft minecraft = Minecraft.getInstance();
+        return minecraft.level == null ? null : minecraft.level.registryAccess();
+    }
+
+    private static int findTooltipLine(List<Component> tooltip, TooltipEntry entry, int startIndex) {
+        String vanillaText = Enchantment.getFullname(entry.enchantment(), entry.level()).getString();
         for (int index = startIndex; index < tooltip.size(); index++) {
-            if (tooltip.get(index).getString().equals(text)) {
+            if (matchesTooltipLine(tooltip.get(index).getString(), vanillaText)) {
                 return index;
             }
         }
         return -1;
     }
 
+    private static boolean matchesTooltipLine(String lineText, String vanillaText) {
+        return lineText.equals(vanillaText) || lineText.endsWith(vanillaText);
+    }
+
     private static Component styledEnchantmentLine(TooltipEntry entry) {
         MutableComponent line = Enchantment.getFullname(entry.enchantment(), entry.level()).copy()
                 .withStyle(style -> style.withColor(dominantAffinityColor(entry.enchantment())));
+        if (entry.usesBonusCapacity() || entry.status().has(InactiveReason.OVER_LIMIT)) {
+            line.withStyle(style -> style.withItalic(true));
+        }
         if (!entry.status().active()) {
             line.withStyle(style -> style.withStrikethrough(true));
             appendInactiveReason(line, entry, InactiveReason.WRONG_TAG);

@@ -16,6 +16,7 @@ Pre-alpha / internal playtesting.
 - Enchantment fusion
 - Custom enchantments
 - Balance presets for vanilla-plus, balanced, overhaul, power-fantasy, and custom setups
+- Multiple durability-maintenance paths through Mending, material repair, and passive recovery
 - Configurable anvil, mending, XP, and roll behaviour
 - Optional Silent Gear material support
 

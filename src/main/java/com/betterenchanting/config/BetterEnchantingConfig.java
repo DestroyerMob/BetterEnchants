@@ -6,7 +6,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 public final class BetterEnchantingConfig {
     public static final ModConfigSpec SPEC;
     private static final ModConfigSpec.EnumValue<BalancePreset> BALANCE_PRESET;
-    private static final ModConfigSpec.BooleanValue ALLOW_ADVANCED_OVERRIDES;
+    private static final ModConfigSpec.BooleanValue USE_ADVANCED_CONFIG_VALUES;
     private static final ModConfigSpec.IntValue ANVIL_MAX_COST;
     private static final ModConfigSpec.EnumValue<AnvilLevelMergeMode> ANVIL_LEVEL_MERGE_MODE;
     private static final ModConfigSpec.BooleanValue ENHANCED_TABLE_TAKEOVER;
@@ -42,6 +42,15 @@ public final class BetterEnchantingConfig {
     private static final ModConfigSpec.DoubleValue SHOCKED_PARTICLE_VERTICAL_SPREAD;
     private static final ModConfigSpec.DoubleValue SHOCKED_PARTICLE_SPEED;
     private static final ModConfigSpec.IntValue SHOCKING_DURATION_TICKS;
+    private static final ModConfigSpec.IntValue FROSTBITE_FROST_TICKS_PER_LEVEL;
+    private static final ModConfigSpec.IntValue FROSTBITE_FROZEN_DURATION_TICKS;
+    private static final ModConfigSpec.IntValue CINDERSTEP_DURATION_TICKS;
+    private static final ModConfigSpec.DoubleValue CINDERSTEP_SPEED_BONUS_PER_LEVEL;
+    private static final ModConfigSpec.IntValue OVERCHARGED_DURATION_TICKS;
+    private static final ModConfigSpec.IntValue OVERCHARGED_STRENGTH_MAX_AMPLIFIER;
+    private static final ModConfigSpec.IntValue OVERCHARGED_REGENERATION_MAX_AMPLIFIER;
+    private static final ModConfigSpec.IntValue OVERCHARGED_SPEED_MAX_AMPLIFIER;
+    private static final ModConfigSpec.DoubleValue CURSE_OF_FRAGILITY_DURABILITY_DAMAGE_MULTIPLIER;
     private static final ModConfigSpec.DoubleValue CURSE_OF_REBOUND_REFLECTED_DAMAGE_RATIO;
     private static final ModConfigSpec.DoubleValue SEISMIC_CUSHION_EXPLOSION_RADIUS_PER_LEVEL;
     private static final ModConfigSpec.IntValue VERDANT_REGROWTH_BASE_REPAIR_INTERVAL_TICKS;
@@ -70,9 +79,9 @@ public final class BetterEnchantingConfig {
         BALANCE_PRESET = builder
                 .comment("High-level balance template. Use CUSTOM to make the advanced config values below the source of truth.")
                 .defineEnum("preset", BalancePreset.BALANCED);
-        ALLOW_ADVANCED_OVERRIDES = builder
-                .comment("When true, advanced config values below override the selected preset. CUSTOM always uses advanced config values.")
-                .define("allow_advanced_overrides", false);
+        USE_ADVANCED_CONFIG_VALUES = builder
+                .comment("When false, the selected preset controls balance. When true, the advanced config values below are used instead of preset values. CUSTOM always uses advanced config values.")
+                .define("use_advanced_config_values", false);
         builder.pop();
 
         builder.push("anvil");
@@ -113,8 +122,8 @@ public final class BetterEnchantingConfig {
                 .comment("Lapis lazuli consumed by each enhanced enchanting offer.")
                 .defineInRange("lapis_cost", 1, 0, 64);
         ENCHANTING_ESSENCE_POWER_BONUS = builder
-                .comment("Extra roll power added when an option is controlled by a normal essence.")
-                .defineInRange("essence_power_bonus", 2, 0, 1_000_000);
+                .comment("Extra roll power added when an option is controlled by a normal essence. Intended balanced defaults use 0 so essences control the pool without increasing roll strength.")
+                .defineInRange("essence_power_bonus", 0, 0, 1_000_000);
         ENCHANTING_BOOK_POWER_BONUS = builder
                 .comment("Extra roll power added when an option is controlled by an enchanted book.")
                 .defineInRange("book_power_bonus", 2, 0, 1_000_000);
@@ -201,10 +210,49 @@ public final class BetterEnchantingConfig {
                 .defineInRange("duration_ticks", 100, 0, 72_000);
         builder.pop();
 
+        builder.push("frostbite");
+        FROSTBITE_FROST_TICKS_PER_LEVEL = builder
+                .comment("Vanilla frozen ticks added by each Frostbite level when the enchanted weapon deals damage. The target freezes when this reaches its vanilla freeze threshold.")
+                .defineInRange("frost_ticks_per_level", 25, 0, 72_000);
+        FROSTBITE_FROZEN_DURATION_TICKS = builder
+                .comment("Duration, in ticks, of the Frozen effect applied when Frostbite reaches the target's freeze threshold. The default 100 ticks is 5 seconds.")
+                .defineInRange("frozen_duration_ticks", 100, 0, 72_000);
+        builder.pop();
+
+        builder.push("cinderstep");
+        CINDERSTEP_DURATION_TICKS = builder
+                .comment("Duration, in ticks, of the Cinderstep speed boost after the wearer takes fire damage.")
+                .defineInRange("duration_ticks", 60, 0, 72_000);
+        CINDERSTEP_SPEED_BONUS_PER_LEVEL = builder
+                .comment("Movement speed multiplier added by each Cinderstep level while the Cinderstep effect is active. The default 0.06 means +30% at level 5.")
+                .defineInRange("speed_bonus_per_level", 0.06D, 0.0D, 10.0D);
+        builder.pop();
+
+        builder.push("overcharged");
+        OVERCHARGED_DURATION_TICKS = builder
+                .comment("Duration, in ticks, of Overcharged's buffs after the wearer is struck by lightning.")
+                .defineInRange("duration_ticks", 200, 0, 72_000);
+        OVERCHARGED_STRENGTH_MAX_AMPLIFIER = builder
+                .comment("Highest vanilla Strength amplifier Overcharged can apply at max enchantment level. Amplifier 0 is Strength I.")
+                .defineInRange("strength_max_amplifier", 4, 0, 255);
+        OVERCHARGED_REGENERATION_MAX_AMPLIFIER = builder
+                .comment("Highest vanilla Regeneration amplifier Overcharged can apply at max enchantment level. Amplifier 0 is Regeneration I.")
+                .defineInRange("regeneration_max_amplifier", 2, 0, 255);
+        OVERCHARGED_SPEED_MAX_AMPLIFIER = builder
+                .comment("Highest vanilla Speed amplifier Overcharged can apply at max enchantment level. Amplifier 0 is Speed I.")
+                .defineInRange("speed_max_amplifier", 0, 0, 255);
+        builder.pop();
+
         builder.push("curse_of_rebound");
         CURSE_OF_REBOUND_REFLECTED_DAMAGE_RATIO = builder
                 .comment("Fraction of final dealt damage reflected back to the attacking player.")
                 .defineInRange("reflected_damage_ratio", 0.25D, 0.0D, 100.0D);
+        builder.pop();
+
+        builder.push("curse_of_fragility");
+        CURSE_OF_FRAGILITY_DURABILITY_DAMAGE_MULTIPLIER = builder
+                .comment("Multiplier applied to final durability damage after vanilla durability processing such as Unbreaking.")
+                .defineInRange("durability_damage_multiplier", 2.0D, 0.0D, 100.0D);
         builder.pop();
 
         builder.push("seismic_cushion");
@@ -296,8 +344,8 @@ public final class BetterEnchantingConfig {
         return BALANCE_PRESET.get();
     }
 
-    public static boolean allowsAdvancedOverrides() {
-        return ALLOW_ADVANCED_OVERRIDES.get();
+    public static boolean usesAdvancedConfigValues() {
+        return USE_ADVANCED_CONFIG_VALUES.get();
     }
 
     public static int anvilMaxCost() {
@@ -440,8 +488,44 @@ public final class BetterEnchantingConfig {
         return SHOCKING_DURATION_TICKS.get();
     }
 
+    public static int frostbiteFrostTicksPerLevel() {
+        return FROSTBITE_FROST_TICKS_PER_LEVEL.get();
+    }
+
+    public static int frostbiteFrozenDurationTicks() {
+        return FROSTBITE_FROZEN_DURATION_TICKS.get();
+    }
+
+    public static int cinderstepDurationTicks() {
+        return CINDERSTEP_DURATION_TICKS.get();
+    }
+
+    public static double cinderstepSpeedBonusPerLevel() {
+        return CINDERSTEP_SPEED_BONUS_PER_LEVEL.get();
+    }
+
+    public static int overchargedDurationTicks() {
+        return OVERCHARGED_DURATION_TICKS.get();
+    }
+
+    public static int overchargedStrengthMaxAmplifier() {
+        return OVERCHARGED_STRENGTH_MAX_AMPLIFIER.get();
+    }
+
+    public static int overchargedRegenerationMaxAmplifier() {
+        return OVERCHARGED_REGENERATION_MAX_AMPLIFIER.get();
+    }
+
+    public static int overchargedSpeedMaxAmplifier() {
+        return OVERCHARGED_SPEED_MAX_AMPLIFIER.get();
+    }
+
     public static float curseOfReboundReflectedDamageRatio() {
         return CURSE_OF_REBOUND_REFLECTED_DAMAGE_RATIO.get().floatValue();
+    }
+
+    public static float curseOfFragilityDurabilityDamageMultiplier() {
+        return CURSE_OF_FRAGILITY_DURABILITY_DAMAGE_MULTIPLIER.get().floatValue();
     }
 
     public static float seismicCushionExplosionRadiusPerLevel() {

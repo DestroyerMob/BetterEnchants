@@ -54,7 +54,12 @@ public final class EnchantmentActivationEvents {
         addOrderedEntries(stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY), enchantments, rawEntries);
         addOrderedEntries(stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY), enchantments, rawEntries);
         return rawEntries.stream()
-                .map(entry -> new TooltipEntry(entry.enchantment(), entry.level(), status(stack, entry.enchantment(), enchantments)))
+                .map(entry -> new TooltipEntry(
+                        entry.enchantment(),
+                        entry.level(),
+                        status(stack, entry.enchantment(), enchantments),
+                        usesBonusCapacity(stack, entry.enchantment(), enchantments)
+                ))
                 .toList();
     }
 
@@ -64,10 +69,11 @@ public final class EnchantmentActivationEvents {
         }
 
         EnumSet<InactiveReason> reasons = EnumSet.noneOf(InactiveReason.class);
-        if (!matchesCurrentItem(stack, enchantment)) {
+        boolean matchesCurrentItem = matchesCurrentItem(stack, enchantment);
+        if (!matchesCurrentItem) {
             reasons.add(InactiveReason.WRONG_TAG);
         }
-        if (isOverLimit(stack, enchantment, enchantments)) {
+        if (matchesCurrentItem && isOverLimit(stack, enchantment, enchantments)) {
             reasons.add(InactiveReason.OVER_LIMIT);
         }
         return Status.of(reasons);
@@ -75,22 +81,36 @@ public final class EnchantmentActivationEvents {
 
     private static boolean isOverLimit(ItemStack stack, Holder<Enchantment> target, HolderLookup.RegistryLookup<Enchantment> enchantments) {
         int maxEnchantments = EnchantmentLimitRules.maxEnchantments(stack);
-        if (maxEnchantments <= 0) {
-            return orderedUniqueEnchantments(stack, enchantments).contains(target);
+        int activeIndex = activeIndex(stack, target, enchantments);
+        return activeIndex >= 0 && (maxEnchantments <= 0 || activeIndex >= maxEnchantments);
+    }
+
+    private static boolean usesBonusCapacity(ItemStack stack, Holder<Enchantment> target, HolderLookup.RegistryLookup<Enchantment> enchantments) {
+        int baseMaxEnchantments = EnchantmentLimitRules.baseMaxEnchantments(stack);
+        int maxEnchantments = EnchantmentLimitRules.maxEnchantments(stack);
+        if (baseMaxEnchantments >= maxEnchantments) {
+            return false;
         }
 
-        int activeIndex = 0;
-        for (Holder<Enchantment> enchantment : orderedUniqueEnchantments(stack, enchantments)) {
-            boolean isTarget = enchantment.equals(target);
-            if (!isTarget && !matchesCurrentItem(stack, enchantment)) {
-                continue;
-            }
-            if (isTarget) {
-                return activeIndex >= maxEnchantments;
-            }
-            activeIndex++;
+        int activeIndex = activeIndex(stack, target, enchantments);
+        return activeIndex >= baseMaxEnchantments && activeIndex < maxEnchantments;
+    }
+
+    private static int activeIndex(ItemStack stack, Holder<Enchantment> target, HolderLookup.RegistryLookup<Enchantment> enchantments) {
+        if (!matchesCurrentItem(stack, target)) {
+            return -1;
         }
-        return false;
+
+        int index = 0;
+        for (Holder<Enchantment> enchantment : orderedUniqueEnchantments(stack, enchantments)) {
+            if (enchantment.equals(target)) {
+                return index;
+            }
+            if (matchesCurrentItem(stack, enchantment)) {
+                index++;
+            }
+        }
+        return -1;
     }
 
     private static List<Holder<Enchantment>> orderedUniqueEnchantments(ItemStack stack, HolderLookup.RegistryLookup<Enchantment> enchantments) {
@@ -172,7 +192,7 @@ public final class EnchantmentActivationEvents {
     private record RawEntry(Holder<Enchantment> enchantment, int level) {
     }
 
-    public record TooltipEntry(Holder<Enchantment> enchantment, int level, Status status) {
+    public record TooltipEntry(Holder<Enchantment> enchantment, int level, Status status, boolean usesBonusCapacity) {
     }
 
     public record Status(Set<InactiveReason> reasons) {

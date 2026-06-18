@@ -7,10 +7,14 @@ import net.minecraft.world.item.enchantment.Enchantment;
 
 public final class ModEnchantments {
     public static final ResourceKey<Enchantment> AUTO_SMELT = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("auto_smelt"));
+    public static final ResourceKey<Enchantment> CINDERSTEP = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("cinderstep"));
+    public static final ResourceKey<Enchantment> CURSE_OF_FRAGILITY = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("curse_of_fragility"));
     public static final ResourceKey<Enchantment> CURSE_OF_REBOUND = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("curse_of_rebound"));
     public static final ResourceKey<Enchantment> FORTUNES_TOUCH = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("fortunes_touch"));
+    public static final ResourceKey<Enchantment> FROSTBITE = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("frostbite"));
     public static final ResourceKey<Enchantment> GELBOUND = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("gelbound"));
     public static final ResourceKey<Enchantment> HARVEST = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("harvest"));
+    public static final ResourceKey<Enchantment> OVERCHARGED = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("overcharged"));
     public static final ResourceKey<Enchantment> PERFECT_STRIKE = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("perfect_strike"));
     public static final ResourceKey<Enchantment> SEISMIC_CUSHION = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("seismic_cushion"));
     public static final ResourceKey<Enchantment> SHOCKING = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("shocking"));

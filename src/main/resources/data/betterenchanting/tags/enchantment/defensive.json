@@ -1,5 +1,6 @@
 {
   "values": [
+    "betterenchanting:overcharged",
     { "id": "minecraft:protection", "required": false },
     { "id": "minecraft:fire_protection", "required": false },
     { "id": "minecraft:blast_protection", "required": false },

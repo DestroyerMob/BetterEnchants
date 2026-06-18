@@ -17,7 +17,7 @@ public final class EffectiveBalance {
             3,
             5,
             1,
-            1,
+            0,
             1,
             0,
             4.0D,
@@ -42,10 +42,6 @@ public final class EffectiveBalance {
             1,
             1,
             0.1D,
-            6,
-            0,
-            6,
-            1,
             0.05D,
             0.25D,
             60,
@@ -67,7 +63,7 @@ public final class EffectiveBalance {
             3,
             5,
             1,
-            2,
+            0,
             2,
             1,
             8.0D,
@@ -92,10 +88,6 @@ public final class EffectiveBalance {
             1,
             1,
             0.2D,
-            10,
-            1,
-            1,
-            2,
             0.1D,
             1.0D,
             50,
@@ -117,7 +109,7 @@ public final class EffectiveBalance {
             3,
             5,
             1,
-            3,
+            0,
             3,
             1,
             12.0D,
@@ -142,10 +134,6 @@ public final class EffectiveBalance {
             1,
             1,
             0.25D,
-            12,
-            1,
-            1,
-            2,
             0.12D,
             1.0D,
             45,
@@ -192,10 +180,6 @@ public final class EffectiveBalance {
             2,
             2,
             0.5D,
-            4,
-            1,
-            1,
-            4,
             0.2D,
             1.0D,
             35,
@@ -214,7 +198,7 @@ public final class EffectiveBalance {
     }
 
     public static boolean usesAdvancedConfigValues() {
-        return BetterEnchantingConfig.preset() == BalancePreset.CUSTOM || BetterEnchantingConfig.allowsAdvancedOverrides();
+        return BetterEnchantingConfig.preset() == BalancePreset.CUSTOM || BetterEnchantingConfig.usesAdvancedConfigValues();
     }
 
     public static int anvilMaxCost() {
@@ -387,6 +371,38 @@ public final class EffectiveBalance {
         return values == null ? BetterEnchantingConfig.shockingDurationTicks() : values.shockingDurationTicks();
     }
 
+    public static int frostbiteFrostTicksPerLevel() {
+        return BetterEnchantingConfig.frostbiteFrostTicksPerLevel();
+    }
+
+    public static int frostbiteFrozenDurationTicks() {
+        return BetterEnchantingConfig.frostbiteFrozenDurationTicks();
+    }
+
+    public static int cinderstepDurationTicks() {
+        return BetterEnchantingConfig.cinderstepDurationTicks();
+    }
+
+    public static double cinderstepSpeedBonusPerLevel() {
+        return BetterEnchantingConfig.cinderstepSpeedBonusPerLevel();
+    }
+
+    public static int overchargedDurationTicks() {
+        return BetterEnchantingConfig.overchargedDurationTicks();
+    }
+
+    public static int overchargedStrengthMaxAmplifier() {
+        return BetterEnchantingConfig.overchargedStrengthMaxAmplifier();
+    }
+
+    public static int overchargedRegenerationMaxAmplifier() {
+        return BetterEnchantingConfig.overchargedRegenerationMaxAmplifier();
+    }
+
+    public static int overchargedSpeedMaxAmplifier() {
+        return BetterEnchantingConfig.overchargedSpeedMaxAmplifier();
+    }
+
     public static float curseOfReboundReflectedDamageRatio() {
         BalanceValues values = presetValues();
         return (float) (values == null ? BetterEnchantingConfig.curseOfReboundReflectedDamageRatio() : values.curseOfReboundReflectedDamageRatio());
@@ -428,23 +444,20 @@ public final class EffectiveBalance {
     }
 
     public static int mendingBaseChanceDenominator() {
-        BalanceValues values = presetValues();
-        return values == null ? BetterEnchantingConfig.mendingBaseChanceDenominator() : values.mendingBaseChanceDenominator();
+        // Mending is an explicit config choice, not a preset-controlled balance knob.
+        return BetterEnchantingConfig.mendingBaseChanceDenominator();
     }
 
     public static int mendingDenominatorReductionPerLevel() {
-        BalanceValues values = presetValues();
-        return values == null ? BetterEnchantingConfig.mendingDenominatorReductionPerLevel() : values.mendingDenominatorReductionPerLevel();
+        return BetterEnchantingConfig.mendingDenominatorReductionPerLevel();
     }
 
     public static int mendingMinChanceDenominator() {
-        BalanceValues values = presetValues();
-        return values == null ? BetterEnchantingConfig.mendingMinChanceDenominator() : values.mendingMinChanceDenominator();
+        return BetterEnchantingConfig.mendingMinChanceDenominator();
     }
 
     public static int mendingDurabilityRepairedPerLevel() {
-        BalanceValues values = presetValues();
-        return values == null ? BetterEnchantingConfig.mendingDurabilityRepairedPerLevel() : values.mendingDurabilityRepairedPerLevel();
+        return BetterEnchantingConfig.mendingDurabilityRepairedPerLevel();
     }
 
     public static float fortunesTouchSecondaryDropChancePerLevel() {

@@ -1,0 +1,22 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.betterenchanting.cinderstep"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 75,
+    "per_level_above_first": 0
+  },
+  "max_level": 5,
+  "min_cost": {
+    "base": 12,
+    "per_level_above_first": 5
+  },
+  "primary_items": "#betterenchanting:enchantable/cinderstep",
+  "slots": [
+    "feet"
+  ],
+  "supported_items": "#betterenchanting:enchantable/cinderstep",
+  "weight": 2
+}

@@ -1,5 +1,6 @@
 {
   "values": [
+    "betterenchanting:overcharged",
     "betterenchanting:shocking",
     { "id": "minecraft:channeling", "required": false },
     { "id": "minecraft:quick_charge", "required": false },

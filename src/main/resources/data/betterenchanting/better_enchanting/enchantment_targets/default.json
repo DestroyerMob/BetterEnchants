@@ -1,5 +1,6 @@
 {
   "rules": [
+    { "item_tag": "betterenchanting:durability", "enchantment_tag": "betterenchanting:targets/durability" },
     { "item_tag": "betterenchanting:armor", "enchantment_tag": "betterenchanting:targets/armor" },
     { "item_tag": "betterenchanting:armor/helmets", "enchantment_tag": "betterenchanting:targets/armor/helmets" },
     { "item_tag": "betterenchanting:armor/body_armor", "enchantment_tag": "betterenchanting:targets/armor/body_armor" },

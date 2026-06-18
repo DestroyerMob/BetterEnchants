@@ -15,6 +15,7 @@
 - Enchanted books add targeted weight toward known enchantments.
 - Enchanting offers should be stable enough to prevent free reroll abuse.
 - Item type still matters, but player sculpting should dominate the feel.
+- Mending, material repair, and passive environmental repair should each solve durability differently instead of making Mending the universal best answer.
 - Data packs should be able to tune tags, essences, and loot distribution.
 
 ## 3. Current Implementation
@@ -76,7 +77,7 @@ The Crucible no longer presents vanilla-style tiered power levels. All three off
 
 - 0 bookshelves gives a very low base cost and low roll power.
 - 15 bookshelves gives the maximum base cost and maximum roll power.
-- Essences, enchanted books, and item material can provide small roll-power boosts, but bookshelves remain the main controllable power source.
+- Essences control which enchantments can roll. Enchanted books and item material can provide small roll-power boosts, but bookshelves remain the main controllable power source.
 
 This means players choose between low-power cheap experimentation and high-power expensive rolls, while still getting three independent spins at the chosen power.
 
@@ -133,7 +134,7 @@ Default rules:
 - Tool base maximum: 3 enchantments
 - Gold material bonus: +1 enchantment
 
-Type limits apply only when they are lower than the global base. If an item matches multiple types, such as an axe matching both weapon and tool tags, the strictest matching type limit wins. Material bonuses are applied after the base limit, so gold tools default to 4 and gold armor defaults to 5.
+Type limits apply only when they are lower than the global base. If an item matches multiple types, such as an axe matching both weapon and tool tags, the strictest matching type limit wins. Material bonuses are applied after the base limit, so gold tools default to 4, gold weapons default to 5, and gold armor defaults to 5.
 
 Current JSON shape:
 
@@ -155,9 +156,9 @@ Material bonus keys map to item tags. For example, `"gold": 1` uses `#betterench
 
 Material tags are defined for vanilla tool, weapon, and armor materials under `data/betterenchanting/tags/item/materials/`, including wood, stone, iron, gold, diamond, netherite, leather, chainmail, turtle, copper, heavy core, and prismarine.
 
-Silent Gear tools, weapons, and armor are also treated as having virtual Better Enchanting material tags based on the primary material of their main part. No item tag JSON is required for those virtual tags. A Silent Gear item with a `silentgear:mythril` head/main part resolves as `#betterenchanting:materials/mythril` and `#betterenchanting:materials/silentgear/mythril` for target mappings, testing, and current-material checks. Coatings do not change the material tag used here.
+Silent Gear tools, weapons, and armor are also treated as having virtual Better Enchanting material tags based on the primary material of their main part. No item tag JSON is required for those virtual tags. A Silent Gear item with a `silentgear:mythril` head/main part resolves as `#betterenchanting:materials/mythril` and `#betterenchanting:materials/silentgear/mythril` for target mappings, testing, material bonuses, and current-material checks. Coatings do not change the material tag used here.
 
-Silent Gear virtual material tags do not apply `material_bonus` capacity increases. Silent Gear heads and armor parts can be swapped after enchanting, so capacity bonuses only use real item tags. Use `item_limits` for concrete Silent Gear item ids if a pack needs a different base limit for modular gear.
+Silent Gear virtual material tags can apply `material_bonus` capacity increases. Enchantments that fit only because of that material bonus are marked as bonus-capacity enchantments in the tooltip. If the Silent Gear head or armor part is swapped and the new material no longer provides the bonus, those later enchantments become over-limit and dormant instead of being deleted.
 
 ### Common Config
 
@@ -168,7 +169,7 @@ Default values:
 ```toml
 [general]
 preset = "balanced"
-allow_advanced_overrides = false
+use_advanced_config_values = false
 
 [anvil]
 max_cost = 30
@@ -184,7 +185,7 @@ min_level_cost = 1
 max_level_cost = 3
 bookshelf_power_per_level_cost = 5
 lapis_cost = 1
-essence_power_bonus = 2
+essence_power_bonus = 0
 book_power_bonus = 2
 gold_material_power_bonus = 1
 book_weight_multiplier = 8.0
@@ -219,8 +220,25 @@ particle_speed = 0.03
 [shocking]
 duration_ticks = 100
 
+[frostbite]
+frost_ticks_per_level = 25
+frozen_duration_ticks = 100
+
+[cinderstep]
+duration_ticks = 60
+speed_bonus_per_level = 0.06
+
+[overcharged]
+duration_ticks = 200
+strength_max_amplifier = 4
+regeneration_max_amplifier = 2
+speed_max_amplifier = 0
+
 [curse_of_rebound]
 reflected_damage_ratio = 0.25
+
+[curse_of_fragility]
+durability_damage_multiplier = 2.0
 
 [seismic_cushion]
 explosion_radius_per_level = 1.0
@@ -258,13 +276,29 @@ linear_xp_per_level = 7
 
 The `general.preset` option is the normal-player control surface. Available presets are `vanilla_plus`, `balanced`, `overhaul`, `power_fantasy`, and `custom`. The default `balanced` preset matches the mod's current intended defaults. `vanilla_plus` is conservative and leaves the vanilla enchanting table alone by default. `overhaul` makes essences/books stronger and treats Better Enchanting as a core gear-progression system. `power_fantasy` is intentionally generous and not meant as a balanced default. `custom` makes the advanced values in the config file the source of truth.
 
-When `general.allow_advanced_overrides` is `false`, any preset other than `custom` fully controls balance values and the detailed sections act as the editable `custom` baseline. When it is `true`, the advanced values below override the selected preset. Cosmetic particle settings for Shocked are always read directly from config.
+When `general.use_advanced_config_values` is `false`, any preset other than `custom` fully controls balance values and the detailed sections act as the editable `custom` baseline. When it is `true`, the selected preset is ignored for balance and the advanced values below are used instead. This is not a per-field inheritance or overlay system. Cosmetic particle settings for Shocked are always read directly from config.
 
 The effective `enchanting.enhanced_table_takeover` value defaults to `true` in the `balanced`, `overhaul`, and `power_fantasy` presets, so vanilla enchanting tables open the enhanced UI. In `vanilla_plus`, it defaults to `false`; vanilla enchanting tables are left alone and the Arcane Crucible block becomes the enhanced enchanting station instead. The Arcane Crucible shapelessly crafts from one enchanting table and can shapelessly craft back into one enchanting table.
 
-Enhanced enchanting balance lives behind the effective balance layer rather than inline menu constants. Bookshelf power controls offer level requirements and roll quality through `min_base_cost`, `max_base_cost`, and `base_cost_per_bookshelf_power`; those values do not have to match the levels consumed. The actual charged XP levels use `min_level_cost`, `max_level_cost`, and `bookshelf_power_per_level_cost`, which default to 0-5 power costing 1 level, 6-10 costing 2 levels, and 11-15 costing 3 levels. Modifier-specific roll nudges live in `essence_power_bonus`, `book_power_bonus`, and `gold_material_power_bonus`. Candidate weighting is tuned through `book_weight_multiplier`, `new_tag_combo_multiplier`, and `max_candidate_weight`.
+Enhanced enchanting balance lives behind the effective balance layer rather than inline menu constants. Bookshelf power controls offer level requirements and roll quality through `min_base_cost`, `max_base_cost`, and `base_cost_per_bookshelf_power`; those values do not have to match the levels consumed. The actual charged XP levels use `min_level_cost`, `max_level_cost`, and `bookshelf_power_per_level_cost`, which default to 0-5 power costing 1 level, 6-10 costing 2 levels, and 11-15 costing 3 levels. In the serious presets, `essence_power_bonus` is 0 so essences control the pool without increasing roll strength. Modifier-specific power nudges live in `book_power_bonus` and `gold_material_power_bonus`, while `essence_power_bonus` remains available for custom configs and power-fantasy tuning. Candidate weighting is tuned through `book_weight_multiplier`, `new_tag_combo_multiplier`, and `max_candidate_weight`.
 
-Custom enchantment behavior that affects player-facing balance also lives in config. Vein Miner size, Tree Capitator log and natural-leaf checks, Perfect Strike timing, damage, and cooldown variance, Shocked damage multiplier and particles, Shocking duration, Curse of Rebound reflection ratio, Seismic Cushion explosion size, Verdant Regrowth repair amount, timing, and scan radius, Mending repair math, Fortunes Touch secondary drop chance, and the core enhanced-enchanting roll formula can all be tuned without recompiling the mod.
+Custom enchantment behavior that affects player-facing balance also lives in config. Vein Miner size, Tree Capitator log and natural-leaf checks, Perfect Strike timing, damage, and cooldown variance, Shocked damage multiplier and particles, Shocking duration, Frostbite frost buildup and freeze duration, Cinderstep speed boost and duration, Curse of Rebound reflection ratio, Curse of Fragility durability damage multiplier, Seismic Cushion explosion size, Verdant Regrowth repair amount, timing, and scan radius, Mending repair math, Fortunes Touch secondary drop chance, and the core enhanced-enchanting roll formula can all be tuned without recompiling the mod.
+
+Mending is intentionally not controlled by balance presets. It always uses the explicit `[mending]` config values, so the modded Mending behavior remains stable unless a pack or player edits that section directly.
+
+Better Enchanting avoids making Mending the universal best durability solution. Mending, material repair, and passive environmental repair each solve durability in different ways: XP convenience, resource certainty, and slow passive recovery.
+
+### Durability Maintenance
+
+Better Enchanting treats durability as a small ecosystem instead of a single best enchantment. Vanilla repair often becomes either annoying before Mending or nearly irrelevant after Mending. This mod should give players several practical maintenance paths with different costs and rhythms.
+
+| Repair method | Strength | Weakness | Best use case |
+| --- | --- | --- | --- |
+| Mending | Works anywhere XP is gained and sustains gear while playing | Costs enchantment space and is weaker than vanilla Mending | Long-term general sustain on valuable gear |
+| Verdant Regrowth | Completely passive and free | Slow, environmental, and not useful mid-combat or deep mining | Idle/top-up repair and nature-themed gear |
+| Material repair | Immediate, predictable, and no XP tax | Consumes real repair materials | Directly fixing tools, especially before high-value netherite gear |
+
+The goal is not to make Mending bad. Mending should still feel good, convenient, and worth taking on items that deserve long-term sustain. It should simply stop being mandatory on every item. Material repair keeps resources meaningful without adding vanilla's XP/anvil punishment, and Verdant Regrowth fills a separate fantasy where nature slowly restores an item over time.
 
 Better Enchanting also adds the `playerGriefing` game rule. It defaults to `true` and is intended as the player-caused counterpart to vanilla `mobGriefing`. Seismic Cushion uses it for block destruction: when `playerGriefing` is false, its explosion still happens but does not break blocks.
 
@@ -346,7 +380,7 @@ Better Enchanting target-tagged enchantments are also checked when their gamepla
 
 If an item has more currently valid enchantments than its current enchantment limit allows, the later enchantments in the visible tooltip order are dormant and return level 0. Fusion outputs are already applied by Better Enchanting's enchanting and anvil paths before this check is shown to players, so fused results count as the enchantment actually present on the item. This prevents Silent Gear part swaps from keeping a material-only bonus active after the material changes. For example, Verdant Regrowth can remain on a swapped tool visually, but it only repairs durability while the tool currently resolves the wood target tag.
 
-Client tooltips color enchantment names by their dominant affinity/tag display color. Dormant enchantments are struck through and marked with a reason such as `[Wrong tag]` or `[Over limit]`.
+Client tooltips color enchantment names by their dominant affinity/tag display color. Enchanted non-book items also show their current valid enchantment count and effective limit, such as `Enchantments: 5/5 (base 4)`. Enchantments that fit only because of material bonus capacity are italicized while still active, so players can see which enchantment would become dormant if the material changed. Dormant enchantments are struck through and marked with a reason such as `[Wrong tag]` or `[Over limit]`. Enchantments that are dormant because they exceed the current effective enchantment limit are also italicized.
 
 Testing command: `/itemtags reroll` recomputes the held item's current Better Enchanting virtual material tags and target tags and prints them to chat. It is a debug/admin command and does not store tags on the item.
 
@@ -374,8 +408,12 @@ Verdant Regrowth uses tags for its environmental checks. By default, the growth-
 
 - Vacuum is a Void enchantment that moves finalized drops into the player's inventory. If inventory space runs out, leftovers drop at the player's feet.
 - Auto-Smelt is a Fire enchantment for harvestable tools. It transforms finalized block drops through smelting recipes so it works after drop modifiers such as Fortune.
+- Cinderstep is a 5-level Fire enchantment for boots. When the wearer takes damage tagged as fire damage, such as lava, campfires, magma blocks, or being on fire, they gain a short Cinderstep movement speed boost. The default boost is +6% movement speed per level for 3 seconds.
 - Shocked is a harmful status effect that makes affected living entities take 20% more damage from incoming damage by default. It hides the vanilla potion swirl and emits electric spark particles while active.
 - Shocking is a Lightning weapon enchantment that applies Shocked for 5 seconds by default when the enchanted weapon deals damage.
+- Overcharged is a 5-level Lightning and Defensive enchantment for body armor. When the wearer is struck by lightning, they gain Strength, Regeneration, and Speed for 10 seconds by default. The lightning strike is not canceled; Overcharged rewards the rare strike rather than replacing lightning damage prevention.
+- Frostbite is a 5-level Frost weapon enchantment. Damaging hits add vanilla frozen ticks until the target reaches its freeze threshold, then apply Frozen for 5 seconds by default. Frozen targets are tinted blue, held at the freeze threshold, and have their movement, flying speed, and jump strength reduced to zero while remaining affected by knockback and gravity. Frostbite does not add more frost while Frozen is active.
+- Curse of Fragility is a single-level Vitality and Curse enchantment for damageable items. After vanilla durability processing such as Unbreaking, it multiplies the final durability damage by `curse_of_fragility.durability_damage_multiplier`, which defaults to 2.0.
 - Curse of Rebound is a Curse affinity enchantment for weapons. When a player damages a non-player living target with a cursed weapon, 25% of the final damage dealt is reflected back to the player as thorns-style damage by default.
 - Gelbound is a single-level Mobility enchantment for boots. It negates fall damage and bounces the player upward like a slime block; sneaking suppresses the bounce and allows normal fall damage.
 - Seismic Cushion is a 5-level recipe-only Mobility enchantment for boots, created by combining Feather Falling and Gelbound. It inherits the Feather Falling level. Sneak-landing negates fall damage and creates a level-scaled explosion at the player; the player is the explosion source and is excluded from self-damage. Block destruction is controlled by the `playerGriefing` game rule.

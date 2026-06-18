@@ -32,7 +32,7 @@ public final class EnchantmentTargetTags {
     private EnchantmentTargetTags() {
     }
 
-    static List<ResourceLocation> resolve(ItemStack target) {
+    public static List<ResourceLocation> resolve(ItemStack target) {
         if (target.isEmpty() || isBookTarget(target)) {
             return List.of();
         }

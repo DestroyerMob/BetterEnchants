@@ -8,6 +8,7 @@
       "id": "minecraft:vanishing_curse",
       "required": false
     },
+    "betterenchanting:curse_of_fragility",
     "betterenchanting:curse_of_rebound"
   ]
 }

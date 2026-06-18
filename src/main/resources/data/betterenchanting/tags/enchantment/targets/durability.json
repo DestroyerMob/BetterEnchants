@@ -1,7 +1,8 @@
 {
   "values": [
-    { "id": "minecraft:unbreaking", "required": false },
+    "betterenchanting:curse_of_fragility",
     { "id": "minecraft:mending", "required": false },
+    { "id": "minecraft:unbreaking", "required": false },
     { "id": "minecraft:vanishing_curse", "required": false }
   ]
 }

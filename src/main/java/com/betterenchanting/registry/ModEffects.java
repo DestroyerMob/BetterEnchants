@@ -1,6 +1,8 @@
 package com.betterenchanting.registry;
 
 import com.betterenchanting.BetterEnchanting;
+import com.betterenchanting.world.effect.CinderstepMobEffect;
+import com.betterenchanting.world.effect.FrozenMobEffect;
 import com.betterenchanting.world.effect.ShockedMobEffect;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.effect.MobEffect;
@@ -14,6 +16,10 @@ public final class ModEffects {
 
     public static final DeferredHolder<MobEffect, MobEffect> SHOCKED =
             EFFECTS.register("shocked", ShockedMobEffect::new);
+    public static final DeferredHolder<MobEffect, MobEffect> FROZEN =
+            EFFECTS.register("frozen", FrozenMobEffect::new);
+    public static final DeferredHolder<MobEffect, MobEffect> CINDERSTEP =
+            EFFECTS.register("cinderstep", CinderstepMobEffect::new);
 
     private ModEffects() {
     }
