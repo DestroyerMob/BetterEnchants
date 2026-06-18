@@ -14,7 +14,9 @@ import com.betterenchanting.registry.ModBlocks;
 import com.betterenchanting.registry.ModGameRules;
 import com.betterenchanting.registry.ModItems;
 import com.betterenchanting.registry.ModMenus;
+import com.betterenchanting.world.EnchantmentActivationEvents;
 import com.betterenchanting.world.EnchantmentTargetTags;
+import com.betterenchanting.world.ItemTagsCommand;
 import com.betterenchanting.world.enchantment.AutoSmeltEnchantmentEvents;
 import com.betterenchanting.world.enchantment.CurseOfReboundEnchantmentEvents;
 import com.betterenchanting.world.enchantment.FortunesTouchEnchantmentEvents;
@@ -76,6 +78,8 @@ public final class BetterEnchanting {
         NeoForge.EVENT_BUS.addListener(EssenceAcquisitionEvents::addVillagerTrades);
         NeoForge.EVENT_BUS.addListener(EssenceAcquisitionEvents::dropEssencesFromCuring);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOW, EssenceAcquisitionEvents::dropLightningEssenceFromChargedCreeper);
+        NeoForge.EVENT_BUS.addListener(ItemTagsCommand::register);
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, EnchantmentActivationEvents::suppressInactiveEnchantments);
         NeoForge.EVENT_BUS.addListener(FortunesTouchEnchantmentEvents::fortunesTouchBlockDrops);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOW, AutoSmeltEnchantmentEvents::autoSmeltBlockDrops);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, VacuumEnchantmentEvents::vacuumBlockDrops);

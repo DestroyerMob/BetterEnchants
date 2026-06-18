@@ -1,7 +1,7 @@
 package com.betterenchanting.world;
 
 import com.betterenchanting.BetterEnchanting;
-import com.betterenchanting.registry.ModTags;
+import com.betterenchanting.compat.SilentGearCompat;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -39,11 +39,13 @@ public final class EnchantmentTargetTags {
         }
 
         Set<ResourceLocation> tags = new LinkedHashSet<>();
+        List<ResourceLocation> virtualItemTags = SilentGearCompat.materialItemTags(target);
         for (TargetTagRule rule : targetTagRules) {
-            if (target.is(rule.itemTag())) {
+            if (target.is(rule.itemTag()) || virtualItemTags.contains(rule.itemTag().location())) {
                 tags.add(rule.enchantmentTag().location());
             }
         }
+        tags.addAll(SilentGearCompat.materialTargetTags(target));
         return List.copyOf(tags);
     }
 

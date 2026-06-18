@@ -4,9 +4,13 @@ import com.betterenchanting.BetterEnchanting;
 import com.betterenchanting.data.EssenceDefinitions;
 import com.betterenchanting.data.TagDisplayRules;
 import com.betterenchanting.data.TagDisplayRules.TagLabel;
+import com.betterenchanting.world.EnchantmentActivationEvents;
+import com.betterenchanting.world.EnchantmentActivationEvents.InactiveReason;
+import com.betterenchanting.world.EnchantmentActivationEvents.TooltipEntry;
 import java.util.List;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.Holder;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.TextColor;
@@ -36,6 +40,8 @@ public final class ClientTooltipEvents {
         }
 
         List<Component> tooltip = event.getToolTip();
+        recolorEnchantmentTooltips(event, tooltip);
+
         List<TagLabel> essenceTags = essenceTags(stack);
         List<TagLabel> itemTags = TagDisplayRules.itemLabels(stack);
         List<TagLabel> enchantmentTags = TagDisplayRules.enchantmentLabels(stack);
@@ -45,6 +51,50 @@ public final class ClientTooltipEvents {
         addTagLine(tooltip, "Item Tags", itemTags);
         addTagLine(tooltip, "Enchantment Tags", enchantmentTags);
         addTagLine(tooltip, "Can Apply To", targetTags);
+    }
+
+    private static void recolorEnchantmentTooltips(ItemTooltipEvent event, List<Component> tooltip) {
+        HolderLookup.Provider registries = event.getContext().registries();
+        if (registries == null) {
+            return;
+        }
+
+        int searchFrom = 0;
+        for (TooltipEntry entry : EnchantmentActivationEvents.tooltipEntries(event.getItemStack(), registries)) {
+            String vanillaText = Enchantment.getFullname(entry.enchantment(), entry.level()).getString();
+            int lineIndex = findTooltipLine(tooltip, vanillaText, searchFrom);
+            if (lineIndex < 0) {
+                continue;
+            }
+            tooltip.set(lineIndex, styledEnchantmentLine(entry));
+            searchFrom = lineIndex + 1;
+        }
+    }
+
+    private static int findTooltipLine(List<Component> tooltip, String text, int startIndex) {
+        for (int index = startIndex; index < tooltip.size(); index++) {
+            if (tooltip.get(index).getString().equals(text)) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    private static Component styledEnchantmentLine(TooltipEntry entry) {
+        MutableComponent line = Enchantment.getFullname(entry.enchantment(), entry.level()).copy()
+                .withStyle(style -> style.withColor(dominantAffinityColor(entry.enchantment())));
+        if (!entry.status().active()) {
+            line.withStyle(style -> style.withStrikethrough(true));
+            appendInactiveReason(line, entry, InactiveReason.WRONG_TAG);
+            appendInactiveReason(line, entry, InactiveReason.OVER_LIMIT);
+        }
+        return line;
+    }
+
+    private static void appendInactiveReason(MutableComponent line, TooltipEntry entry, InactiveReason reason) {
+        if (entry.status().has(reason)) {
+            line.append(Component.literal(" [" + reason.label() + "]").withStyle(ChatFormatting.RED));
+        }
     }
 
     private static List<TagLabel> essenceTags(ItemStack stack) {

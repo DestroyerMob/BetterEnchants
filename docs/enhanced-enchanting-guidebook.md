@@ -155,6 +155,10 @@ Material bonus keys map to item tags. For example, `"gold": 1` uses `#betterench
 
 Material tags are defined for vanilla tool, weapon, and armor materials under `data/betterenchanting/tags/item/materials/`, including wood, stone, iron, gold, diamond, netherite, leather, chainmail, turtle, copper, heavy core, and prismarine.
 
+Silent Gear tools, weapons, and armor are also treated as having virtual Better Enchanting material tags based on the primary material of their main part. No item tag JSON is required for those virtual tags. A Silent Gear item with a `silentgear:mythril` head/main part resolves as `#betterenchanting:materials/mythril` and `#betterenchanting:materials/silentgear/mythril` for target mappings, testing, and current-material checks. Coatings do not change the material tag used here.
+
+Silent Gear virtual material tags do not apply `material_bonus` capacity increases. Silent Gear heads and armor parts can be swapped after enchanting, so capacity bonuses only use real item tags. Use `item_limits` for concrete Silent Gear item ids if a pack needs a different base limit for modular gear.
+
 ### Common Config
 
 General mechanics are configured through the NeoForge common config file `betterenchanting-common.toml`.
@@ -315,6 +319,16 @@ Target mapping example:
   ]
 }
 ```
+
+Silent Gear material targets are generated dynamically from the same main-part material id. A `silentgear:mythril` head/main part adds the enchantment target tags `#betterenchanting:targets/materials/mythril` and `#betterenchanting:targets/materials/silentgear/mythril` when the item is rolled in the enchanting table. The virtual material item tags also pass through `better_enchanting/enchantment_targets/*.json`, so an existing rule such as `#betterenchanting:materials/wood` to `#betterenchanting:targets/wood` works for Silent Gear wood heads. Enchantments can be placed in either dynamic material tag even if that Silent Gear material is not present in the current pack; if no matching material exists, nothing matches and no error is raised.
+
+Better Enchanting target-tagged enchantments are also checked when their gameplay level is queried. If an item no longer resolves any target tag that the enchantment belongs to, that enchantment is dormant and returns level 0 for gameplay effects. Enchantments without Better Enchanting target tags fall back to the item's normal supported-enchantment check, so vanilla and modded enchantments also stop working when placed on unsupported items.
+
+If an item has more currently valid enchantments than its current enchantment limit allows, the later enchantments in the visible tooltip order are dormant and return level 0. Fusion outputs are already applied by Better Enchanting's enchanting and anvil paths before this check is shown to players, so fused results count as the enchantment actually present on the item. This prevents Silent Gear part swaps from keeping a material-only bonus active after the material changes. For example, Verdant Regrowth can remain on a swapped tool visually, but it only repairs durability while the tool currently resolves the wood target tag.
+
+Client tooltips color enchantment names by their dominant affinity/tag display color. Dormant enchantments are struck through and marked with a reason such as `[Wrong tag]` or `[Over limit]`.
+
+Testing command: `/itemtags reroll` recomputes the held item's current Better Enchanting virtual material tags and target tags and prints them to chat. It is a debug/admin command and does not store tags on the item.
 
 Tag display example:
 
