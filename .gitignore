@@ -1,6 +1,38 @@
+# Gradle
 .gradle/
-.idea/
 build/
+out/
+
+# Local Minecraft run data
 run/
 run-data/
+
+# IDE/editor metadata
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Java/JVM output and crash dumps
+*.class
+*.hprof
+hs_err_pid*
+replay_pid*
+
+# Logs
 *.log
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk

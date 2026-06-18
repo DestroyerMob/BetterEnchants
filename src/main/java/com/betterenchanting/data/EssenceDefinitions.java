@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Optional;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.GsonHelper;
@@ -61,7 +62,7 @@ public final class EssenceDefinitions {
         add(map, "mobility_essence", 1.0, true, "mobility");
         add(map, "void_essence", 1.0, true, "void");
         add(map, "treasure_essence", 1.0, true, "treasure");
-        addSpecial(map, "purification_essence", 1.0, false, true, true, true, "purification");
+        addSpecial(map, "purification_essence", 1.0, false, List.of(EnchantmentTags.CURSE.location()), true, true, "purification");
         return Map.copyOf(map);
     }
 
@@ -72,7 +73,7 @@ public final class EssenceDefinitions {
             boolean restrictsPool,
             String... tagPaths
     ) {
-        addSpecial(map, itemPath, multiplier, restrictsPool, false, false, false, tagPaths);
+        addSpecial(map, itemPath, multiplier, restrictsPool, List.of(), false, false, tagPaths);
     }
 
     private static void addSpecial(
@@ -80,7 +81,7 @@ public final class EssenceDefinitions {
             String itemPath,
             double multiplier,
             boolean restrictsPool,
-            boolean removesCurses,
+            List<ResourceLocation> removedTags,
             boolean appliesToAllOffers,
             boolean blocksOffer,
             String... tagPaths
@@ -90,7 +91,15 @@ public final class EssenceDefinitions {
         for (String tagPath : tagPaths) {
             tags.add(BetterEnchanting.id(tagPath));
         }
-        map.put(item, new EssenceDefinition(item, List.copyOf(tags), multiplier, restrictsPool, removesCurses, appliesToAllOffers, blocksOffer));
+        map.put(item, new EssenceDefinition(
+                item,
+                List.copyOf(tags),
+                List.copyOf(removedTags),
+                multiplier,
+                restrictsPool,
+                appliesToAllOffers,
+                blocksOffer
+        ));
     }
 
     public static final class ReloadListener extends SimpleJsonResourceReloadListener {
@@ -115,28 +124,36 @@ public final class EssenceDefinitions {
 
         private static EssenceDefinition parse(ResourceLocation id, JsonObject object) {
             ResourceLocation item = ResourceLocation.parse(GsonHelper.getAsString(object, "item", id.toString()));
-            JsonArray tagArray = GsonHelper.getAsJsonArray(object, "tags");
-            List<ResourceLocation> tags = new ArrayList<>();
-            for (JsonElement tagElement : tagArray) {
-                tags.add(ResourceLocation.parse(GsonHelper.convertToString(tagElement, "tag")));
-            }
+            List<ResourceLocation> tags = parseTags(object, "tags");
             if (tags.isEmpty()) {
                 throw new IllegalArgumentException("Essence " + id + " must declare at least one tag");
             }
+            List<ResourceLocation> removedTags = new ArrayList<>(parseTags(object, "removed_tags"));
+            if (GsonHelper.getAsBoolean(object, "removes_curses", false) && !removedTags.contains(EnchantmentTags.CURSE.location())) {
+                removedTags.add(EnchantmentTags.CURSE.location());
+            }
             double weightMultiplier = GsonHelper.getAsDouble(object, "weight_multiplier", 1.0D);
             boolean restrictsPool = GsonHelper.getAsBoolean(object, "restricts_pool", true);
-            boolean removesCurses = GsonHelper.getAsBoolean(object, "removes_curses", false);
             boolean appliesToAllOffers = GsonHelper.getAsBoolean(object, "applies_to_all_offers", false);
             boolean blocksOffer = GsonHelper.getAsBoolean(object, "blocks_offer", false);
             return new EssenceDefinition(
                     item,
                     List.copyOf(tags),
+                    List.copyOf(removedTags),
                     weightMultiplier,
                     restrictsPool,
-                    removesCurses,
                     appliesToAllOffers,
                     blocksOffer
             );
+        }
+
+        private static List<ResourceLocation> parseTags(JsonObject object, String key) {
+            JsonArray tagArray = GsonHelper.getAsJsonArray(object, key, new JsonArray());
+            List<ResourceLocation> tags = new ArrayList<>();
+            for (JsonElement tagElement : tagArray) {
+                tags.add(ResourceLocation.parse(GsonHelper.convertToString(tagElement, key + " entry")));
+            }
+            return List.copyOf(tags);
         }
     }
 }

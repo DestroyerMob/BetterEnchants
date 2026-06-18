@@ -1,6 +1,7 @@
 {
   "values": [
     "betterenchanting:fortunes_touch",
+    "betterenchanting:tree_capitator",
     "betterenchanting:vein_miner",
     { "id": "minecraft:efficiency", "required": false },
     { "id": "minecraft:fortune", "required": false },

@@ -1,0 +1,23 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.betterenchanting.tree_capitator"
+  },
+  "effects": {},
+  "exclusive_set": "#betterenchanting:exclusive_set/tree_capitator",
+  "max_cost": {
+    "base": 60,
+    "per_level_above_first": 0
+  },
+  "max_level": 1,
+  "min_cost": {
+    "base": 14,
+    "per_level_above_first": 0
+  },
+  "primary_items": "#betterenchanting:enchantable/tree_capitator",
+  "slots": [
+    "mainhand"
+  ],
+  "supported_items": "#betterenchanting:enchantable/tree_capitator",
+  "weight": 2
+}

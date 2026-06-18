@@ -107,19 +107,19 @@ Essences should stay single-affinity; hybrid two-tag essences are intentionally 
 
 Current acquisition rules use about a 20% chance by default for direct mob, block, fishing, curing, and injected chest rolls.
 
-- Fire Essence: Blaze and Magma Cube drops, Nether fortress and bastion chests, and lava fishing hooks.
-- Frost Essence: Stray and Polar Bear drops, igloo/frozen-style chest routes, and shipwreck chest routes.
-- Lightning Essence: Charged Creepers killed during storms, plus lightning rod and copper crafting.
-- Physical Essence: Iron Golem and Ravager drops, armorer villager trades, and simple crafting.
-- Mining Essence: Ore mining with Fortune, mineshaft and stronghold chests, and simple crafting.
-- Defensive Essence: Iron Golem, Ravager, and Warden drops, plus bastion and ancient city chests.
-- Vitality Essence: Successful zombie villager curing, cleric villager trades, and golden apple crafting.
-- Mobility Essence: Phantom and Rabbit drops, shipwreck/end city chest routes, and simple crafting.
-- Void Essence: Enderman drops, with an extra End-dimension bonus roll, plus End city and ancient city chests.
-- Treasure Essence: Buried treasure, underwater ruin and elder guardian/ocean monument routes, Luck of the Sea fishing, librarian trades, and crafting.
+- Essence of Fire: Blaze and Magma Cube drops, Nether fortress and bastion chests, and lava fishing hooks.
+- Essence of Frost: Stray and Polar Bear drops, igloo/frozen-style chest routes, and shipwreck chest routes.
+- Essence of Lightning: Charged Creepers killed during storms, plus lightning rod and copper crafting.
+- Essence of Physical: Iron Golem and Ravager drops, armorer villager trades, and simple crafting.
+- Essence of Mining: Ore mining with Fortune, mineshaft and stronghold chests, and simple crafting.
+- Essence of Defensive: Iron Golem, Ravager, and Warden drops, plus bastion and ancient city chests.
+- Essence of Vitality: Successful zombie villager curing, cleric villager trades, and golden apple crafting.
+- Essence of Mobility: Phantom and Rabbit drops, shipwreck/end city chest routes, and simple crafting.
+- Essence of Void: Enderman drops, with an extra End-dimension bonus roll, plus End city and ancient city chests.
+- Essence of Treasure: Buried treasure, underwater ruin and elder guardian/ocean monument routes, Luck of the Sea fishing, librarian trades, and crafting.
 - Essence of Purification: Successful zombie villager curing.
 
-Essence of Purification is a special modifier defined through essence behavior flags. It applies to all offers, removes curses from the remaining active pools, and blocks one planned offer slot. If the player enchants from a cleaned remaining roll, the purification essence is consumed along with the chosen roll's own direct modifier.
+Essence of Purification is a special modifier defined through essence behavior flags. It applies to all offers, removes enchantments tagged `minecraft:curse` from the remaining active pools, and blocks one planned offer slot. If the player enchants from a cleaned remaining roll, the purification essence is consumed along with the chosen roll's own direct modifier.
 
 ### Enchantment Limits
 
@@ -240,7 +240,7 @@ The `enchanting.enhanced_table_takeover` option defaults to `true`, so vanilla e
 
 Enhanced enchanting balance lives in config rather than inline menu constants. Bookshelf power controls offer level requirements and roll quality through `min_base_cost`, `max_base_cost`, and `base_cost_per_bookshelf_power`; those values do not have to match the levels consumed. The actual charged XP levels use `min_level_cost`, `max_level_cost`, and `bookshelf_power_per_level_cost`, which default to 0-5 power costing 1 level, 6-10 costing 2 levels, and 11-15 costing 3 levels. Modifier-specific roll nudges live in `essence_power_bonus`, `book_power_bonus`, and `gold_material_power_bonus`. Candidate weighting is tuned through `book_weight_multiplier`, `new_tag_combo_multiplier`, and `max_candidate_weight`.
 
-Custom enchantment behavior that affects player-facing balance also lives in config. Vein Miner size, Shocked damage multiplier and particles, Shocking duration, Curse of Rebound reflection ratio, Seismic Cushion explosion size, Verdant Regrowth repair amount, timing, and scan radius, Mending repair math, Fortunes Touch secondary drop chance, and the core enhanced-enchanting roll formula can all be tuned without recompiling the mod.
+Custom enchantment behavior that affects player-facing balance also lives in config. Vein Miner size, Tree Capitator log and natural-leaf checks, Perfect Strike timing, damage, and cooldown variance, Shocked damage multiplier and particles, Shocking duration, Curse of Rebound reflection ratio, Seismic Cushion explosion size, Verdant Regrowth repair amount, timing, and scan radius, Mending repair math, Fortunes Touch secondary drop chance, and the core enhanced-enchanting roll formula can all be tuned without recompiling the mod.
 
 Better Enchanting also adds the `playerGriefing` game rule. It defaults to `true` and is intended as the player-caused counterpart to vanilla `mobGriefing`. Seismic Cushion uses it for block destruction: when `playerGriefing` is false, its explosion still happens but does not break blocks.
 
@@ -276,11 +276,13 @@ Essence definition example:
   "tags": ["betterenchanting:purification"],
   "weight_multiplier": 1.0,
   "restricts_pool": false,
-  "removes_curses": true,
+  "removed_tags": ["minecraft:curse"],
   "applies_to_all_offers": true,
   "blocks_offer": true
 }
 ```
+
+`removed_tags` excludes enchantments matching the listed enchantment tag ids from the active offer pool. The older `removes_curses` flag is still accepted for datapack compatibility and behaves like `removed_tags: ["minecraft:curse"]`.
 
 Essence trade example:
 
@@ -345,6 +347,8 @@ Verdant Regrowth uses tags for its environmental checks. By default, the growth-
 - Seismic Cushion is a 5-level recipe-only Mobility enchantment for boots, created by combining Feather Falling and Gelbound. It inherits the Feather Falling level. Sneak-landing negates fall damage and creates a level-scaled explosion at the player; the player is the explosion source and is excluded from self-damage. Block destruction is controlled by the `playerGriefing` game rule.
 - Verdant Regrowth is a 5-level Vitality enchantment for tools and armor that also targets the wood target. Equipped or held enchanted items slowly repair near tagged growth blocks, with optional whole-biome healing available through data packs; sunlight uses the faster configured repair interval. Higher levels increase durability repaired per repair tick, not the repair interval.
 - Vein Miner is a Mining enchantment for harvestable tools. It has 5 levels and breaks up to 16 connected matching blocks per level by default.
+- Tree Capitator is a single-level Mining enchantment for axes. Breaking a valid tree log cuts connected matching logs from that tree, up to the configured limit. It only activates when the connected log group has enough nearby natural, non-persistent leaves, so player-built log piles do not qualify. Sapling-grown trees still qualify because their leaves are generated as natural leaves.
+- Perfect Strike is a single-level Physical enchantment for swords and axes. When the weapon reaches full attack readiness, a short configurable window opens; landing a direct hit in that window applies the configured damage multiplier after normal critical-hit damage. Each successful Perfect Strike weapon hit applies a small random temporary attack-speed variance for the next cooldown, so the next timing window is slightly less predictable.
 - Fortunes Touch is a Mining enchantment created by combining Fortune and Silk Touch. It consumes both ingredients, acts like Silk Touch for the primary block drop, and can add the ordinary non-Silk drop as a secondary roll.
 - Fortunes Touch inherits the level of the Fortune ingredient used to create it. Its secondary ordinary-drop roll chance is 10% per level: level 1 = 10%, level 2 = 20%, level 3 = 30%, and so on, capped at 100%.
 - Harvest is a 5-level Vitality enchantment for hoes. Right-clicking a mature tagged crop harvests it with the enchanted hoe, drops the crop loot, and resets the crop to its youngest age. Each level expands the square area by two blocks: level 1 = 1x1, level 2 = 3x3, level 3 = 5x5, level 4 = 7x7, and level 5 = 9x9.

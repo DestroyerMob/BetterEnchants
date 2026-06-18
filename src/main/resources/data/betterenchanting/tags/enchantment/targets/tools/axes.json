@@ -1,5 +1,7 @@
 {
   "values": [
+    "betterenchanting:perfect_strike",
+    "betterenchanting:tree_capitator",
     "#betterenchanting:targets/tools/harvesters"
   ]
 }

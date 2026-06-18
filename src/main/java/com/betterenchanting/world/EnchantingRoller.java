@@ -106,8 +106,8 @@ public final class EnchantingRoller {
 
     public static InputProfile profile(ItemStack target, List<ItemStack> essences, List<ItemStack> books) {
         Set<ResourceLocation> essenceTags = new LinkedHashSet<>();
+        Set<ResourceLocation> removedTags = new LinkedHashSet<>();
         boolean restricted = false;
-        boolean removesCurses = false;
         double essenceMultiplier = 1.0D;
 
         for (ItemStack essence : essences) {
@@ -118,17 +118,17 @@ public final class EnchantingRoller {
             if (definition.get().restrictsPool()) {
                 essenceTags.addAll(definition.get().tags());
             }
+            removedTags.addAll(definition.get().removedTags());
             restricted |= definition.get().restrictsPool();
-            removesCurses |= definition.get().removesCurses();
             essenceMultiplier = Math.max(essenceMultiplier, definition.get().weightMultiplier());
         }
 
         Map<Holder<Enchantment>, BookBoost> bookBoosts = collectBookBoosts(books);
         return new InputProfile(
                 List.copyOf(essenceTags),
+                List.copyOf(removedTags),
                 EnchantmentTargetTags.resolve(target),
                 restricted && !essenceTags.isEmpty(),
-                removesCurses,
                 essenceMultiplier,
                 Map.copyOf(bookBoosts)
         );
@@ -154,7 +154,7 @@ public final class EnchantingRoller {
         List<WeightedCandidate> candidates = new ArrayList<>();
 
         enchantments.holders().forEach(holder -> {
-            if (profile.removesCurses() && holder.is(EnchantmentTags.CURSE)) {
+            if (matchesAnyTag(holder, profile.removedTags())) {
                 return;
             }
             if (existingEnchantments.contains(holder)
@@ -307,6 +307,15 @@ public final class EnchantingRoller {
         return matches;
     }
 
+    private static boolean matchesAnyTag(Holder<Enchantment> enchantment, List<ResourceLocation> tagIds) {
+        for (ResourceLocation tagId : tagIds) {
+            if (enchantment.is(TagKey.create(Registries.ENCHANTMENT, tagId))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static WeightedCandidate pick(
             RandomSource random,
             List<WeightedCandidate> candidates,
@@ -379,9 +388,9 @@ public final class EnchantingRoller {
 
     public record InputProfile(
             List<ResourceLocation> essenceTags,
+            List<ResourceLocation> removedTags,
             List<ResourceLocation> targetTags,
             boolean restricted,
-            boolean removesCurses,
             double essenceWeightMultiplier,
             Map<Holder<Enchantment>, BookBoost> bookBoosts
     ) {

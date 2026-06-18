@@ -4,6 +4,7 @@
     "translate": "enchantment.betterenchanting.vein_miner"
   },
   "effects": {},
+  "exclusive_set": "#betterenchanting:exclusive_set/tree_capitator",
   "max_cost": {
     "base": 75,
     "per_level_above_first": 0

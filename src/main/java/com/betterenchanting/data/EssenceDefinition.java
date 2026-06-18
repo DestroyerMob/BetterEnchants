@@ -6,9 +6,9 @@ import net.minecraft.resources.ResourceLocation;
 public record EssenceDefinition(
         ResourceLocation item,
         List<ResourceLocation> tags,
+        List<ResourceLocation> removedTags,
         double weightMultiplier,
         boolean restrictsPool,
-        boolean removesCurses,
         boolean appliesToAllOffers,
         boolean blocksOffer
 ) {

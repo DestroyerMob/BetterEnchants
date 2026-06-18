@@ -1,0 +1,24 @@
+* text=auto
+
+# Keep platform launcher scripts stable across macOS and Windows checkouts.
+gradlew text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Source and data files should not churn line endings between machines.
+*.java text eol=lf
+*.gradle text eol=lf
+*.properties text eol=lf
+*.json text eol=lf
+*.toml text eol=lf
+*.mcmeta text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+
+# Binary artifacts.
+*.jar binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary

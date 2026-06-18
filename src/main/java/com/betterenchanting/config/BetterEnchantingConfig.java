@@ -23,6 +23,14 @@ public final class BetterEnchantingConfig {
     private static final ModConfigSpec.DoubleValue ENCHANTING_NEW_TAG_COMBO_MULTIPLIER;
     private static final ModConfigSpec.IntValue ENCHANTING_MAX_CANDIDATE_WEIGHT;
     private static final ModConfigSpec.IntValue VEIN_MINER_CONNECTED_BLOCKS_PER_LEVEL;
+    private static final ModConfigSpec.IntValue TREE_CAPITATOR_MAX_LOGS;
+    private static final ModConfigSpec.IntValue TREE_CAPITATOR_LEAF_SCAN_RADIUS;
+    private static final ModConfigSpec.IntValue TREE_CAPITATOR_MIN_NATURAL_LEAVES;
+    private static final ModConfigSpec.DoubleValue PERFECT_STRIKE_READY_THRESHOLD;
+    private static final ModConfigSpec.IntValue PERFECT_STRIKE_WINDOW_TICKS;
+    private static final ModConfigSpec.DoubleValue PERFECT_STRIKE_DAMAGE_MULTIPLIER;
+    private static final ModConfigSpec.DoubleValue PERFECT_STRIKE_MIN_COOLDOWN_VARIANCE;
+    private static final ModConfigSpec.DoubleValue PERFECT_STRIKE_MAX_COOLDOWN_VARIANCE;
     private static final ModConfigSpec.DoubleValue SHOCKED_DAMAGE_MULTIPLIER;
     private static final ModConfigSpec.ConfigValue<String> SHOCKED_PARTICLE_TYPE;
     private static final ModConfigSpec.BooleanValue SHOCKED_PARTICLES_ENABLED;
@@ -117,6 +125,36 @@ public final class BetterEnchantingConfig {
         VEIN_MINER_CONNECTED_BLOCKS_PER_LEVEL = builder
                 .comment("Maximum connected matching blocks broken per Vein Miner level.")
                 .defineInRange("connected_blocks_per_level", 16, 1, 4096);
+        builder.pop();
+
+        builder.push("tree_capitator");
+        TREE_CAPITATOR_MAX_LOGS = builder
+                .comment("Maximum connected matching logs affected by one Tree Capitator activation, including the originally broken log.")
+                .defineInRange("max_logs", 96, 1, 4096);
+        TREE_CAPITATOR_LEAF_SCAN_RADIUS = builder
+                .comment("Radius around connected logs scanned for natural leaves before Tree Capitator activates.")
+                .defineInRange("leaf_scan_radius", 4, 0, 16);
+        TREE_CAPITATOR_MIN_NATURAL_LEAVES = builder
+                .comment("Minimum nearby non-persistent leaves required before Tree Capitator treats connected logs as a tree.")
+                .defineInRange("min_natural_leaves", 4, 0, 4096);
+        builder.pop();
+
+        builder.push("perfect_strike");
+        PERFECT_STRIKE_READY_THRESHOLD = builder
+                .comment("Attack-strength scale required before the Perfect Strike timing window opens. Vanilla fully ready is 1.0.")
+                .defineInRange("ready_threshold", 1.0D, 0.0D, 1.0D);
+        PERFECT_STRIKE_WINDOW_TICKS = builder
+                .comment("Ticks after the weapon becomes ready where a direct hit receives the Perfect Strike damage multiplier.")
+                .defineInRange("window_ticks", 4, 0, 200);
+        PERFECT_STRIKE_DAMAGE_MULTIPLIER = builder
+                .comment("Damage multiplier applied to the direct hit when Perfect Strike lands. This stacks after vanilla critical-hit damage.")
+                .defineInRange("damage_multiplier", 2.0D, 0.0D, 100.0D);
+        PERFECT_STRIKE_MIN_COOLDOWN_VARIANCE = builder
+                .comment("Minimum temporary attack-speed multiplier applied after a successful Perfect Strike weapon hit. Negative values make the next cooldown slower.")
+                .defineInRange("min_cooldown_variance", -0.12D, -0.9D, 10.0D);
+        PERFECT_STRIKE_MAX_COOLDOWN_VARIANCE = builder
+                .comment("Maximum temporary attack-speed multiplier applied after a successful Perfect Strike weapon hit. Positive values make the next cooldown faster.")
+                .defineInRange("max_cooldown_variance", 0.12D, -0.9D, 10.0D);
         builder.pop();
 
         builder.push("shocked");
@@ -312,6 +350,38 @@ public final class BetterEnchantingConfig {
 
     public static int veinMinerConnectedBlocksPerLevel() {
         return VEIN_MINER_CONNECTED_BLOCKS_PER_LEVEL.get();
+    }
+
+    public static int treeCapitatorMaxLogs() {
+        return TREE_CAPITATOR_MAX_LOGS.get();
+    }
+
+    public static int treeCapitatorLeafScanRadius() {
+        return TREE_CAPITATOR_LEAF_SCAN_RADIUS.get();
+    }
+
+    public static int treeCapitatorMinNaturalLeaves() {
+        return TREE_CAPITATOR_MIN_NATURAL_LEAVES.get();
+    }
+
+    public static float perfectStrikeReadyThreshold() {
+        return PERFECT_STRIKE_READY_THRESHOLD.get().floatValue();
+    }
+
+    public static int perfectStrikeWindowTicks() {
+        return PERFECT_STRIKE_WINDOW_TICKS.get();
+    }
+
+    public static float perfectStrikeDamageMultiplier() {
+        return PERFECT_STRIKE_DAMAGE_MULTIPLIER.get().floatValue();
+    }
+
+    public static double perfectStrikeMinCooldownVariance() {
+        return PERFECT_STRIKE_MIN_COOLDOWN_VARIANCE.get();
+    }
+
+    public static double perfectStrikeMaxCooldownVariance() {
+        return PERFECT_STRIKE_MAX_COOLDOWN_VARIANCE.get();
     }
 
     public static float shockedDamageMultiplier() {

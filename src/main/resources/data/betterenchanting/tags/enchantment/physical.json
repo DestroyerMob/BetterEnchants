@@ -1,6 +1,7 @@
 {
   "values": [
     "betterenchanting:curse_of_rebound",
+    "betterenchanting:perfect_strike",
     { "id": "minecraft:sharpness", "required": false },
     { "id": "minecraft:smite", "required": false },
     { "id": "minecraft:bane_of_arthropods", "required": false },

@@ -1,5 +1,6 @@
 {
   "values": [
+    "betterenchanting:perfect_strike",
     "#betterenchanting:targets/weapons/melee",
     { "id": "minecraft:knockback", "required": false },
     { "id": "minecraft:fire_aspect", "required": false },
