@@ -110,13 +110,13 @@ Current acquisition rules use about a 20% chance by default for direct mob, bloc
 - Essence of Fire: Blaze and Magma Cube drops, Nether fortress and bastion chests, and lava fishing hooks.
 - Essence of Frost: Stray and Polar Bear drops, igloo/frozen-style chest routes, and shipwreck chest routes.
 - Essence of Lightning: Charged Creepers killed during storms, plus lightning rod and copper crafting.
-- Essence of Physical: Iron Golem and Ravager drops, armorer villager trades, and simple crafting.
-- Essence of Mining: Ore mining with Fortune, mineshaft and stronghold chests, and simple crafting.
-- Essence of Defensive: Iron Golem, Ravager, and Warden drops, plus bastion and ancient city chests.
+- Essence of Force: Iron Golem and Ravager drops, armorer villager trades, and simple crafting.
+- Essence of Excavation: Ore mining with Fortune, mineshaft and stronghold chests, and simple crafting.
+- Essence of Warding: Iron Golem, Ravager, and Warden drops, plus bastion and ancient city chests.
 - Essence of Vitality: Successful zombie villager curing, cleric villager trades, and golden apple crafting.
-- Essence of Mobility: Phantom and Rabbit drops, shipwreck/end city chest routes, and simple crafting.
-- Essence of Void: Enderman drops, with an extra End-dimension bonus roll, plus End city and ancient city chests.
-- Essence of Treasure: Buried treasure, underwater ruin and elder guardian/ocean monument routes, Luck of the Sea fishing, librarian trades, and crafting.
+- Essence of Motion: Phantom and Rabbit drops, shipwreck/end city chest routes, and simple crafting.
+- Essence of the Void: Enderman drops, with an extra End-dimension bonus roll, plus End city and ancient city chests.
+- Essence of Fortune: Buried treasure, underwater ruin and elder guardian/ocean monument routes, Luck of the Sea fishing, librarian trades, and crafting.
 - Essence of Purification: Successful zombie villager curing.
 
 Essence of Purification is a special modifier defined through essence behavior flags. It applies to all offers, removes enchantments tagged `minecraft:curse` from the remaining active pools, and blocks one planned offer slot. If the player enchants from a cleaned remaining roll, the purification essence is consumed along with the chosen roll's own direct modifier.

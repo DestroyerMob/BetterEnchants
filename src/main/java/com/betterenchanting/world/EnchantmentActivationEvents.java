@@ -66,7 +66,8 @@ public final class EnchantmentActivationEvents {
         EnumSet<InactiveReason> reasons = EnumSet.noneOf(InactiveReason.class);
         if (!matchesCurrentItem(stack, enchantment)) {
             reasons.add(InactiveReason.WRONG_TAG);
-        } else if (isOverLimit(stack, enchantment, enchantments)) {
+        }
+        if (isOverLimit(stack, enchantment, enchantments)) {
             reasons.add(InactiveReason.OVER_LIMIT);
         }
         return Status.of(reasons);
@@ -80,10 +81,11 @@ public final class EnchantmentActivationEvents {
 
         int activeIndex = 0;
         for (Holder<Enchantment> enchantment : orderedUniqueEnchantments(stack, enchantments)) {
-            if (!matchesCurrentItem(stack, enchantment)) {
+            boolean isTarget = enchantment.equals(target);
+            if (!isTarget && !matchesCurrentItem(stack, enchantment)) {
                 continue;
             }
-            if (enchantment.equals(target)) {
+            if (isTarget) {
                 return activeIndex >= maxEnchantments;
             }
             activeIndex++;
@@ -190,17 +192,17 @@ public final class EnchantmentActivationEvents {
     }
 
     public enum InactiveReason {
-        WRONG_TAG("Wrong tag"),
-        OVER_LIMIT("Over limit");
+        WRONG_TAG("tooltip.betterenchanting.inactive.wrong_tag"),
+        OVER_LIMIT("tooltip.betterenchanting.inactive.over_limit");
 
-        private final String label;
+        private final String translationKey;
 
-        InactiveReason(String label) {
-            this.label = label;
+        InactiveReason(String translationKey) {
+            this.translationKey = translationKey;
         }
 
-        public String label() {
-            return this.label;
+        public String translationKey() {
+            return this.translationKey;
         }
     }
 }

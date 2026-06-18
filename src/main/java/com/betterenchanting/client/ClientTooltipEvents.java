@@ -47,10 +47,10 @@ public final class ClientTooltipEvents {
         List<TagLabel> enchantmentTags = TagDisplayRules.enchantmentLabels(stack);
         List<TagLabel> targetTags = stack.is(Items.ENCHANTED_BOOK) ? TagDisplayRules.enchantmentTargetLabels(stack) : List.of();
 
-        addTagLine(tooltip, "Essence Tags", essenceTags);
-        addTagLine(tooltip, "Item Tags", itemTags);
-        addTagLine(tooltip, "Enchantment Tags", enchantmentTags);
-        addTagLine(tooltip, "Can Apply To", targetTags);
+        addTagLine(tooltip, Component.translatable("tooltip.betterenchanting.essence_tags"), essenceTags);
+        addTagLine(tooltip, Component.translatable("tooltip.betterenchanting.item_tags"), itemTags);
+        addTagLine(tooltip, Component.translatable("tooltip.betterenchanting.enchantment_tags"), enchantmentTags);
+        addTagLine(tooltip, Component.translatable("tooltip.betterenchanting.can_apply_to"), targetTags);
     }
 
     private static void recolorEnchantmentTooltips(ItemTooltipEvent event, List<Component> tooltip) {
@@ -93,7 +93,9 @@ public final class ClientTooltipEvents {
 
     private static void appendInactiveReason(MutableComponent line, TooltipEntry entry, InactiveReason reason) {
         if (entry.status().has(reason)) {
-            line.append(Component.literal(" [" + reason.label() + "]").withStyle(ChatFormatting.RED));
+            line.append(Component.literal(" [").withStyle(ChatFormatting.RED)
+                    .append(Component.translatable(reason.translationKey()).withStyle(ChatFormatting.RED))
+                    .append(Component.literal("]").withStyle(ChatFormatting.RED)));
         }
     }
 
@@ -109,14 +111,16 @@ public final class ClientTooltipEvents {
         return TagDisplayRules.labelFor(tag);
     }
 
-    private static void addTagLine(List<Component> tooltip, String prefix, List<TagLabel> labels) {
+    private static void addTagLine(List<Component> tooltip, Component prefix, List<TagLabel> labels) {
         if (!labels.isEmpty()) {
             tooltip.add(tagLine(prefix, labels));
         }
     }
 
-    private static Component tagLine(String prefix, List<TagLabel> labels) {
-        MutableComponent line = Component.literal(prefix + ": ").withStyle(ChatFormatting.DARK_GRAY);
+    private static Component tagLine(Component prefix, List<TagLabel> labels) {
+        MutableComponent line = Component.empty()
+                .append(prefix.copy().withStyle(ChatFormatting.DARK_GRAY))
+                .append(Component.literal(": ").withStyle(ChatFormatting.DARK_GRAY));
         for (int index = 0; index < labels.size(); index++) {
             if (index > 0) {
                 line.append(Component.literal(", ").withStyle(ChatFormatting.DARK_GRAY));

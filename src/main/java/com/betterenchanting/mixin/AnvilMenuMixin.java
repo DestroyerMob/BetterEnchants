@@ -60,7 +60,7 @@ public abstract class AnvilMenuMixin {
         }
     }
 
-    @ModifyConstant(method = "createResult", constant = @Constant(intValue = 40))
+    @ModifyConstant(method = "createResult", constant = @Constant(intValue = 40), require = 0)
     private int betterenchanting$removeTooExpensiveCreateResultCutoff(int original) {
         return Integer.MAX_VALUE;
     }

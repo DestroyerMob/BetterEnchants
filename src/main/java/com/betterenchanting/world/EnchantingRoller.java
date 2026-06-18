@@ -204,7 +204,7 @@ public final class EnchantingRoller {
             candidates.add(new WeightedCandidate(
                     new EnchantmentInstance(holder, finalLevel),
                     List.copyOf(essenceMatches),
-                    Math.max(1, Math.min(BetterEnchantingConfig.maxCandidateWeight(), (int) Math.round(weight)))
+                    cappedCandidateWeight(weight)
             ));
         });
 
@@ -322,15 +322,12 @@ public final class EnchantingRoller {
             Set<ResourceLocation> representedEssenceTags,
             InputProfile profile
     ) {
-        int totalWeight = 0;
+        long totalWeight = 0L;
         List<Integer> adjustedWeights = new ArrayList<>(candidates.size());
         for (WeightedCandidate candidate : candidates) {
             int adjusted = candidate.baseWeight();
             if (profile.essenceTags().size() > 1 && contributesNewTag(candidate, representedEssenceTags)) {
-                adjusted = Math.min(
-                        BetterEnchantingConfig.maxCandidateWeight(),
-                        (int) Math.round(adjusted * BetterEnchantingConfig.newTagComboMultiplier())
-                );
+                adjusted = cappedCandidateWeight((double) adjusted * BetterEnchantingConfig.newTagComboMultiplier());
             }
             adjustedWeights.add(adjusted);
             totalWeight += adjusted;
@@ -340,7 +337,7 @@ public final class EnchantingRoller {
             return null;
         }
 
-        int roll = random.nextInt(totalWeight);
+        long roll = nextLong(random, totalWeight);
         for (int index = 0; index < candidates.size(); index++) {
             roll -= adjustedWeights.get(index);
             if (roll < 0) {
@@ -360,6 +357,29 @@ public final class EnchantingRoller {
             }
         }
         return false;
+    }
+
+    private static int cappedCandidateWeight(double weight) {
+        int maxWeight = BetterEnchantingConfig.maxCandidateWeight();
+        if (!Double.isFinite(weight) || weight >= maxWeight) {
+            return maxWeight;
+        }
+        return Math.max(1, (int) Math.round(weight));
+    }
+
+    private static long nextLong(RandomSource random, long bound) {
+        long mask = bound - 1L;
+        if ((bound & mask) == 0L) {
+            return random.nextLong() & mask;
+        }
+
+        long bits;
+        long value;
+        do {
+            bits = random.nextLong() >>> 1;
+            value = bits % bound;
+        } while (bits - value + mask < 0L);
+        return value;
     }
 
     public static String tagSummary(List<ResourceLocation> tags) {

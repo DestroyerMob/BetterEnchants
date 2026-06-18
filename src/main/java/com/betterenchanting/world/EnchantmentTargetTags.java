@@ -8,7 +8,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.logging.LogUtils;
 import java.util.LinkedHashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -77,20 +76,20 @@ public final class EnchantmentTargetTags {
 
         @Override
         protected void apply(Map<ResourceLocation, JsonElement> resources, ResourceManager manager, ProfilerFiller profiler) {
-            Map<ResourceLocation, TargetTagRule> loaded = new LinkedHashMap<>();
+            Set<TargetTagRule> loaded = new LinkedHashSet<>();
             for (Map.Entry<ResourceLocation, JsonElement> entry : resources.entrySet()) {
                 try {
                     JsonObject object = GsonHelper.convertToJsonObject(entry.getValue(), "enchantment target rules");
                     JsonArray ruleArray = GsonHelper.getAsJsonArray(object, "rules");
                     for (JsonElement ruleElement : ruleArray) {
                         TargetTagRule rule = parseRule(GsonHelper.convertToJsonObject(ruleElement, "enchantment target rule"));
-                        loaded.put(rule.itemTag().location(), rule);
+                        loaded.add(rule);
                     }
                 } catch (RuntimeException exception) {
                     LOGGER.warn("Skipping invalid enchantment target rules {}", entry.getKey(), exception);
                 }
             }
-            targetTagRules = List.copyOf(loaded.values());
+            targetTagRules = List.copyOf(loaded);
             LOGGER.info("Loaded {} Better Enchanting target tag rule(s)", targetTagRules.size());
         }
     }
