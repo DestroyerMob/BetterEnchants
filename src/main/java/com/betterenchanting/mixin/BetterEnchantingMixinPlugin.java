@@ -7,6 +7,7 @@ import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
 public final class BetterEnchantingMixinPlugin implements IMixinConfigPlugin {
+    private static final String ANVIL_SCREEN_MIXIN = "com.betterenchanting.mixin.client.AnvilScreenMixin";
     private static final String APOTHIC_SCREEN_MIXIN = "com.betterenchanting.mixin.client.ApothEnchantmentScreenMixin";
     private static final String APOTHIC_SCREEN_RESOURCE = "dev/shadowsoffire/apothic_enchanting/table/ApothEnchantmentScreen.class";
 
@@ -21,11 +22,19 @@ public final class BetterEnchantingMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        boolean apothicEnchantingLoaded = isResourceAvailable(APOTHIC_SCREEN_RESOURCE);
+        if (ANVIL_SCREEN_MIXIN.equals(mixinClassName) && apothicEnchantingLoaded) {
+            return false;
+        }
         if (APOTHIC_SCREEN_MIXIN.equals(mixinClassName)) {
-            ClassLoader loader = Thread.currentThread().getContextClassLoader();
-            return loader != null && loader.getResource(APOTHIC_SCREEN_RESOURCE) != null;
+            return apothicEnchantingLoaded;
         }
         return true;
+    }
+
+    private static boolean isResourceAvailable(String resource) {
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        return loader != null && loader.getResource(resource) != null;
     }
 
     @Override
