@@ -14,6 +14,7 @@ import java.util.function.Supplier;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import org.slf4j.Logger;
 
 public final class MobsToolForgingCompat {
@@ -24,6 +25,9 @@ public final class MobsToolForgingCompat {
     private static final String PICKAXE_HEAD = "pickaxe_head";
     private static final String AXE_HEAD = "axe_head";
     private static final String HOE_HEAD = "hoe_head";
+    private static final ResourceLocation OAK = material("oak");
+    private static final ResourceLocation BLAZE = material("blaze");
+    private static final ResourceLocation BREEZE = material("breeze");
     private static volatile boolean reflectionAttempted;
     private static volatile boolean runtimeWarningLogged;
     private static volatile Reflection reflection;
@@ -83,6 +87,11 @@ public final class MobsToolForgingCompat {
             return Optional.empty();
         }
 
+        Optional<ResourceLocation> handleMaterial = handleMaterialId(stack);
+        if (handleMaterial.isPresent()) {
+            return handleMaterial;
+        }
+
         try {
             Object construction = stack.get(access.toolConstructionComponent());
             if (construction != null) {
@@ -113,6 +122,11 @@ public final class MobsToolForgingCompat {
             return List.of();
         }
 
+        Optional<ResourceLocation> handleMaterial = handleMaterialId(stack);
+        if (handleMaterial.isPresent()) {
+            return List.of(handleMaterial.get());
+        }
+
         try {
             List<ResourceLocation> materials = new ArrayList<>();
             Object construction = stack.get(access.toolConstructionComponent());
@@ -137,6 +151,19 @@ public final class MobsToolForgingCompat {
             logRuntimeWarning(exception);
             return List.of();
         }
+    }
+
+    private static Optional<ResourceLocation> handleMaterialId(ItemStack stack) {
+        if (stack.is(Items.STICK)) {
+            return Optional.of(OAK);
+        }
+        if (stack.is(Items.BLAZE_ROD)) {
+            return Optional.of(BLAZE);
+        }
+        if (stack.is(Items.BREEZE_ROD)) {
+            return Optional.of(BREEZE);
+        }
+        return Optional.empty();
     }
 
     private static void addLocation(List<ResourceLocation> materials, Object value) {
@@ -299,6 +326,10 @@ public final class MobsToolForgingCompat {
         }
         runtimeWarningLogged = true;
         LOGGER.warn("Failed to read Mobs Tool Forging material data for an item stack; material compatibility will be skipped for that stack", exception);
+    }
+
+    private static ResourceLocation material(String path) {
+        return ResourceLocation.fromNamespaceAndPath("mobstoolforging", path);
     }
 
     private record Reflection(
