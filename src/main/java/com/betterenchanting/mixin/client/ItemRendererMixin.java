@@ -2,6 +2,8 @@ package com.betterenchanting.mixin.client;
 
 import com.betterenchanting.client.OverleveledGlintRenderTypes;
 import com.betterenchanting.data.EnchantmentLevelRules;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.renderer.MultiBufferSource;
@@ -14,7 +16,6 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -53,20 +54,25 @@ public abstract class ItemRendererMixin {
         betterenchanting$renderingStack.remove();
     }
 
-    @Redirect(
+    @WrapOperation(
             method = "render",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/renderer/entity/ItemRenderer;getCompassFoilBuffer(Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/client/renderer/RenderType;Lcom/mojang/blaze3d/vertex/PoseStack$Pose;)Lcom/mojang/blaze3d/vertex/VertexConsumer;"
             )
     )
-    private VertexConsumer betterenchanting$getCompassFoilBuffer(MultiBufferSource bufferSource, RenderType renderType, PoseStack.Pose pose) {
+    private VertexConsumer betterenchanting$getCompassFoilBuffer(
+            MultiBufferSource bufferSource,
+            RenderType renderType,
+            PoseStack.Pose pose,
+            Operation<VertexConsumer> original
+    ) {
         return betterenchanting$isRenderingOverleveled()
                 ? OverleveledGlintRenderTypes.getCompassFoilBuffer(bufferSource, renderType, pose)
-                : ItemRenderer.getCompassFoilBuffer(bufferSource, renderType, pose);
+                : original.call(bufferSource, renderType, pose);
     }
 
-    @Redirect(
+    @WrapOperation(
             method = "render",
             at = @At(
                     value = "INVOKE",
@@ -77,14 +83,15 @@ public abstract class ItemRendererMixin {
             MultiBufferSource bufferSource,
             RenderType renderType,
             boolean isItem,
-            boolean withGlint
+            boolean withGlint,
+            Operation<VertexConsumer> original
     ) {
         return betterenchanting$isRenderingOverleveled()
                 ? OverleveledGlintRenderTypes.getFoilBuffer(bufferSource, renderType, isItem, true)
-                : ItemRenderer.getFoilBuffer(bufferSource, renderType, isItem, withGlint);
+                : original.call(bufferSource, renderType, isItem, withGlint);
     }
 
-    @Redirect(
+    @WrapOperation(
             method = "render",
             at = @At(
                     value = "INVOKE",
@@ -95,11 +102,12 @@ public abstract class ItemRendererMixin {
             MultiBufferSource bufferSource,
             RenderType renderType,
             boolean isItem,
-            boolean withGlint
+            boolean withGlint,
+            Operation<VertexConsumer> original
     ) {
         return betterenchanting$isRenderingOverleveled()
                 ? OverleveledGlintRenderTypes.getFoilBufferDirect(bufferSource, renderType, isItem, true)
-                : ItemRenderer.getFoilBufferDirect(bufferSource, renderType, isItem, withGlint);
+                : original.call(bufferSource, renderType, isItem, withGlint);
     }
 
     @Inject(method = "getCompassFoilBuffer", at = @At("HEAD"), cancellable = true)
