@@ -24,7 +24,7 @@ public abstract class HumanoidArmorLayerMixin {
     private static final ThreadLocal<ItemStack> betterenchanting$renderingArmorStack = new ThreadLocal<>();
 
     @Inject(
-            method = "renderArmorPiece(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/EquipmentSlot;ILnet/minecraft/client/model/HumanoidModel;FFFFFF)V",
+            method = "renderArmorPiece(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/EquipmentSlot;ILnet/minecraft/client/model/HumanoidModel;)V",
             at = @At("HEAD")
     )
     private void betterenchanting$trackArmorStack(
@@ -34,19 +34,13 @@ public abstract class HumanoidArmorLayerMixin {
             EquipmentSlot slot,
             int packedLight,
             HumanoidModel<?> model,
-            float limbSwing,
-            float limbSwingAmount,
-            float partialTick,
-            float ageInTicks,
-            float netHeadYaw,
-            float headPitch,
             CallbackInfo callbackInfo
     ) {
         betterenchanting$renderingArmorStack.set(livingEntity.getItemBySlot(slot));
     }
 
     @Inject(
-            method = "renderArmorPiece(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/EquipmentSlot;ILnet/minecraft/client/model/HumanoidModel;FFFFFF)V",
+            method = "renderArmorPiece(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/EquipmentSlot;ILnet/minecraft/client/model/HumanoidModel;)V",
             at = @At("RETURN")
     )
     private void betterenchanting$clearArmorStack(
@@ -56,19 +50,13 @@ public abstract class HumanoidArmorLayerMixin {
             EquipmentSlot slot,
             int packedLight,
             HumanoidModel<?> model,
-            float limbSwing,
-            float limbSwingAmount,
-            float partialTick,
-            float ageInTicks,
-            float netHeadYaw,
-            float headPitch,
             CallbackInfo callbackInfo
     ) {
         betterenchanting$renderingArmorStack.remove();
     }
 
     @Redirect(
-            method = "renderArmorPiece(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/EquipmentSlot;ILnet/minecraft/client/model/HumanoidModel;FFFFFF)V",
+            method = "renderArmorPiece(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/EquipmentSlot;ILnet/minecraft/client/model/HumanoidModel;)V",
             at = @At(value = "INVOKE", target = "Lnet/minecraft/world/item/ItemStack;hasFoil()Z")
     )
     private boolean betterenchanting$hasOverleveledArmorFoil(ItemStack stack) {
@@ -76,7 +64,7 @@ public abstract class HumanoidArmorLayerMixin {
     }
 
     @Redirect(
-            method = "renderGlint(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;ILnet/minecraft/client/model/Model;)V",
+            method = "renderGlint(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;ILnet/minecraft/client/model/HumanoidModel;)V",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/renderer/MultiBufferSource;getBuffer(Lnet/minecraft/client/renderer/RenderType;)Lcom/mojang/blaze3d/vertex/VertexConsumer;"

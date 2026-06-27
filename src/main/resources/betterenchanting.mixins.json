@@ -2,6 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.betterenchanting.mixin",
+  "refmap": "betterenchanting.refmap.json",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "AnvilMenuMixin",
