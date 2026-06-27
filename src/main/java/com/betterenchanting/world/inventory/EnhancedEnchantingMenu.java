@@ -1,6 +1,7 @@
 package com.betterenchanting.world.inventory;
 
 import com.mojang.datafixers.util.Pair;
+import com.betterenchanting.compat.ApothicEnchantingCompat;
 import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.data.EnchantmentLevelRules;
 import com.betterenchanting.data.EnchantmentLevelRules.OverlevelTarget;
@@ -187,10 +188,13 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
         this.access.execute((level, blockPos) -> {
             IdMap<Holder<Enchantment>> ids = level.registryAccess().registryOrThrow(Registries.ENCHANTMENT).asHolderIdMap();
-            int bookshelfPower = EnchantingPowerRules.clampBookshelfPower(EnchantingTablePower.bookshelfPower(level, blockPos));
-            int baseRequirement = EnchantingPowerRules.offerRequirementForBookshelfPower(bookshelfPower);
-            int levelCost = EnchantingPowerRules.levelCostForBookshelfPower(bookshelfPower);
             ItemStack costTarget = costTarget(target);
+            Optional<ApothicEnchantingCompat.TableStats> apothicStats = ApothicEnchantingCompat.gatherTableStats(level, blockPos, costTarget);
+            int bookshelfPower = apothicStats
+                    .map(ApothicEnchantingCompat.TableStats::bookshelfPower)
+                    .orElseGet(() -> EnchantingPowerRules.clampBookshelfPower(EnchantingTablePower.bookshelfPower(level, blockPos)));
+            int defaultBaseRequirement = EnchantingPowerRules.offerRequirementForBookshelfPower(bookshelfPower);
+            int levelCost = EnchantingPowerRules.levelCostForBookshelfPower(EnchantingPowerRules.clampBookshelfPower(bookshelfPower));
             PoolModifierRules.ModifierPlan modifierPlan = modifierPlan();
             this.random.setSeed((long) this.enchantmentSeed.get());
 
@@ -211,6 +215,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 }
                 ItemStack modifier = modifierStack(modifierPlan, option);
 
+                int baseRequirement = defaultBaseRequirement;
+                if (apothicStats.isPresent()) {
+                    baseRequirement = ApothicEnchantingCompat.offerRequirement(apothicStats.get(), option, this.enchantmentSeed.get(), costTarget);
+                }
                 int requiredLevel = net.neoforged.neoforge.event.EventHooks.onEnchantmentLevelSet(
                         level,
                         blockPos,
@@ -242,14 +250,17 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                     continue;
                 }
 
+                int rollPower = EnchantingPowerRules.rollPower(this.requirements[option], costTarget, modifier);
+                rollPower = ApothicEnchantingCompat.adjustRollPower(apothicStats, option, this.enchantmentSeed.get(), rollPower);
                 EnchantingRoller.RollPreview preview = EnchantingRoller.preview(
                         level.registryAccess(),
                         target,
-                        EnchantingPowerRules.rollPower(this.requirements[option], costTarget, modifier),
+                        rollPower,
                         option,
                         this.enchantmentSeed.get(),
                         essences,
-                        books
+                        books,
+                        apothicStats
                 );
                 this.poolSizes[option] = preview.poolSize();
                 this.activeTagCounts[option] = preview.profile().essenceTags().size();
@@ -294,6 +305,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
         this.access.execute((level, blockPos) -> {
             ItemStack costTarget = costTarget(target);
+            Optional<ApothicEnchantingCompat.TableStats> apothicStats = ApothicEnchantingCompat.gatherTableStats(level, blockPos, costTarget);
             PoolModifierRules.ModifierPlan modifierPlan = modifierPlan();
             Optional<OverlevelTarget> overlevelTarget = overlevelTarget(target, modifierPlan, id);
             if (overlevelTarget.isPresent()) {
@@ -331,14 +343,17 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 return;
             }
 
+            int rollPower = EnchantingPowerRules.rollPower(this.requirements[id], costTarget, modifierStack(modifierPlan, id));
+            rollPower = ApothicEnchantingCompat.adjustRollPower(apothicStats, id, this.enchantmentSeed.get(), rollPower);
             List<EnchantmentInstance> enchantments = EnchantingRoller.preview(
                     level.registryAccess(),
                     target,
-                    EnchantingPowerRules.rollPower(this.requirements[id], costTarget, modifierStack(modifierPlan, id)),
+                    rollPower,
                     id,
                     this.enchantmentSeed.get(),
                     optionEssenceStacks(modifierPlan, id),
-                    optionBookStacks(modifierPlan, id)
+                    optionBookStacks(modifierPlan, id),
+                    apothicStats
             ).enchantments();
 
             if (enchantments.isEmpty()) {

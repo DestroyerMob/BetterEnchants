@@ -1,5 +1,6 @@
 package com.betterenchanting.world;
 
+import com.betterenchanting.compat.ApothicEnchantingCompat;
 import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.data.EssenceDefinition;
 import com.betterenchanting.data.EssenceDefinitions;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 import net.minecraft.core.Holder;
@@ -49,9 +51,22 @@ public final class EnchantingRoller {
             List<ItemStack> essences,
             List<ItemStack> books
     ) {
+        return preview(registryAccess, target, cost, option, seed, essences, books, Optional.empty());
+    }
+
+    public static RollPreview preview(
+            RegistryAccess registryAccess,
+            ItemStack target,
+            int cost,
+            int option,
+            int seed,
+            List<ItemStack> essences,
+            List<ItemStack> books,
+            Optional<ApothicEnchantingCompat.TableStats> apothicStats
+    ) {
         RandomSource random = RandomSource.create();
         random.setSeed((long) seed + option);
-        return select(random, registryAccess, target, cost, essences, books);
+        return select(random, registryAccess, target, cost, essences, books, apothicStats);
     }
 
     public static RollPreview select(
@@ -62,16 +77,28 @@ public final class EnchantingRoller {
             List<ItemStack> essences,
             List<ItemStack> books
     ) {
+        return select(random, registryAccess, target, cost, essences, books, Optional.empty());
+    }
+
+    public static RollPreview select(
+            RandomSource random,
+            RegistryAccess registryAccess,
+            ItemStack target,
+            int cost,
+            List<ItemStack> essences,
+            List<ItemStack> books,
+            Optional<ApothicEnchantingCompat.TableStats> apothicStats
+    ) {
         InputProfile profile = profile(target, essences, books);
         Set<Holder<Enchantment>> existingEnchantments = existingEnchantments(target);
         int maxEnchantments = EnchantmentLimitRules.maxEnchantments(target);
         int selectionLimit = selectionLimit(maxEnchantments);
-        int level = adjustedLevel(random, target, cost);
+        int level = apothicStats.isPresent() ? cost : adjustedLevel(random, target, cost);
         if (level <= 0) {
             return new RollPreview(List.of(), 0, profile, EmptyReason.NO_ROLL_POWER);
         }
 
-        List<WeightedCandidate> candidates = buildCandidates(registryAccess, target, level, profile);
+        List<WeightedCandidate> candidates = buildCandidates(registryAccess, target, level, profile, apothicStats);
         int poolSize = candidates.size();
         List<EnchantmentInstance> selected = new ArrayList<>();
         filterOverLimitCandidates(registryAccess, candidates, target, existingEnchantments, Set.of());
@@ -87,9 +114,14 @@ public final class EnchantingRoller {
 
         selected.add(first.instance());
         representedEssenceTags.addAll(first.matchingEssenceTags());
+        int guaranteedSelectionCount = apothicStats
+                .map(ApothicEnchantingCompat::guaranteedSelectionCount)
+                .orElse(1);
         Set<Holder<Enchantment>> selectedEnchantments = new LinkedHashSet<>();
         selectedEnchantments.add(first.instance().enchantment);
-        while (selected.size() < selectionLimit && random.nextInt(EffectiveBalance.rollerMultiEnchantRollBound()) <= level) {
+        while (selected.size() < selectionLimit
+                && (selected.size() < guaranteedSelectionCount
+                || random.nextInt(EffectiveBalance.rollerMultiEnchantRollBound()) <= level)) {
             candidates.removeIf(candidate -> selectedEnchantments.contains(candidate.instance().enchantment)
                     || EnchantmentFusionRecipes.conflictsWithFusionIngredient(registryAccess, candidate.instance().enchantment, selectedEnchantments)
                     || conflictsWithExisting(registryAccess, candidate.instance().enchantment, selectedEnchantments));
@@ -170,14 +202,15 @@ public final class EnchantingRoller {
         return EmptyReason.NO_COMPATIBLE_ENCHANTMENTS;
     }
 
-    private static List<WeightedCandidate> buildCandidates(RegistryAccess registryAccess, ItemStack target, int level, InputProfile profile) {
+    private static List<WeightedCandidate> buildCandidates(RegistryAccess registryAccess, ItemStack target, int level, InputProfile profile, Optional<ApothicEnchantingCompat.TableStats> apothicStats) {
         Registry<Enchantment> enchantments = registryAccess.registryOrThrow(Registries.ENCHANTMENT);
         Optional<HolderSet.Named<Enchantment>> vanillaPool = enchantments.getTag(EnchantmentTags.IN_ENCHANTING_TABLE);
         Set<Holder<Enchantment>> existingEnchantments = existingEnchantments(target);
         List<WeightedCandidate> candidates = new ArrayList<>();
 
         enchantments.holders().forEach(holder -> {
-            if (matchesAnyTag(holder, profile.removedTags())) {
+            if (matchesAnyTag(holder, profile.removedTags())
+                    || apothicStats.map(stats -> stats.isBlacklisted(holder)).orElse(false)) {
                 return;
             }
             if (existingEnchantments.contains(holder)
@@ -187,6 +220,9 @@ public final class EnchantingRoller {
             }
 
             boolean inVanillaPool = vanillaPool.map(named -> named.contains(holder)).orElse(false);
+            boolean inApothicTreasurePool = apothicStats
+                    .map(stats -> stats.treasure() && holder.is(EnchantmentTags.TREASURE))
+                    .orElse(false);
             BookBoost bookBoost = profile.bookBoosts().get(holder);
             if (EnchantmentFusionRecipes.isFusionResult(registryAccess, holder) && bookBoost == null) {
                 return;
@@ -202,11 +238,11 @@ public final class EnchantingRoller {
             if (profile.restricted() && !matchesEssence && bookBoost == null) {
                 return;
             }
-            if (!profile.restricted() && !inVanillaPool && bookBoost == null) {
+            if (!profile.restricted() && !inVanillaPool && !inApothicTreasurePool && bookBoost == null) {
                 return;
             }
 
-            int rolledLevel = bestLevelForCost(holder, level);
+            int rolledLevel = bestLevelForCost(holder, level, apothicStats);
             if (rolledLevel <= 0 && bookBoost == null) {
                 return;
             }
@@ -216,7 +252,9 @@ public final class EnchantingRoller {
                 return;
             }
 
-            double weight = Math.max(1, holder.value().getWeight());
+            double weight = Math.max(1, apothicStats
+                    .map(stats -> ApothicEnchantingCompat.adjustedWeight(holder, stats))
+                    .orElse(holder.value().getWeight()));
             if (matchesEssence) {
                 weight *= profile.essenceWeightMultiplier();
             }
@@ -314,7 +352,13 @@ public final class EnchantingRoller {
         return boosts;
     }
 
-    private static int bestLevelForCost(Holder<Enchantment> enchantment, int level) {
+    private static int bestLevelForCost(Holder<Enchantment> enchantment, int level, Optional<ApothicEnchantingCompat.TableStats> apothicStats) {
+        if (apothicStats.isPresent()) {
+            OptionalInt apothicLevel = ApothicEnchantingCompat.bestLevelForPower(enchantment, level);
+            if (apothicLevel.isPresent()) {
+                return apothicLevel.getAsInt();
+            }
+        }
         for (int enchantmentLevel = EnchantmentLevelRules.maxLevel(enchantment); enchantmentLevel >= enchantment.value().getMinLevel(); enchantmentLevel--) {
             if (level >= enchantment.value().getMinCost(enchantmentLevel) && level <= enchantment.value().getMaxCost(enchantmentLevel)) {
                 return enchantmentLevel;
