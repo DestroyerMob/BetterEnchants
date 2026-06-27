@@ -315,14 +315,21 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                 boolean hasOfferPower = requiredLevel > 0 && xpCost > 0;
                 OptionDetails details = this.menu.getOptionDetails(option);
                 if (hasOfferPower) {
-                    Component clueName = clue.<Component>map(holder -> coloredClueName(holder, clueLevel)).orElse(CommonComponents.EMPTY);
-                    String clueKey = "container.enchant.clue";
-                    if (this.menu.isApothicInfusionOffer(option)) {
-                        clueKey = "tooltip.betterenchanting.option.infusion_clue";
-                    } else if (this.menu.isOverlevelOffer(option)) {
-                        clueKey = "tooltip.betterenchanting.option.overlevel_clue";
+                    boolean specialOffer = this.menu.isApothicInfusionOffer(option) || this.menu.isOverlevelOffer(option);
+                    if (this.menu.usesApothicLayout() && !specialOffer) {
+                        if (!this.addRevealedClueLines(tooltip, option)) {
+                            tooltip.add(Component.translatable("tooltip.betterenchanting.option.no_clue").withStyle(ChatFormatting.DARK_RED, ChatFormatting.UNDERLINE));
+                        }
+                    } else {
+                        Component clueName = clue.<Component>map(holder -> coloredClueName(holder, clueLevel)).orElse(CommonComponents.EMPTY);
+                        String clueKey = "container.enchant.clue";
+                        if (this.menu.isApothicInfusionOffer(option)) {
+                            clueKey = "tooltip.betterenchanting.option.infusion_clue";
+                        } else if (this.menu.isOverlevelOffer(option)) {
+                            clueKey = "tooltip.betterenchanting.option.overlevel_clue";
+                        }
+                        tooltip.add(Component.translatable(clueKey, clueName).withStyle(ChatFormatting.WHITE));
                     }
-                    tooltip.add(Component.translatable(clueKey, clueName).withStyle(ChatFormatting.WHITE));
                 } else {
                     tooltip.add(Component.translatable("tooltip.betterenchanting.option.unavailable").withStyle(ChatFormatting.WHITE));
                 }
@@ -355,6 +362,34 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                 return;
             }
         }
+    }
+
+    private boolean addRevealedClueLines(List<Component> tooltip, int option) {
+        if (this.minecraft == null || this.minecraft.level == null) {
+            return false;
+        }
+        List<Component> clueLines = Lists.newArrayList();
+        for (int clueIndex = 0; clueIndex < this.menu.getRevealedClueCount(option); clueIndex++) {
+            int clueId = this.menu.getRevealedClueId(option, clueIndex);
+            int clueLevel = this.menu.getRevealedClueLevel(option, clueIndex);
+            this.minecraft
+                    .level
+                    .registryAccess()
+                    .registryOrThrow(Registries.ENCHANTMENT)
+                    .getHolder(clueId)
+                    .ifPresent(holder -> clueLines.add(coloredClueName(holder, clueLevel)));
+        }
+        if (clueLines.isEmpty()) {
+            return false;
+        }
+
+        tooltip.add(Component.translatable(
+                this.menu.areAllCluesRevealed(option)
+                        ? "tooltip.betterenchanting.option.clues_all"
+                        : "tooltip.betterenchanting.option.clues"
+        ).withStyle(ChatFormatting.YELLOW, ChatFormatting.UNDERLINE));
+        tooltip.addAll(clueLines);
+        return true;
     }
 
     private void renderApothicStatTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {

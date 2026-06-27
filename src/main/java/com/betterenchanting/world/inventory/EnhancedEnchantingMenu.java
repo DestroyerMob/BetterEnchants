@@ -12,6 +12,7 @@ import com.betterenchanting.world.EnchantingRoller;
 import com.betterenchanting.world.EnchantmentTargetTags;
 import com.betterenchanting.world.enchantment.FortunesTouchEnchantmentEvents;
 import com.betterenchanting.world.level.block.EnchantingTablePower;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import net.minecraft.Util;
@@ -74,6 +75,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     private static final int APOTHIC_STATS_SCALE = 100;
     private static final int APOTHIC_FLAGS_STABLE = 1;
     private static final int APOTHIC_FLAGS_TREASURE = 1 << 1;
+    private static final int MAX_REVEALED_CLUES_PER_OPTION = 6;
     private static final ResourceLocation EMPTY_LAPIS_SLOT = ResourceLocation.withDefaultNamespace("item/empty_slot_lapis_lazuli");
     private static final int APOTHIC_INFUSION_OPTION = 2;
     private static final ResourceKey<Enchantment> APOTHIC_INFUSION = ResourceKey.create(
@@ -103,6 +105,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     private final int[] disabledReasonFlags = new int[]{0, 0, 0};
     private final int[] overlevelOffers = new int[]{0, 0, 0};
     private final int[] apothicInfusionOffers = new int[]{0, 0, 0};
+    private final int[] revealedClueCounts = new int[]{0, 0, 0};
+    private final int[] allCluesRevealed = new int[]{0, 0, 0};
+    private final int[] revealedClueIds = filledArray(MODIFIER_SLOT_COUNT * MAX_REVEALED_CLUES_PER_OPTION, -1);
+    private final int[] revealedClueLevels = filledArray(MODIFIER_SLOT_COUNT * MAX_REVEALED_CLUES_PER_OPTION, -1);
     private final int[] apothicStatsData = new int[]{0, 0, 0, 0};
 
     public EnhancedEnchantingMenu(int containerId, Inventory playerInventory) {
@@ -197,6 +203,16 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         this.addDataSlot(DataSlot.shared(this.apothicInfusionOffers, 0));
         this.addDataSlot(DataSlot.shared(this.apothicInfusionOffers, 1));
         this.addDataSlot(DataSlot.shared(this.apothicInfusionOffers, 2));
+        this.addDataSlot(DataSlot.shared(this.revealedClueCounts, 0));
+        this.addDataSlot(DataSlot.shared(this.revealedClueCounts, 1));
+        this.addDataSlot(DataSlot.shared(this.revealedClueCounts, 2));
+        this.addDataSlot(DataSlot.shared(this.allCluesRevealed, 0));
+        this.addDataSlot(DataSlot.shared(this.allCluesRevealed, 1));
+        this.addDataSlot(DataSlot.shared(this.allCluesRevealed, 2));
+        for (int index = 0; index < this.revealedClueIds.length; index++) {
+            this.addDataSlot(DataSlot.shared(this.revealedClueIds, index));
+            this.addDataSlot(DataSlot.shared(this.revealedClueLevels, index));
+        }
         this.addDataSlot(DataSlot.shared(this.apothicStatsData, 0));
         this.addDataSlot(DataSlot.shared(this.apothicStatsData, 1));
         this.addDataSlot(DataSlot.shared(this.apothicStatsData, 2));
@@ -237,6 +253,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             for (int option = 0; option < 3; option++) {
                 this.enchantClue[option] = -1;
                 this.levelClue[option] = -1;
+                this.clearRevealedClues(option);
                 this.poolSizes[option] = 0;
                 this.activeTagCounts[option] = 0;
                 this.bookBoostCounts[option] = 0;
@@ -277,8 +294,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                                 .registryOrThrow(Registries.ENCHANTMENT)
                                 .getHolder(APOTHIC_INFUSION);
                         if (infusion.isPresent()) {
-                            this.enchantClue[option] = ids.getId(infusion.get());
-                            this.levelClue[option] = 1;
+                            this.setSingleRevealedClue(option, ids.getId(infusion.get()), 1);
                         }
                         continue;
                     }
@@ -302,8 +318,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                     this.poolSizes[option] = 1;
                     this.activeTagCounts[option] = profile.essenceTags().size();
                     this.bookBoostCounts[option] = profile.bookBoostCount();
-                    this.enchantClue[option] = ids.getId(targetOverlevel.enchantment());
-                    this.levelClue[option] = targetOverlevel.overleveledLevel();
+                    this.setSingleRevealedClue(option, ids.getId(targetOverlevel.enchantment()), targetOverlevel.overleveledLevel());
                     this.overlevelOffers[option] = 1;
                     continue;
                 }
@@ -329,9 +344,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                         this.disabledReasonFlags[option] |= DISABLED_FUSION_LIMIT;
                         continue;
                     }
-                    EnchantmentInstance clue = preview.enchantments().get(this.random.nextInt(preview.enchantments().size()));
-                    this.enchantClue[option] = ids.getId(clue.enchantment);
-                    this.levelClue[option] = clue.level;
+                    List<EnchantmentInstance> clues = new ArrayList<>(preview.enchantments());
+                    EnchantmentInstance clue = clues.remove(this.random.nextInt(clues.size()));
+                    int clueBudget = apothicStats.map(ApothicEnchantingCompat.TableStats::clues).orElse(1);
+                    this.setRevealedClues(option, ids, clue, clues, clueBudget);
                 }
             }
 
@@ -583,6 +599,31 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         return option >= 0 && option < this.apothicInfusionOffers.length && this.apothicInfusionOffers[option] != 0;
     }
 
+    public int getRevealedClueCount(int option) {
+        if (option < 0 || option >= this.revealedClueCounts.length) {
+            return 0;
+        }
+        return Math.min(this.revealedClueCounts[option], MAX_REVEALED_CLUES_PER_OPTION);
+    }
+
+    public int getRevealedClueId(int option, int clueIndex) {
+        if (option < 0 || option >= MODIFIER_SLOT_COUNT || clueIndex < 0 || clueIndex >= MAX_REVEALED_CLUES_PER_OPTION) {
+            return -1;
+        }
+        return this.revealedClueIds[revealedClueIndex(option, clueIndex)];
+    }
+
+    public int getRevealedClueLevel(int option, int clueIndex) {
+        if (option < 0 || option >= MODIFIER_SLOT_COUNT || clueIndex < 0 || clueIndex >= MAX_REVEALED_CLUES_PER_OPTION) {
+            return -1;
+        }
+        return this.revealedClueLevels[revealedClueIndex(option, clueIndex)];
+    }
+
+    public boolean areAllCluesRevealed(int option) {
+        return option >= 0 && option < this.allCluesRevealed.length && this.allCluesRevealed[option] != 0;
+    }
+
     public boolean usesApothicLayout() {
         return this.apothicLayout;
     }
@@ -689,6 +730,66 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         return stack.is(Items.ENCHANTED_BOOK) ? new ItemStack(Items.BOOK) : stack;
     }
 
+    private void setSingleRevealedClue(int option, int enchantmentId, int enchantmentLevel) {
+        this.enchantClue[option] = enchantmentId;
+        this.levelClue[option] = enchantmentLevel;
+        this.clearRevealedClues(option);
+        this.setRevealedClue(option, 0, enchantmentId, enchantmentLevel);
+        this.revealedClueCounts[option] = 1;
+        this.allCluesRevealed[option] = 1;
+    }
+
+    private void setRevealedClues(
+            int option,
+            IdMap<Holder<Enchantment>> ids,
+            EnchantmentInstance primaryClue,
+            List<EnchantmentInstance> remainingClues,
+            int clueBudget
+    ) {
+        int primaryId = ids.getId(primaryClue.enchantment);
+        this.enchantClue[option] = primaryId;
+        this.levelClue[option] = primaryClue.level;
+        this.clearRevealedClues(option);
+
+        int totalClues = 1 + remainingClues.size();
+        int revealedCount = Math.min(Math.max(0, clueBudget), Math.min(MAX_REVEALED_CLUES_PER_OPTION, totalClues));
+        if (revealedCount <= 0) {
+            return;
+        }
+
+        this.setRevealedClue(option, 0, primaryId, primaryClue.level);
+        List<EnchantmentInstance> pool = new ArrayList<>(remainingClues);
+        for (int clueIndex = 1; clueIndex < revealedCount && !pool.isEmpty(); clueIndex++) {
+            EnchantmentInstance clue = pool.remove(this.random.nextInt(pool.size()));
+            this.setRevealedClue(option, clueIndex, ids.getId(clue.enchantment), clue.level);
+        }
+        this.revealedClueCounts[option] = revealedCount;
+        this.allCluesRevealed[option] = revealedCount >= totalClues ? 1 : 0;
+    }
+
+    private void setRevealedClue(int option, int clueIndex, int enchantmentId, int enchantmentLevel) {
+        int index = revealedClueIndex(option, clueIndex);
+        this.revealedClueIds[index] = enchantmentId;
+        this.revealedClueLevels[index] = enchantmentLevel;
+    }
+
+    private void clearRevealedClues(int option) {
+        if (option < 0 || option >= MODIFIER_SLOT_COUNT) {
+            return;
+        }
+        this.revealedClueCounts[option] = 0;
+        this.allCluesRevealed[option] = 0;
+        for (int clueIndex = 0; clueIndex < MAX_REVEALED_CLUES_PER_OPTION; clueIndex++) {
+            int index = revealedClueIndex(option, clueIndex);
+            this.revealedClueIds[index] = -1;
+            this.revealedClueLevels[index] = -1;
+        }
+    }
+
+    private static int revealedClueIndex(int option, int clueIndex) {
+        return option * MAX_REVEALED_CLUES_PER_OPTION + clueIndex;
+    }
+
     private void setApothicStats(Optional<ApothicEnchantingCompat.TableStats> stats) {
         if (stats.isEmpty()) {
             this.apothicStatsData[0] = 0;
@@ -710,12 +811,21 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         return Math.max(0, Math.round(stat * APOTHIC_STATS_SCALE));
     }
 
+    private static int[] filledArray(int size, int value) {
+        int[] values = new int[size];
+        for (int index = 0; index < values.length; index++) {
+            values[index] = value;
+        }
+        return values;
+    }
+
     private void clearPreviews() {
         for (int index = 0; index < 3; index++) {
             this.requirements[index] = 0;
             this.costs[index] = 0;
             this.enchantClue[index] = -1;
             this.levelClue[index] = -1;
+            this.clearRevealedClues(index);
             this.poolSizes[index] = 0;
             this.disabledReasonFlags[index] = 0;
             this.overlevelOffers[index] = 0;
