@@ -21,6 +21,7 @@ public final class ClientModEvents {
         modBus.addListener(ClientModEvents::registerReloadListeners);
         modBus.addListener(ClientModEvents::registerRenderBuffers);
         NeoForge.EVENT_BUS.addListener(ClientInputEvents::detectFlashStep);
+        NeoForge.EVENT_BUS.addListener(OreRevealerHighlights::render);
     }
 
     public static void registerScreens(RegisterMenuScreensEvent event) {
@@ -41,5 +42,6 @@ public final class ClientModEvents {
         event.registerRenderBuffer(OverleveledGlintRenderTypes.glintTranslucent());
         event.registerRenderBuffer(OverleveledGlintRenderTypes.entityGlint());
         event.registerRenderBuffer(OverleveledGlintRenderTypes.entityGlintDirect());
+        event.registerRenderBuffer(OreRevealerRenderTypes.lines());
     }
 }

@@ -31,6 +31,7 @@ import com.betterenchanting.world.enchantment.HeadshotEnchantmentEvents;
 import com.betterenchanting.world.enchantment.OverchargedEnchantmentEvents;
 import com.betterenchanting.world.enchantment.PerfectStrikeEnchantmentEvents;
 import com.betterenchanting.world.enchantment.SeismicCushionEnchantmentEvents;
+import com.betterenchanting.world.enchantment.OreRevealerEnchantmentEvents;
 import com.betterenchanting.world.enchantment.ShockingEnchantmentEvents;
 import com.betterenchanting.world.enchantment.TreeCapitatorEnchantmentEvents;
 import com.betterenchanting.world.enchantment.VacuumEnchantmentEvents;
@@ -89,6 +90,7 @@ public final class BetterEnchanting {
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, GelboundEnchantmentEvents::negateFallDamage);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, TreeCapitatorEnchantmentEvents::chopTree);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, VeinMinerEnchantmentEvents::veinMineConnectedBlocks);
+        NeoForge.EVENT_BUS.addListener(OreRevealerEnchantmentEvents::revealMatchingOres);
         NeoForge.EVENT_BUS.addListener(EssenceAcquisitionEvents::addMiningEssenceFromFortune);
         NeoForge.EVENT_BUS.addListener(EssenceAcquisitionEvents::addFishingEssences);
         NeoForge.EVENT_BUS.addListener(EssenceAcquisitionEvents::addVillagerTrades);

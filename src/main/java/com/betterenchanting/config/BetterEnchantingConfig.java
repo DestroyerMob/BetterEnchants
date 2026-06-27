@@ -1,5 +1,6 @@
 package com.betterenchanting.config;
 
+import java.util.List;
 import java.util.Locale;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
@@ -26,6 +27,9 @@ public final class BetterEnchantingConfig {
     private static final ModConfigSpec.DoubleValue ENCHANTING_NEW_TAG_COMBO_MULTIPLIER;
     private static final ModConfigSpec.IntValue ENCHANTING_MAX_CANDIDATE_WEIGHT;
     private static final ModConfigSpec.IntValue VEIN_MINER_CONNECTED_BLOCKS_PER_LEVEL;
+    private static final ModConfigSpec.IntValue ORE_REVEALER_HIGHLIGHT_DURATION_TICKS;
+    private static final ModConfigSpec.ConfigValue<List<? extends String>> ORE_REVEALER_BLOCK_WHITELIST;
+    private static final ModConfigSpec.ConfigValue<List<? extends String>> ORE_REVEALER_BLOCK_BLACKLIST;
     private static final ModConfigSpec.IntValue TREE_CAPITATOR_MAX_LOGS;
     private static final ModConfigSpec.IntValue TREE_CAPITATOR_LEAF_SCAN_RADIUS;
     private static final ModConfigSpec.IntValue TREE_CAPITATOR_MIN_NATURAL_LEAVES;
@@ -156,6 +160,18 @@ public final class BetterEnchantingConfig {
         VEIN_MINER_CONNECTED_BLOCKS_PER_LEVEL = builder
                 .comment("Maximum connected matching blocks broken per Vein Miner level.")
                 .defineInRange("connected_blocks_per_level", 16, 1, 4096);
+        builder.pop();
+
+        builder.push("ore_revealer");
+        ORE_REVEALER_HIGHLIGHT_DURATION_TICKS = builder
+                .comment("Duration, in ticks, that Ore Revealer outlines matching nearby ores after one is broken.")
+                .defineInRange("highlight_duration_ticks", 160, 1, 1200);
+        ORE_REVEALER_BLOCK_WHITELIST = builder
+                .comment("Block ids or block tags allowed for Ore Revealer, such as minecraft:diamond_ore or #c:ores/diamond. Empty means any block in the common ores tag is allowed.")
+                .defineListAllowEmpty("block_whitelist", List.of(), () -> "", value -> value instanceof String);
+        ORE_REVEALER_BLOCK_BLACKLIST = builder
+                .comment("Block ids or block tags excluded from Ore Revealer, using the same format as the whitelist. Blacklist entries override whitelist entries.")
+                .defineListAllowEmpty("block_blacklist", List.of(), () -> "", value -> value instanceof String);
         builder.pop();
 
         builder.push("tree_capitator");
@@ -460,6 +476,18 @@ public final class BetterEnchantingConfig {
 
     public static int veinMinerConnectedBlocksPerLevel() {
         return VEIN_MINER_CONNECTED_BLOCKS_PER_LEVEL.get();
+    }
+
+    public static int oreRevealerHighlightDurationTicks() {
+        return ORE_REVEALER_HIGHLIGHT_DURATION_TICKS.get();
+    }
+
+    public static List<? extends String> oreRevealerBlockWhitelist() {
+        return ORE_REVEALER_BLOCK_WHITELIST.get();
+    }
+
+    public static List<? extends String> oreRevealerBlockBlacklist() {
+        return ORE_REVEALER_BLOCK_BLACKLIST.get();
     }
 
     public static int treeCapitatorMaxLogs() {
