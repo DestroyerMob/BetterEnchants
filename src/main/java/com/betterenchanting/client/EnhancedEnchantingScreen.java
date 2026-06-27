@@ -1,5 +1,6 @@
 package com.betterenchanting.client;
 
+import com.betterenchanting.BetterEnchanting;
 import com.betterenchanting.world.inventory.EnhancedEnchantingMenu;
 import com.betterenchanting.world.inventory.EnhancedEnchantingMenu.OptionDetails;
 import com.betterenchanting.world.EnchantingRoller;
@@ -34,20 +35,7 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEnchantingMenu> {
-    private static final int BASE_IMAGE_WIDTH = 176;
     private static final int EXTENDED_IMAGE_WIDTH = 201;
-    private static final int MODIFIER_PANEL_X = 176;
-    private static final int MODIFIER_PANEL_Y = 10;
-    private static final int MODIFIER_PANEL_WIDTH = 25;
-    private static final int MODIFIER_PANEL_HEIGHT = 64;
-    private static final int MODIFIER_SLOT_FRAME_X = 179;
-    private static final int MODIFIER_SLOT_FRAME_Y = 14;
-    private static final int MODIFIER_SLOT_GAP = 19;
-    private static final int VANILLA_SLOT_TEXTURE_X = 14;
-    private static final int VANILLA_SLOT_TEXTURE_Y = 46;
-    private static final int VANILLA_SLOT_SIZE = 18;
-    private static final int VANILLA_PANEL = 0xFFC6C6C6;
-    private static final int VANILLA_BORDER = 0xFF000000;
     private static final ResourceLocation[] ENABLED_LEVEL_SPRITES = new ResourceLocation[]{
             ResourceLocation.withDefaultNamespace("container/enchanting_table/level_1"),
             ResourceLocation.withDefaultNamespace("container/enchanting_table/level_2"),
@@ -65,7 +53,7 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
             "container/enchanting_table/enchantment_slot_highlighted"
     );
     private static final ResourceLocation ENCHANTMENT_SLOT_SPRITE = ResourceLocation.withDefaultNamespace("container/enchanting_table/enchantment_slot");
-    private static final ResourceLocation ENCHANTING_TABLE_LOCATION = ResourceLocation.withDefaultNamespace("textures/gui/container/enchanting_table.png");
+    private static final ResourceLocation ENCHANTING_TABLE_LOCATION = BetterEnchanting.id("textures/gui/container/enchanting_table.png");
     private static final ResourceLocation ENCHANTING_BOOK_LOCATION = ResourceLocation.withDefaultNamespace("textures/entity/enchanting_table_book.png");
 
     private final RandomSource random = RandomSource.create();
@@ -123,8 +111,7 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
     protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
         int x = (this.width - this.imageWidth) / 2;
         int y = (this.height - this.imageHeight) / 2;
-        guiGraphics.blit(ENCHANTING_TABLE_LOCATION, x, y, 0, 0, BASE_IMAGE_WIDTH, this.imageHeight);
-        this.renderModifierPanel(guiGraphics, x, y);
+        guiGraphics.blit(ENCHANTING_TABLE_LOCATION, x, y, 0, 0, this.imageWidth, this.imageHeight);
         this.renderBook(guiGraphics, x, y, partialTick);
         EnchantmentNames.getInstance().initSeed((long) this.menu.getEnchantmentSeed());
         int lapisCount = this.menu.getLapisCount();
@@ -175,27 +162,6 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
 
                 guiGraphics.drawString(this.font, requirementText, textX + 86 - this.font.width(requirementText), y + 16 + 19 * option + 7, textColor);
             }
-        }
-    }
-
-    private void renderModifierPanel(GuiGraphics guiGraphics, int x, int y) {
-        int panelX = x + MODIFIER_PANEL_X;
-        int panelY = y + MODIFIER_PANEL_Y;
-        guiGraphics.fill(panelX, panelY, panelX + MODIFIER_PANEL_WIDTH, panelY + MODIFIER_PANEL_HEIGHT, VANILLA_PANEL);
-        guiGraphics.fill(panelX, panelY, panelX + MODIFIER_PANEL_WIDTH, panelY + 1, VANILLA_BORDER);
-        guiGraphics.fill(panelX, panelY + MODIFIER_PANEL_HEIGHT - 1, panelX + MODIFIER_PANEL_WIDTH, panelY + MODIFIER_PANEL_HEIGHT, VANILLA_BORDER);
-        guiGraphics.fill(panelX + MODIFIER_PANEL_WIDTH - 1, panelY, panelX + MODIFIER_PANEL_WIDTH, panelY + MODIFIER_PANEL_HEIGHT, VANILLA_BORDER);
-
-        for (int slot = 0; slot < EnhancedEnchantingMenu.MODIFIER_SLOT_COUNT; slot++) {
-            guiGraphics.blit(
-                    ENCHANTING_TABLE_LOCATION,
-                    x + MODIFIER_SLOT_FRAME_X,
-                    y + MODIFIER_SLOT_FRAME_Y + slot * MODIFIER_SLOT_GAP,
-                    VANILLA_SLOT_TEXTURE_X,
-                    VANILLA_SLOT_TEXTURE_Y,
-                    VANILLA_SLOT_SIZE,
-                    VANILLA_SLOT_SIZE
-            );
         }
     }
 

@@ -4,6 +4,7 @@
   "package": "com.betterenchanting.mixin",
   "refmap": "betterenchanting.refmap.json",
   "compatibilityLevel": "JAVA_21",
+  "plugin": "com.betterenchanting.mixin.BetterEnchantingMixinPlugin",
   "mixins": [
     "AnvilMenuMixin",
     "EnchantmentHelperMixin",
@@ -15,6 +16,7 @@
   ],
   "client": [
     "client.AnvilScreenMixin",
+    "client.ApothEnchantmentScreenMixin",
     "client.HumanoidArmorLayerMixin",
     "client.ItemRendererMixin",
     "client.LivingEntityRendererMixin"
