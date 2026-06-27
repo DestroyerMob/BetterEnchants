@@ -19,6 +19,7 @@ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.client.gui.screens.inventory.EnchantmentNames;
 import net.minecraft.client.model.BookModel;
 import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.Holder;
@@ -71,6 +72,12 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
     public float open;
     public float oOpen;
     private ItemStack last = ItemStack.EMPTY;
+    private float apothicEterna;
+    private float lastApothicEterna;
+    private float apothicQuanta;
+    private float lastApothicQuanta;
+    private float apothicArcana;
+    private float lastApothicArcana;
 
     public EnhancedEnchantingScreen(EnhancedEnchantingMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
@@ -90,6 +97,7 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
     public void containerTick() {
         super.containerTick();
         this.tickBook();
+        this.tickApothicBars();
     }
 
     @Override
@@ -219,14 +227,17 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
         if (!this.menu.usesApothicLayout()) {
             return;
         }
-        if (this.menu.getApothicEterna() > 0) {
-            guiGraphics.blit(texture, x + 59, y + 75, 0, 197, apothicBarLength(this.menu.getApothicEterna()), 5);
+        RenderSystem.setShader(GameRenderer::getPositionTexShader);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.setShaderTexture(0, texture);
+        if (this.apothicEterna > 0) {
+            guiGraphics.blit(texture, x + 59, y + 75, 0, 197, apothicBarLength(this.apothicEterna), 5);
         }
-        if (this.menu.getApothicQuanta() > 0) {
-            guiGraphics.blit(texture, x + 59, y + 85, 0, 202, apothicBarLength(this.menu.getApothicQuanta()), 5);
+        if (this.apothicQuanta > 0) {
+            guiGraphics.blit(texture, x + 59, y + 85, 0, 202, apothicBarLength(this.apothicQuanta), 5);
         }
-        if (this.menu.getApothicArcana() > 0) {
-            guiGraphics.blit(texture, x + 59, y + 95, 0, 207, apothicBarLength(this.menu.getApothicArcana()), 5);
+        if (this.apothicArcana > 0) {
+            guiGraphics.blit(texture, x + 59, y + 95, 0, 207, apothicBarLength(this.apothicArcana), 5);
         }
     }
 
@@ -561,5 +572,47 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
         flipVelocity = Mth.clamp(flipVelocity, -0.2F, 0.2F);
         this.flipA = this.flipA + (flipVelocity - this.flipA) * 0.9F;
         this.flip = this.flip + this.flipA;
+    }
+
+    private void tickApothicBars() {
+        if (!this.menu.usesApothicLayout()) {
+            return;
+        }
+
+        float current = this.menu.getApothicEterna();
+        if (current != this.apothicEterna) {
+            if (current > this.apothicEterna) {
+                this.apothicEterna += Math.min(current - this.apothicEterna, Math.max(0.16F, (current - this.apothicEterna) * 0.1F));
+            } else {
+                this.apothicEterna = Math.max(this.apothicEterna - this.lastApothicEterna * 0.075F, current);
+            }
+        }
+        if (current > 0) {
+            this.lastApothicEterna = current;
+        }
+
+        current = this.menu.getApothicQuanta();
+        if (current != this.apothicQuanta) {
+            if (current > this.apothicQuanta) {
+                this.apothicQuanta += Math.min(current - this.apothicQuanta, Math.max(0.04F, (current - this.apothicQuanta) * 0.1F));
+            } else {
+                this.apothicQuanta = Math.max(this.apothicQuanta - this.lastApothicQuanta * 0.075F, current);
+            }
+        }
+        if (current > 0) {
+            this.lastApothicQuanta = current;
+        }
+
+        current = this.menu.getApothicArcana();
+        if (current != this.apothicArcana) {
+            if (current > this.apothicArcana) {
+                this.apothicArcana += Math.min(current - this.apothicArcana, Math.max(0.04F, (current - this.apothicArcana) * 0.1F));
+            } else {
+                this.apothicArcana = Math.max(this.apothicArcana - this.lastApothicArcana * 0.075F, current);
+            }
+        }
+        if (current > 0) {
+            this.lastApothicArcana = current;
+        }
     }
 }
