@@ -6,9 +6,9 @@ import java.util.OptionalDouble;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 
-public final class OreRevealerRenderTypes {
+public final class ResonanceRenderTypes {
     private static final RenderType LINES = RenderType.create(
-            "betterenchanting_ore_revealer_lines",
+            "betterenchanting_resonance_lines",
             DefaultVertexFormat.POSITION_COLOR_NORMAL,
             VertexFormat.Mode.LINES,
             1536,
@@ -23,7 +23,7 @@ public final class OreRevealerRenderTypes {
                     .createCompositeState(false)
     );
 
-    private OreRevealerRenderTypes() {
+    private ResonanceRenderTypes() {
     }
 
     public static RenderType lines() {

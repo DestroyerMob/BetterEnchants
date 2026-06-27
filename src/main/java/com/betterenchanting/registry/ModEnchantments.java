@@ -18,7 +18,7 @@ public final class ModEnchantments {
     public static final ResourceKey<Enchantment> HARVEST = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("harvest"));
     public static final ResourceKey<Enchantment> HEADSHOT = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("headshot"));
     public static final ResourceKey<Enchantment> OVERCHARGED = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("overcharged"));
-    public static final ResourceKey<Enchantment> ORE_REVEALER = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("ore_revealer"));
+    public static final ResourceKey<Enchantment> RESONANCE = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("resonance"));
     public static final ResourceKey<Enchantment> PERFECT_STRIKE = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("perfect_strike"));
     public static final ResourceKey<Enchantment> SEISMIC_CUSHION = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("seismic_cushion"));
     public static final ResourceKey<Enchantment> SHOCKING = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("shocking"));

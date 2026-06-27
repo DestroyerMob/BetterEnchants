@@ -1,7 +1,7 @@
 package com.betterenchanting.world.enchantment;
 
 import com.betterenchanting.config.BetterEnchantingConfig;
-import com.betterenchanting.network.OreRevealerHighlightPayload;
+import com.betterenchanting.network.ResonanceHighlightPayload;
 import com.betterenchanting.registry.ModEnchantments;
 import com.betterenchanting.registry.ModTags;
 import java.util.ArrayList;
@@ -21,12 +21,12 @@ import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.event.level.BlockDropsEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
-public final class OreRevealerEnchantmentEvents {
+public final class ResonanceEnchantmentEvents {
     private static final int MIN_RADIUS = 2;
     private static final int MAX_RADIUS = 6;
     private static final int MAX_HIGHLIGHTS = 4096;
 
-    private OreRevealerEnchantmentEvents() {
+    private ResonanceEnchantmentEvents() {
     }
 
     public static void revealMatchingOres(BlockDropsEvent event) {
@@ -36,8 +36,8 @@ public final class OreRevealerEnchantmentEvents {
 
         ServerLevel level = event.getLevel();
         ItemStack tool = event.getTool();
-        int oreRevealerLevel = getOreRevealerLevel(level, tool);
-        if (oreRevealerLevel <= 0 || player.isSpectator() || !player.mayBuild() || !tool.is(ModTags.Items.TOOL_PICKAXES)) {
+        int resonanceLevel = getResonanceLevel(level, tool);
+        if (resonanceLevel <= 0 || player.isSpectator() || !player.mayBuild() || !tool.is(ModTags.Items.TOOL_PICKAXES)) {
             return;
         }
 
@@ -46,12 +46,12 @@ public final class OreRevealerEnchantmentEvents {
             return;
         }
 
-        int radius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, oreRevealerLevel + 1));
+        int radius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, resonanceLevel + 1));
         List<BlockPos> positions = findMatchingOres(level, event.getPos(), originState, radius);
         if (!positions.isEmpty()) {
             PacketDistributor.sendToPlayer(
                     player,
-                    new OreRevealerHighlightPayload(positions, BetterEnchantingConfig.oreRevealerHighlightDurationTicks())
+                    new ResonanceHighlightPayload(positions, BetterEnchantingConfig.resonanceHighlightDurationTicks())
             );
         }
     }
@@ -89,11 +89,11 @@ public final class OreRevealerEnchantmentEvents {
     }
 
     private static boolean isAllowedByConfig(BlockState state) {
-        List<? extends String> whitelist = BetterEnchantingConfig.oreRevealerBlockWhitelist();
+        List<? extends String> whitelist = BetterEnchantingConfig.resonanceBlockWhitelist();
         if (!whitelist.isEmpty() && !matchesAny(whitelist, state)) {
             return false;
         }
-        return !matchesAny(BetterEnchantingConfig.oreRevealerBlockBlacklist(), state);
+        return !matchesAny(BetterEnchantingConfig.resonanceBlockBlacklist(), state);
     }
 
     private static boolean matchesAny(List<? extends String> entries, BlockState state) {
@@ -120,14 +120,14 @@ public final class OreRevealerEnchantmentEvents {
         return blockLocation != null && BuiltInRegistries.BLOCK.getKey(state.getBlock()).equals(blockLocation);
     }
 
-    private static int getOreRevealerLevel(Level level, ItemStack stack) {
+    private static int getResonanceLevel(Level level, ItemStack stack) {
         if (!(level instanceof ServerLevel serverLevel) || stack.isEmpty()) {
             return 0;
         }
 
         return serverLevel.registryAccess()
                 .registryOrThrow(Registries.ENCHANTMENT)
-                .getHolder(ModEnchantments.ORE_REVEALER)
+                .getHolder(ModEnchantments.RESONANCE)
                 .map(stack::getEnchantmentLevel)
                 .orElse(0);
     }

@@ -8,18 +8,18 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-public record OreRevealerHighlightPayload(List<BlockPos> positions, int durationTicks) implements CustomPacketPayload {
+public record ResonanceHighlightPayload(List<BlockPos> positions, int durationTicks) implements CustomPacketPayload {
     private static final int MAX_POSITIONS = 4096;
-    public static final Type<OreRevealerHighlightPayload> TYPE = new Type<>(BetterEnchanting.id("ore_revealer_highlights"));
-    public static final StreamCodec<RegistryFriendlyByteBuf, OreRevealerHighlightPayload> STREAM_CODEC = StreamCodec.of(
-            OreRevealerHighlightPayload::encode,
-            OreRevealerHighlightPayload::decode);
+    public static final Type<ResonanceHighlightPayload> TYPE = new Type<>(BetterEnchanting.id("resonance_highlights"));
+    public static final StreamCodec<RegistryFriendlyByteBuf, ResonanceHighlightPayload> STREAM_CODEC = StreamCodec.of(
+            ResonanceHighlightPayload::encode,
+            ResonanceHighlightPayload::decode);
 
-    public OreRevealerHighlightPayload {
+    public ResonanceHighlightPayload {
         positions = List.copyOf(positions);
     }
 
-    private static void encode(RegistryFriendlyByteBuf buffer, OreRevealerHighlightPayload payload) {
+    private static void encode(RegistryFriendlyByteBuf buffer, ResonanceHighlightPayload payload) {
         int count = Math.min(payload.positions.size(), MAX_POSITIONS);
         buffer.writeVarInt(count);
         for (int i = 0; i < count; i++) {
@@ -28,7 +28,7 @@ public record OreRevealerHighlightPayload(List<BlockPos> positions, int duration
         buffer.writeVarInt(payload.durationTicks);
     }
 
-    private static OreRevealerHighlightPayload decode(RegistryFriendlyByteBuf buffer) {
+    private static ResonanceHighlightPayload decode(RegistryFriendlyByteBuf buffer) {
         int count = buffer.readVarInt();
         int storedCount = Math.min(count, MAX_POSITIONS);
         List<BlockPos> positions = new ArrayList<>(storedCount);
@@ -38,7 +38,7 @@ public record OreRevealerHighlightPayload(List<BlockPos> positions, int duration
         for (int i = storedCount; i < count; i++) {
             buffer.readBlockPos();
         }
-        return new OreRevealerHighlightPayload(positions, buffer.readVarInt());
+        return new ResonanceHighlightPayload(positions, buffer.readVarInt());
     }
 
     @Override

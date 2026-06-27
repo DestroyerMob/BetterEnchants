@@ -1,6 +1,6 @@
 package com.betterenchanting.client;
 
-import com.betterenchanting.network.OreRevealerHighlightPayload;
+import com.betterenchanting.network.ResonanceHighlightPayload;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import java.util.Iterator;
@@ -17,14 +17,14 @@ import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
-public final class OreRevealerHighlights {
+public final class ResonanceHighlights {
     private static final Map<BlockPos, Highlight> HIGHLIGHTS = new LinkedHashMap<>();
     private static ResourceKey<Level> dimension;
 
-    private OreRevealerHighlights() {
+    private ResonanceHighlights() {
     }
 
-    public static void add(OreRevealerHighlightPayload payload) {
+    public static void add(ResonanceHighlightPayload payload) {
         Minecraft minecraft = Minecraft.getInstance();
         if (minecraft.level == null) {
             return;
@@ -68,13 +68,13 @@ public final class OreRevealerHighlights {
         Camera camera = event.getCamera();
         Vec3 cameraPosition = camera.getPosition();
         MultiBufferSource.BufferSource bufferSource = minecraft.renderBuffers().bufferSource();
-        VertexConsumer consumer = bufferSource.getBuffer(OreRevealerRenderTypes.lines());
+        VertexConsumer consumer = bufferSource.getBuffer(ResonanceRenderTypes.lines());
         for (Map.Entry<BlockPos, Highlight> entry : HIGHLIGHTS.entrySet()) {
             float alpha = entry.getValue().alpha(now);
             AABB box = new AABB(entry.getKey()).inflate(0.01D).move(-cameraPosition.x, -cameraPosition.y, -cameraPosition.z);
             LevelRenderer.renderLineBox(poseStack, consumer, box, 0.55F, 0.25F, 1.0F, alpha);
         }
-        bufferSource.endBatch(OreRevealerRenderTypes.lines());
+        bufferSource.endBatch(ResonanceRenderTypes.lines());
     }
 
     private static void pruneExpired(long now) {
