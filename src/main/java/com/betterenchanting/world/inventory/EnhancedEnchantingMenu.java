@@ -3,6 +3,7 @@ package com.betterenchanting.world.inventory;
 import com.mojang.datafixers.util.Pair;
 import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.data.EnchantmentLevelRules;
+import com.betterenchanting.data.EnchantmentLevelRules.OverlevelTarget;
 import com.betterenchanting.data.EnchantmentLimitRules;
 import com.betterenchanting.registry.ModBlocks;
 import com.betterenchanting.registry.ModMenus;
@@ -11,6 +12,7 @@ import com.betterenchanting.world.EnchantmentTargetTags;
 import com.betterenchanting.world.enchantment.FortunesTouchEnchantmentEvents;
 import com.betterenchanting.world.level.block.EnchantingTablePower;
 import java.util.List;
+import java.util.Optional;
 import net.minecraft.Util;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.BlockPos;
@@ -80,6 +82,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     private final int[] activeTagCounts = new int[]{0, 0, 0};
     private final int[] bookBoostCounts = new int[]{0, 0, 0};
     private final int[] disabledReasonFlags = new int[]{0, 0, 0};
+    private final int[] overlevelOffers = new int[]{0, 0, 0};
 
     public EnhancedEnchantingMenu(int containerId, Inventory playerInventory) {
         this(containerId, playerInventory, ContainerLevelAccess.NULL, BlockPos.ZERO);
@@ -165,6 +168,9 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         this.addDataSlot(DataSlot.shared(this.disabledReasonFlags, 0));
         this.addDataSlot(DataSlot.shared(this.disabledReasonFlags, 1));
         this.addDataSlot(DataSlot.shared(this.disabledReasonFlags, 2));
+        this.addDataSlot(DataSlot.shared(this.overlevelOffers, 0));
+        this.addDataSlot(DataSlot.shared(this.overlevelOffers, 1));
+        this.addDataSlot(DataSlot.shared(this.overlevelOffers, 2));
     }
 
     @Override
@@ -195,6 +201,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 this.activeTagCounts[option] = 0;
                 this.bookBoostCounts[option] = 0;
                 this.disabledReasonFlags[option] = 0;
+                this.overlevelOffers[option] = 0;
                 this.requirements[option] = 0;
                 this.costs[option] = 0;
 
@@ -220,14 +227,29 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                     continue;
                 }
 
+                List<ItemStack> essences = optionEssenceStacks(modifierPlan, option);
+                List<ItemStack> books = optionBookStacks(modifierPlan, option);
+                EnchantingRoller.InputProfile profile = EnchantingRoller.profile(target, essences, books);
+                Optional<OverlevelTarget> overlevelTarget = overlevelTarget(target, modifierPlan, option);
+                if (overlevelTarget.isPresent()) {
+                    OverlevelTarget targetOverlevel = overlevelTarget.get();
+                    this.poolSizes[option] = 1;
+                    this.activeTagCounts[option] = profile.essenceTags().size();
+                    this.bookBoostCounts[option] = profile.bookBoostCount();
+                    this.enchantClue[option] = ids.getId(targetOverlevel.enchantment());
+                    this.levelClue[option] = targetOverlevel.overleveledLevel();
+                    this.overlevelOffers[option] = 1;
+                    continue;
+                }
+
                 EnchantingRoller.RollPreview preview = EnchantingRoller.preview(
                         level.registryAccess(),
                         target,
                         EnchantingPowerRules.rollPower(this.requirements[option], costTarget, modifier),
                         option,
                         this.enchantmentSeed.get(),
-                        optionEssenceStacks(modifierPlan, option),
-                        optionBookStacks(modifierPlan, option)
+                        essences,
+                        books
                 );
                 this.poolSizes[option] = preview.poolSize();
                 this.activeTagCounts[option] = preview.profile().essenceTags().size();
@@ -273,6 +295,42 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         this.access.execute((level, blockPos) -> {
             ItemStack costTarget = costTarget(target);
             PoolModifierRules.ModifierPlan modifierPlan = modifierPlan();
+            Optional<OverlevelTarget> overlevelTarget = overlevelTarget(target, modifierPlan, id);
+            if (overlevelTarget.isPresent()) {
+                OverlevelTarget targetOverlevel = overlevelTarget.get();
+                player.onEnchantmentPerformed(target, xpCost);
+                ItemStack enchanted = target.copy();
+                EnchantmentLevelRules.overlevel(enchanted, targetOverlevel.enchantment());
+                EnchantmentLevelRules.clampEnchantments(enchanted);
+                this.enchantingSlots.setItem(TARGET_SLOT, enchanted);
+                List<EnchantmentInstance> overlevelEnchantments = List.of(new EnchantmentInstance(
+                        targetOverlevel.enchantment(),
+                        targetOverlevel.overleveledLevel()
+                ));
+                net.neoforged.neoforge.common.CommonHooks.onPlayerEnchantItem(player, enchanted, overlevelEnchantments);
+
+                if (!player.hasInfiniteMaterials()) {
+                    if (lapisCost > 0) {
+                        lapis.consume(lapisCost, player);
+                        if (lapis.isEmpty()) {
+                            this.enchantingSlots.setItem(LAPIS_SLOT, ItemStack.EMPTY);
+                        }
+                    }
+                    PoolModifierRules.consumeForOption(this.enchantingSlots, modifierPlan, id, player, true);
+                }
+
+                player.awardStat(Stats.ENCHANT_ITEM);
+                if (player instanceof ServerPlayer serverPlayer) {
+                    CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, enchanted, xpCost);
+                }
+
+                this.enchantingSlots.setChanged();
+                this.enchantmentSeed.set(player.getEnchantmentSeed());
+                this.slotsChanged(this.enchantingSlots);
+                level.playSound(null, blockPos, SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.BLOCKS, 1.0F, level.random.nextFloat() * 0.1F + 0.9F);
+                return;
+            }
+
             List<EnchantmentInstance> enchantments = EnchantingRoller.preview(
                     level.registryAccess(),
                     target,
@@ -304,7 +362,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                         this.enchantingSlots.setItem(LAPIS_SLOT, ItemStack.EMPTY);
                     }
                 }
-                PoolModifierRules.consumeForOption(this.enchantingSlots, modifierPlan, id, player);
+                PoolModifierRules.consumeForOption(this.enchantingSlots, modifierPlan, id, player, false);
             }
 
             player.awardStat(Stats.ENCHANT_ITEM);
@@ -413,6 +471,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         return option < 0 || option >= this.disabledReasonFlags.length ? 0 : this.disabledReasonFlags[option];
     }
 
+    public boolean isOverlevelOffer(int option) {
+        return option >= 0 && option < this.overlevelOffers.length && this.overlevelOffers[option] != 0;
+    }
+
     public OptionDetails getOptionDetails(int option) {
         PoolModifierRules.ModifierPlan plan = modifierPlan();
         ItemStack target = this.enchantingSlots.getItem(TARGET_SLOT);
@@ -459,15 +521,25 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     }
 
     private static boolean canApplyWithFusion(RegistryAccess registryAccess, ItemStack target, List<EnchantmentInstance> enchantments) {
-        if (!EnchantmentLimitRules.overridesVanillaLimits()) {
-            return true;
-        }
-
         ItemStack simulatedTarget = target.copy();
         ItemStack simulatedResult = simulatedTarget.getItem().applyEnchantments(simulatedTarget, enchantments);
         FortunesTouchEnchantmentEvents.fuseFortunesTouch(registryAccess, simulatedResult);
         EnchantmentLevelRules.clampEnchantments(simulatedResult);
-        return EnchantmentLimitRules.currentEnchantmentCount(simulatedResult) <= EnchantmentLimitRules.maxEnchantments(simulatedResult);
+        return EnchantmentLimitRules.isWithinLimits(simulatedResult);
+    }
+
+    private static Optional<OverlevelTarget> overlevelTarget(ItemStack target, PoolModifierRules.ModifierPlan plan, int option) {
+        if (!PoolModifierRules.hasOverlevelCatalyst(plan)) {
+            return Optional.empty();
+        }
+
+        for (ItemStack essence : PoolModifierRules.optionEssences(plan, option)) {
+            Optional<OverlevelTarget> overlevelTarget = EnchantmentLevelRules.overlevelTarget(target, essence);
+            if (overlevelTarget.isPresent()) {
+                return overlevelTarget;
+            }
+        }
+        return Optional.empty();
     }
 
     private static boolean isEnchantingTarget(ItemStack stack) {
@@ -489,6 +561,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             this.levelClue[index] = -1;
             this.poolSizes[index] = 0;
             this.disabledReasonFlags[index] = 0;
+            this.overlevelOffers[index] = 0;
         }
         for (int index = 0; index < 3; index++) {
             this.activeTagCounts[index] = 0;

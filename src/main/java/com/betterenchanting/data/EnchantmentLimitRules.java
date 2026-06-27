@@ -1,7 +1,7 @@
 package com.betterenchanting.data;
 
 import com.betterenchanting.BetterEnchanting;
-import com.betterenchanting.compat.SilentGearCompat;
+import com.betterenchanting.compat.ModularMaterialCompat;
 import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.registry.ModTags;
 import com.google.gson.Gson;
@@ -33,6 +33,7 @@ public final class EnchantmentLimitRules {
     private static final Logger LOGGER = LogUtils.getLogger();
     private static final Gson GSON = new Gson();
     private static final int DEFAULT_GLOBAL_MAX = 6;
+    private static final int TAG_MAX = 2;
     private static volatile Rules rules = Rules.defaults();
 
     private EnchantmentLimitRules() {
@@ -67,20 +68,80 @@ public final class EnchantmentLimitRules {
     }
 
     public static boolean canApplyAll(ItemStack target, Iterable<EnchantmentInstance> additions) {
-        if (!overridesVanillaLimits()) {
-            return true;
-        }
         Map<Holder<Enchantment>, Integer> enchantments = new HashMap<>();
         addEnchantments(enchantments, target.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY));
         addEnchantments(enchantments, target.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY));
         for (EnchantmentInstance addition : additions) {
             enchantments.put(addition.enchantment, addition.level);
         }
-        return enchantments.size() <= maxEnchantments(target);
+        return canFitAll(target, enchantments.keySet());
+    }
+
+    public static boolean isWithinLimits(ItemStack stack) {
+        Map<Holder<Enchantment>, Integer> enchantments = new HashMap<>();
+        addEnchantments(enchantments, stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY));
+        addEnchantments(enchantments, stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY));
+        return canFitAll(stack, enchantments.keySet());
+    }
+
+    public static boolean canFitAll(ItemStack target, Set<Holder<Enchantment>> enchantments) {
+        boolean fitsTotalLimit = !overridesVanillaLimits() || enchantments.size() <= maxEnchantments(target);
+        return fitsTotalLimit && fitsTagLimits(enchantments);
+    }
+
+    public static boolean isOverTagLimit(Holder<Enchantment> target, Iterable<Holder<Enchantment>> orderedEnchantments) {
+        Map<ResourceLocation, Integer> tagCounts = new HashMap<>();
+        for (Holder<Enchantment> enchantment : orderedEnchantments) {
+            Set<ResourceLocation> tagIds = limitedTagIds(enchantment);
+            boolean targetReached = enchantment.equals(target);
+            boolean overLimit = false;
+            for (ResourceLocation tagId : tagIds) {
+                int count = tagCounts.getOrDefault(tagId, 0);
+                if (targetReached && count >= TAG_MAX) {
+                    overLimit = true;
+                }
+            }
+            for (ResourceLocation tagId : tagIds) {
+                tagCounts.merge(tagId, 1, Integer::sum);
+            }
+            if (targetReached) {
+                return overLimit;
+            }
+        }
+        return false;
     }
 
     public static boolean overridesVanillaLimits() {
         return EffectiveBalance.overridesVanillaEnchantmentLimits();
+    }
+
+    private static boolean fitsTagLimits(Set<Holder<Enchantment>> enchantments) {
+        Map<ResourceLocation, Integer> tagCounts = new HashMap<>();
+        for (Holder<Enchantment> enchantment : enchantments) {
+            for (ResourceLocation tagId : limitedTagIds(enchantment)) {
+                int count = tagCounts.merge(tagId, 1, Integer::sum);
+                if (count > TAG_MAX) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private static Set<ResourceLocation> limitedTagIds(Holder<Enchantment> enchantment) {
+        return enchantment.tags()
+                .map(TagKey::location)
+                .filter(EnchantmentLimitRules::isLimitedEnchantmentTag)
+                .collect(java.util.stream.Collectors.toSet());
+    }
+
+    private static boolean isLimitedEnchantmentTag(ResourceLocation tagId) {
+        if (!tagId.getNamespace().equals(BetterEnchanting.MOD_ID)) {
+            return false;
+        }
+
+        String path = tagId.getPath();
+        return !path.startsWith("targets/") && !path.startsWith("exclusive_set/");
     }
 
     private static void addEnchantments(Map<Holder<Enchantment>, Integer> enchantments, ItemEnchantments source) {
@@ -157,11 +218,14 @@ public final class EnchantmentLimitRules {
         private int maxEnchantments(ItemStack stack) {
             int baseLimit = baseMaxEnchantments(stack);
             int bonus = 0;
-            Set<ResourceLocation> virtualMaterialTags = Set.copyOf(SilentGearCompat.materialItemTags(stack));
+            Map<ResourceLocation, Integer> virtualMaterialTagCounts = ModularMaterialCompat.materialItemTagCounts(stack);
             for (Map.Entry<ResourceLocation, Integer> entry : this.materialBonuses.entrySet()) {
-                if (stack.is(TagKey.create(Registries.ITEM, entry.getKey()))
-                        || virtualMaterialTags.contains(entry.getKey())) {
+                if (stack.is(TagKey.create(Registries.ITEM, entry.getKey()))) {
                     bonus += entry.getValue();
+                }
+                int virtualCount = virtualMaterialTagCounts.getOrDefault(entry.getKey(), 0);
+                if (virtualCount > 0) {
+                    bonus += entry.getValue() * virtualCount;
                 }
             }
             return Math.max(0, baseLimit + bonus);
@@ -178,16 +242,21 @@ public final class EnchantmentLimitRules {
 
         private int baseLimitForType(ItemStack stack) {
             int limit = this.globalMax;
-            if (stack.is(ModTags.Items.ARMOR) || stack.is(ModTags.Items.ARMOUR)) {
+            Set<ResourceLocation> virtualItemTags = Set.copyOf(ModularMaterialCompat.materialItemTags(stack));
+            if (matches(stack, virtualItemTags, ModTags.Items.ARMOR) || matches(stack, virtualItemTags, ModTags.Items.ARMOUR)) {
                 limit = lowerTypeLimit(limit, ARMOR_KEYS);
             }
-            if (stack.is(ModTags.Items.WEAPONS)) {
+            if (matches(stack, virtualItemTags, ModTags.Items.WEAPONS)) {
                 limit = lowerTypeLimit(limit, WEAPON_KEYS);
             }
-            if (stack.is(ModTags.Items.TOOLS)) {
+            if (matches(stack, virtualItemTags, ModTags.Items.TOOLS)) {
                 limit = lowerTypeLimit(limit, TOOL_KEYS);
             }
             return limit;
+        }
+
+        private static boolean matches(ItemStack stack, Set<ResourceLocation> virtualItemTags, TagKey<net.minecraft.world.item.Item> tag) {
+            return stack.is(tag) || virtualItemTags.contains(tag.location());
         }
 
         private int lowerTypeLimit(int current, Set<String> aliases) {

@@ -1,7 +1,7 @@
 package com.betterenchanting.world;
 
 import com.betterenchanting.BetterEnchanting;
-import com.betterenchanting.compat.SilentGearCompat;
+import com.betterenchanting.compat.ModularMaterialCompat;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -36,15 +36,18 @@ public final class EnchantmentTargetTags {
         if (target.isEmpty() || isBookTarget(target)) {
             return List.of();
         }
+        if (ModularMaterialCompat.blocksFinishedToolEnchanting(target)) {
+            return List.of();
+        }
 
         Set<ResourceLocation> tags = new LinkedHashSet<>();
-        List<ResourceLocation> virtualItemTags = SilentGearCompat.materialItemTags(target);
+        List<ResourceLocation> virtualItemTags = ModularMaterialCompat.materialItemTags(target);
         for (TargetTagRule rule : targetTagRules) {
             if (target.is(rule.itemTag()) || virtualItemTags.contains(rule.itemTag().location())) {
                 tags.add(rule.enchantmentTag().location());
             }
         }
-        tags.addAll(SilentGearCompat.materialTargetTags(target));
+        tags.addAll(ModularMaterialCompat.materialTargetTags(target));
         return List.copyOf(tags);
     }
 

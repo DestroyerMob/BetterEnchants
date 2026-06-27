@@ -18,7 +18,7 @@ Pre-alpha / internal playtesting.
 - Balance presets for vanilla-plus, balanced, overhaul, power-fantasy, and custom setups
 - Multiple durability-maintenance paths through Mending, material repair, and passive recovery
 - Configurable anvil, mending, XP, and roll behaviour
-- Optional Silent Gear material support
+- Optional Silent Gear and Mobs Tool Forging material support
 
 ## Supported versions
 

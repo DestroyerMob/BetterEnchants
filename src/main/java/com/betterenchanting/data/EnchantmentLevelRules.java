@@ -1,56 +1,28 @@
 package com.betterenchanting.data;
 
-import com.betterenchanting.config.EffectiveBalance;
+import com.betterenchanting.registry.ModDataComponents;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Optional;
 import net.minecraft.core.Holder;
+import net.minecraft.core.component.DataComponents;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 public final class EnchantmentLevelRules {
-    private static final Map<ResourceKey<Enchantment>, Integer> VANILLA_MAX_LEVELS = Map.ofEntries(
-            vanilla(Enchantments.BLAST_PROTECTION, 4),
-            vanilla(Enchantments.BREACH, 4),
-            vanilla(Enchantments.DEPTH_STRIDER, 3),
-            vanilla(Enchantments.FEATHER_FALLING, 4),
-            vanilla(Enchantments.FIRE_ASPECT, 2),
-            vanilla(Enchantments.FIRE_PROTECTION, 4),
-            vanilla(Enchantments.FORTUNE, 3),
-            vanilla(Enchantments.FROST_WALKER, 2),
-            vanilla(Enchantments.KNOCKBACK, 2),
-            vanilla(Enchantments.LOOTING, 3),
-            vanilla(Enchantments.LOYALTY, 3),
-            vanilla(Enchantments.LUCK_OF_THE_SEA, 3),
-            vanilla(Enchantments.LURE, 3),
-            vanilla(Enchantments.MENDING, 1),
-            vanilla(Enchantments.PIERCING, 4),
-            vanilla(Enchantments.PROJECTILE_PROTECTION, 4),
-            vanilla(Enchantments.PROTECTION, 4),
-            vanilla(Enchantments.PUNCH, 2),
-            vanilla(Enchantments.RESPIRATION, 3),
-            vanilla(Enchantments.SOUL_SPEED, 3),
-            vanilla(Enchantments.SWEEPING_EDGE, 3),
-            vanilla(Enchantments.SWIFT_SNEAK, 3),
-            vanilla(Enchantments.THORNS, 3),
-            vanilla(Enchantments.UNBREAKING, 3)
-    );
-
     private EnchantmentLevelRules() {
     }
 
     public static int maxLevel(Holder<Enchantment> enchantment) {
-        int loadedMaxLevel = enchantment.value().getMaxLevel();
-        if (EffectiveBalance.overridesVanillaEnchantmentLimits()) {
-            return loadedMaxLevel;
-        }
-
-        return enchantment.unwrapKey()
-                .map(key -> Math.min(loadedMaxLevel, VANILLA_MAX_LEVELS.getOrDefault(key, loadedMaxLevel)))
-                .orElse(loadedMaxLevel);
+        return enchantment.value().getMaxLevel();
     }
 
     public static int clampLevel(Holder<Enchantment> enchantment, int level) {
@@ -58,6 +30,67 @@ public final class EnchantmentLevelRules {
             return 0;
         }
         return Math.min(level, maxLevel(enchantment));
+    }
+
+    public static int overlevelMaxLevel(Holder<Enchantment> enchantment) {
+        return maxLevel(enchantment) + 1;
+    }
+
+    public static int effectiveLevel(Holder<Enchantment> enchantment, int level) {
+        if (level <= 0) {
+            return 0;
+        }
+        return Math.min(level, overlevelMaxLevel(enchantment));
+    }
+
+    public static boolean isOverleveled(Holder<Enchantment> enchantment, int level) {
+        return level > maxLevel(enchantment);
+    }
+
+    public static boolean hasOverleveledEnchantment(ItemStack stack) {
+        return stack.getOrDefault(ModDataComponents.OVERLEVELED.get(), false)
+                || overleveledEnchantmentCount(stack) > 0
+                || hasLegacyOverleveledLevel(stack);
+    }
+
+    public static int overleveledEnchantmentCount(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return 0;
+        }
+
+        int count = 0;
+        ItemEnchantments current = EnchantmentHelper.getEnchantmentsForCrafting(stack);
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : current.entrySet()) {
+            if (isOverleveled(entry.getKey(), entry.getIntValue())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    public static Optional<OverlevelTarget> overlevelTarget(ItemStack stack, ItemStack essence) {
+        if (stack.isEmpty() || hasOverleveledEnchantment(stack)) {
+            return Optional.empty();
+        }
+
+        Optional<EssenceDefinition> definition = EssenceDefinitions.get(essence);
+        if (definition.isEmpty()) {
+            return Optional.empty();
+        }
+
+        List<OverlevelTarget> matches = new ArrayList<>();
+        ItemEnchantments current = EnchantmentHelper.getEnchantmentsForCrafting(stack);
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : current.entrySet()) {
+            Holder<Enchantment> enchantment = entry.getKey();
+            int level = entry.getIntValue();
+            int maxLevel = maxLevel(enchantment);
+            if (level == maxLevel && matchesEssence(enchantment, definition.get())) {
+                matches.add(new OverlevelTarget(enchantment, level, overlevelMaxLevel(enchantment)));
+            }
+        }
+
+        matches.sort(Comparator.comparing(target -> enchantmentSortKey(target.enchantment())));
+        return matches.stream().findFirst();
     }
 
     public static void clampEnchantments(ItemStack stack) {
@@ -71,16 +104,82 @@ public final class EnchantmentLevelRules {
         }
 
         EnchantmentHelper.updateEnchantments(stack, mutable -> {
+            boolean keptOverlevel = false;
             for (Object2IntMap.Entry<Holder<Enchantment>> entry : current.entrySet()) {
-                int clampedLevel = clampLevel(entry.getKey(), entry.getIntValue());
+                int clampedLevel = clampStackLevel(entry.getKey(), entry.getIntValue(), !keptOverlevel);
+                if (isOverleveled(entry.getKey(), clampedLevel)) {
+                    keptOverlevel = true;
+                }
                 if (clampedLevel != entry.getIntValue()) {
                     mutable.set(entry.getKey(), clampedLevel);
                 }
             }
         });
+        syncOverleveledMarker(stack);
     }
 
-    private static Map.Entry<ResourceKey<Enchantment>, Integer> vanilla(ResourceKey<Enchantment> enchantment, int maxLevel) {
-        return Map.entry(enchantment, maxLevel);
+    public static void overlevel(ItemStack stack, Holder<Enchantment> enchantment) {
+        EnchantmentHelper.updateEnchantments(stack, mutable -> mutable.set(enchantment, overlevelMaxLevel(enchantment)));
+        stack.set(ModDataComponents.OVERLEVELED.get(), true);
+        stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+    }
+
+    private static int clampStackLevel(Holder<Enchantment> enchantment, int level, boolean allowOverlevel) {
+        if (level <= 0) {
+            return 0;
+        }
+        int maxLevel = maxLevel(enchantment);
+        if (allowOverlevel && level > maxLevel) {
+            return Math.min(level, overlevelMaxLevel(enchantment));
+        }
+        return Math.min(level, maxLevel);
+    }
+
+    private static boolean matchesEssence(Holder<Enchantment> enchantment, EssenceDefinition definition) {
+        for (ResourceLocation tag : definition.tags()) {
+            if (enchantment.is(TagKey.create(Registries.ENCHANTMENT, tag))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static String enchantmentSortKey(Holder<Enchantment> enchantment) {
+        return enchantment.unwrapKey()
+                .map(ResourceKey::location)
+                .map(ResourceLocation::toString)
+                .orElse(enchantment.toString());
+    }
+
+    private static boolean hasLegacyOverleveledLevel(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return false;
+        }
+
+        // Existing test/dev stacks predate the marker component; current data maxes are 1 or 5.
+        ItemEnchantments current = EnchantmentHelper.getEnchantmentsForCrafting(stack);
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : current.entrySet()) {
+            if (entry.getIntValue() > 5) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static void syncOverleveledMarker(ItemStack stack) {
+        boolean overleveled = overleveledEnchantmentCount(stack) > 0 || hasLegacyOverleveledLevel(stack);
+        if (overleveled) {
+            stack.set(ModDataComponents.OVERLEVELED.get(), true);
+            stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+        } else {
+            boolean hadOverleveledMarker = stack.has(ModDataComponents.OVERLEVELED.get());
+            stack.remove(ModDataComponents.OVERLEVELED.get());
+            if (hadOverleveledMarker) {
+                stack.remove(DataComponents.ENCHANTMENT_GLINT_OVERRIDE);
+            }
+        }
+    }
+
+    public record OverlevelTarget(Holder<Enchantment> enchantment, int currentLevel, int overleveledLevel) {
     }
 }

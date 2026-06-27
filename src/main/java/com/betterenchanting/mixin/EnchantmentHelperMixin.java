@@ -54,7 +54,7 @@ public abstract class EnchantmentHelperMixin {
         return level.registryAccess()
                 .registryOrThrow(Registries.ENCHANTMENT)
                 .getHolder(Enchantments.MENDING)
-                .map(holder -> EnchantmentLevelRules.clampLevel(holder, stack.getEnchantmentLevel(holder)))
+                .map(holder -> EnchantmentLevelRules.effectiveLevel(holder, stack.getEnchantmentLevel(holder)))
                 .orElse(0);
     }
 
@@ -62,7 +62,7 @@ public abstract class EnchantmentHelperMixin {
         return level.registryAccess()
                 .registryOrThrow(Registries.ENCHANTMENT)
                 .getHolder(ModEnchantments.CURSE_OF_FRAGILITY)
-                .map(holder -> EnchantmentLevelRules.clampLevel(holder, stack.getEnchantmentLevel(holder)))
+                .map(holder -> EnchantmentLevelRules.effectiveLevel(holder, stack.getEnchantmentLevel(holder)))
                 .orElse(0);
     }
 }

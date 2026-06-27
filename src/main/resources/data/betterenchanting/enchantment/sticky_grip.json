@@ -1,0 +1,22 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.betterenchanting.sticky_grip"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 45,
+    "per_level_above_first": 0
+  },
+  "max_level": 1,
+  "min_cost": {
+    "base": 10,
+    "per_level_above_first": 0
+  },
+  "primary_items": "#betterenchanting:enchantable/sticky_grip",
+  "slots": [
+    "any"
+  ],
+  "supported_items": "#betterenchanting:enchantable/sticky_grip",
+  "weight": 2
+}

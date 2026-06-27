@@ -8,7 +8,9 @@ import com.betterenchanting.data.EssenceTradeDefinitions;
 import com.betterenchanting.data.EssenceDefinitions;
 import com.betterenchanting.data.TagDisplayRules;
 import com.betterenchanting.data.TagSimplifier;
+import com.betterenchanting.network.ModNetworking;
 import com.betterenchanting.registry.CreativeTabEvents;
+import com.betterenchanting.registry.ModDataComponents;
 import com.betterenchanting.registry.ModEffects;
 import com.betterenchanting.registry.ModBlocks;
 import com.betterenchanting.registry.ModGameRules;
@@ -54,10 +56,12 @@ public final class BetterEnchanting {
     public BetterEnchanting(IEventBus modBus, ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.COMMON, BetterEnchantingConfig.SPEC);
         ModBlocks.register(modBus);
+        ModDataComponents.register(modBus);
         ModEffects.register(modBus);
         ModGameRules.init();
         ModItems.register(modBus);
         ModMenus.register(modBus);
+        modBus.addListener(ModNetworking::registerPayloads);
         modBus.addListener(CreativeTabEvents::addContents);
         if (FMLEnvironment.dist == Dist.CLIENT) {
             ClientModEvents.register(modBus);

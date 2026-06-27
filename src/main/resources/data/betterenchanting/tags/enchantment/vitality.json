@@ -2,6 +2,7 @@
   "values": [
     "betterenchanting:harvest",
     "betterenchanting:curse_of_fragility",
+    "betterenchanting:sticky_grip",
     "betterenchanting:verdant_regrowth",
     { "id": "minecraft:mending", "required": false },
     { "id": "minecraft:unbreaking", "required": false },

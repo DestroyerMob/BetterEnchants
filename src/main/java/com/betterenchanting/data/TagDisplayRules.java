@@ -1,7 +1,7 @@
 package com.betterenchanting.data;
 
 import com.betterenchanting.BetterEnchanting;
-import com.betterenchanting.compat.SilentGearCompat;
+import com.betterenchanting.compat.ModularMaterialCompat;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -47,7 +47,7 @@ public final class TagDisplayRules {
     public static List<TagLabel> itemLabels(ItemStack stack) {
         Set<ResourceLocation> ids = new LinkedHashSet<>();
         Map<ResourceLocation, TagLabel> labelsById = new LinkedHashMap<>();
-        List<ResourceLocation> virtualMaterialTags = SilentGearCompat.materialItemTags(stack);
+        List<ResourceLocation> virtualMaterialTags = ModularMaterialCompat.materialItemTags(stack);
         boolean displayedVirtualMaterial = false;
         for (DisplayTag tag : itemTags) {
             labelsById.put(tag.id(), tag.label());

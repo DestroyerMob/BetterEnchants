@@ -256,9 +256,12 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                 boolean hasOfferPower = requiredLevel > 0 && xpCost > 0;
                 OptionDetails details = this.menu.getOptionDetails(option);
                 if (hasOfferPower) {
+                    Component clueName = clue.<Component>map(holder -> coloredClueName(holder, clueLevel)).orElse(CommonComponents.EMPTY);
                     tooltip.add(Component.translatable(
-                            "container.enchant.clue",
-                            clue.<Component>map(holder -> coloredClueName(holder, clueLevel)).orElse(CommonComponents.EMPTY)
+                            this.menu.isOverlevelOffer(option)
+                                    ? "tooltip.betterenchanting.option.overlevel_clue"
+                                    : "container.enchant.clue",
+                            clueName
                     ).withStyle(ChatFormatting.WHITE));
                 } else {
                     tooltip.add(Component.translatable("tooltip.betterenchanting.option.unavailable").withStyle(ChatFormatting.WHITE));
@@ -299,11 +302,16 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
     }
 
     private void addSystemTooltipLines(List<Component> tooltip, int option, OptionDetails details) {
+        Component mode = this.menu.isOverlevelOffer(option)
+                ? Component.translatable("tooltip.betterenchanting.option.mode.overlevel")
+                : Component.translatable(
+                        details.profile().restricted()
+                                ? "tooltip.betterenchanting.option.mode.restricted"
+                                : "tooltip.betterenchanting.option.mode.weighted"
+                );
         tooltip.add(detailLine(
                 "tooltip.betterenchanting.option.mode",
-                Component.translatable(details.profile().restricted()
-                        ? "tooltip.betterenchanting.option.mode.restricted"
-                        : "tooltip.betterenchanting.option.mode.weighted")
+                mode
         ));
         tooltip.add(detailLine(
                 "tooltip.betterenchanting.option.active_tags",

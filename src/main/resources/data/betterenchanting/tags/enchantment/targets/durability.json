@@ -1,6 +1,7 @@
 {
   "values": [
     "betterenchanting:curse_of_fragility",
+    "betterenchanting:sticky_grip",
     { "id": "minecraft:mending", "required": false },
     { "id": "minecraft:unbreaking", "required": false },
     { "id": "minecraft:vanishing_curse", "required": false }

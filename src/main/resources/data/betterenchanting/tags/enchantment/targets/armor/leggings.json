@@ -1,5 +1,6 @@
 {
   "values": [
+    "betterenchanting:flash_step",
     "#betterenchanting:targets/armor",
     { "id": "minecraft:swift_sneak", "required": false }
   ]

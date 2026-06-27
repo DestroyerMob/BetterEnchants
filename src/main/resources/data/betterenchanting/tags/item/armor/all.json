@@ -3,6 +3,11 @@
     "#betterenchanting:armor/helmets",
     "#betterenchanting:armor/body_armor",
     "#betterenchanting:armor/leggings",
-    "#betterenchanting:armor/boots"
+    "#betterenchanting:armor/boots",
+    "minecraft:leather_horse_armor",
+    "minecraft:iron_horse_armor",
+    "minecraft:golden_horse_armor",
+    "minecraft:diamond_horse_armor",
+    "minecraft:wolf_armor"
   ]
 }

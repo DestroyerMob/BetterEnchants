@@ -7,11 +7,15 @@
     "AnvilMenuMixin",
     "EnchantmentHelperMixin",
     "ItemCombinerMenuAccessor",
+    "ItemStackMixin",
     "PlayerExperienceMixin",
+    "ServerGamePacketListenerImplMixin",
     "ServerPlayerMixin"
   ],
   "client": [
     "client.AnvilScreenMixin",
+    "client.HumanoidArmorLayerMixin",
+    "client.ItemRendererMixin",
     "client.LivingEntityRendererMixin"
   ],
   "injectors": {

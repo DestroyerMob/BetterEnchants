@@ -26,7 +26,7 @@ final class PoolModifierRules {
     }
 
     static boolean isPoolModifier(ItemStack stack) {
-        return isEssenceModifier(stack) || isEnchantedBook(stack);
+        return isEssenceModifier(stack) || isEnchantedBook(stack) || isOverlevelCatalyst(stack);
     }
 
     static boolean isEssenceModifier(ItemStack stack) {
@@ -40,6 +40,9 @@ final class PoolModifierRules {
     }
 
     private static boolean appliesToAllOffers(ItemStack stack) {
+        if (isOverlevelCatalyst(stack)) {
+            return true;
+        }
         return EssenceDefinitions.get(stack)
                 .map(EssenceDefinition::appliesToAllOffers)
                 .orElse(false);
@@ -47,6 +50,10 @@ final class PoolModifierRules {
 
     static boolean isEnchantedBook(ItemStack stack) {
         return stack.is(Items.ENCHANTED_BOOK) && EnchantmentHelper.hasAnyEnchantments(stack);
+    }
+
+    static boolean isOverlevelCatalyst(ItemStack stack) {
+        return stack.is(Items.NETHER_STAR);
     }
 
     static ModifierPlan plan(Container container, int firstSlot, int slotCount, int enchantmentSeed) {
@@ -123,14 +130,38 @@ final class PoolModifierRules {
     }
 
     static void consumeForOption(Container container, ModifierPlan plan, int option, Player player) {
+        consumeForOption(container, plan, option, player, true);
+    }
+
+    static void consumeForOption(Container container, ModifierPlan plan, int option, Player player, boolean consumeOverlevelCatalysts) {
         List<Integer> slotsToConsume = new ArrayList<>();
-        plan.directModifier(option).ifPresent(modifier -> slotsToConsume.add(modifier.slot()));
+        plan.directModifier(option).ifPresent(modifier -> {
+            if (consumeOverlevelCatalysts || !isOverlevelCatalyst(modifier.stack())) {
+                slotsToConsume.add(modifier.slot());
+            }
+        });
         for (ModifierInput globalModifier : plan.globalModifiers()) {
-            slotsToConsume.add(globalModifier.slot());
+            if (consumeOverlevelCatalysts || !isOverlevelCatalyst(globalModifier.stack())) {
+                slotsToConsume.add(globalModifier.slot());
+            }
         }
         for (int slot : slotsToConsume.stream().distinct().toList()) {
             consumeInputSlot(container, slot, player);
         }
+    }
+
+    static boolean hasOverlevelCatalyst(ModifierPlan plan) {
+        for (ModifierInput globalModifier : plan.globalModifiers()) {
+            if (isOverlevelCatalyst(globalModifier.stack())) {
+                return true;
+            }
+        }
+        for (int option = 0; option < plan.directModifiers.length; option++) {
+            if (plan.directModifier(option).map(ModifierInput::stack).filter(PoolModifierRules::isOverlevelCatalyst).isPresent()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static List<ModifierInput> normalizedModifiers(Container container, int firstSlot, int slotCount) {

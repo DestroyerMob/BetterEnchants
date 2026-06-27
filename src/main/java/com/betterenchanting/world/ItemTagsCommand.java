@@ -1,6 +1,6 @@
 package com.betterenchanting.world;
 
-import com.betterenchanting.compat.SilentGearCompat;
+import com.betterenchanting.compat.ModularMaterialCompat;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import java.util.List;
@@ -33,7 +33,7 @@ public final class ItemTagsCommand {
             return 0;
         }
 
-        List<ResourceLocation> materialTags = SilentGearCompat.materialItemTags(stack);
+        List<ResourceLocation> materialTags = ModularMaterialCompat.materialItemTags(stack);
         List<ResourceLocation> targetTags = EnchantmentTargetTags.resolve(stack);
         source.sendSuccess(() -> Component.literal("Rerolled Better Enchanting tags for ")
                 .append(stack.getHoverName())

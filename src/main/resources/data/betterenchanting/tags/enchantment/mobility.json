@@ -1,5 +1,6 @@
 {
   "values": [
+    "betterenchanting:flash_step",
     "betterenchanting:gelbound",
     "betterenchanting:seismic_cushion",
     { "id": "minecraft:depth_strider", "required": false },

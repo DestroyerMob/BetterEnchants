@@ -74,7 +74,7 @@ public final class EnchantingRoller {
         List<WeightedCandidate> candidates = buildCandidates(registryAccess, target, level, profile);
         int poolSize = candidates.size();
         List<EnchantmentInstance> selected = new ArrayList<>();
-        filterOverLimitCandidates(registryAccess, candidates, existingEnchantments, Set.of(), maxEnchantments);
+        filterOverLimitCandidates(registryAccess, candidates, target, existingEnchantments, Set.of());
         if (candidates.isEmpty()) {
             return new RollPreview(List.of(), poolSize, profile, emptyReason(profile, poolSize));
         }
@@ -93,7 +93,7 @@ public final class EnchantingRoller {
             candidates.removeIf(candidate -> selectedEnchantments.contains(candidate.instance().enchantment)
                     || EnchantmentFusionRecipes.conflictsWithFusionIngredient(registryAccess, candidate.instance().enchantment, selectedEnchantments)
                     || conflictsWithExisting(registryAccess, candidate.instance().enchantment, selectedEnchantments));
-            filterOverLimitCandidates(registryAccess, candidates, existingEnchantments, selectedEnchantments, maxEnchantments);
+            filterOverLimitCandidates(registryAccess, candidates, target, existingEnchantments, selectedEnchantments);
             if (candidates.isEmpty()) {
                 break;
             }
@@ -271,35 +271,31 @@ public final class EnchantingRoller {
     private static void filterOverLimitCandidates(
             RegistryAccess registryAccess,
             List<WeightedCandidate> candidates,
+            ItemStack target,
             Set<Holder<Enchantment>> existingEnchantments,
-            Set<Holder<Enchantment>> selectedEnchantments,
-            int maxEnchantments
+            Set<Holder<Enchantment>> selectedEnchantments
     ) {
         candidates.removeIf(candidate -> !fitsLimit(
                 registryAccess,
+                target,
                 existingEnchantments,
                 selectedEnchantments,
-                candidate.instance().enchantment,
-                maxEnchantments
+                candidate.instance().enchantment
         ));
     }
 
     private static boolean fitsLimit(
             RegistryAccess registryAccess,
+            ItemStack target,
             Set<Holder<Enchantment>> existingEnchantments,
             Set<Holder<Enchantment>> selectedEnchantments,
-            Holder<Enchantment> candidate,
-            int maxEnchantments
+            Holder<Enchantment> candidate
     ) {
-        if (!EnchantmentLimitRules.overridesVanillaLimits()) {
-            return true;
-        }
-
         Set<Holder<Enchantment>> enchantments = new LinkedHashSet<>(existingEnchantments);
         enchantments.addAll(selectedEnchantments);
         enchantments.add(candidate);
         EnchantmentFusionRecipes.applyToEnchantmentSet(registryAccess, enchantments);
-        return enchantments.size() <= maxEnchantments;
+        return EnchantmentLimitRules.canFitAll(target, enchantments);
     }
 
     private static Map<Holder<Enchantment>, BookBoost> collectBookBoosts(List<ItemStack> books) {

@@ -4,6 +4,9 @@ All notable changes to Better Enchanting will be documented in this file.
 
 ## Unreleased
 
+- Added Flash Step, a Mobility leggings enchantment that teleports the player a short distance forward after double-tapping the forward keybind.
+- Added Sticky Grip, a Vitality enchantment for durability-tagged items that blocks drop-key tosses while allowing manual inventory throws.
+- Added horse armor and wolf armor to the built-in durability and armor target tags.
 - Added README, license, build workflow, and screenshot placeholder documentation for public repo presentation.
 - Added pre-alpha project status and supported version notes.
 - Documented current known issues and compatibility warnings.
@@ -20,6 +23,7 @@ All notable changes to Better Enchanting will be documented in this file.
 - Loaded enchantment limit and target-tag data on the client so item tooltips can mark wrong-tag and over-limit enchantments reliably.
 - Added an enchanted item capacity tooltip so players can see the current count versus the effective enchantment limit.
 - Applied material bonus capacity to Silent Gear virtual material tags, with bonus-slot tooltip marking to show what material swaps can disable.
+- Added Mobs Tool Forging modular tool head material compatibility to the same virtual material tag, target tag, display, and material-bonus paths.
 - Added Curse of Fragility, a Vitality curse for damageable items that increases final durability damage after Unbreaking.
 - Added Frostbite, a Frost weapon enchantment that stacks vanilla frozen ticks into a temporary Frozen immobilize effect.
 - Added Cinderstep, a Fire boot enchantment that grants a short speed boost after taking fire damage.

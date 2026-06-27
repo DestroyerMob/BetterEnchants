@@ -82,7 +82,13 @@ public final class EnchantmentActivationEvents {
     private static boolean isOverLimit(ItemStack stack, Holder<Enchantment> target, HolderLookup.RegistryLookup<Enchantment> enchantments) {
         int maxEnchantments = EnchantmentLimitRules.maxEnchantments(stack);
         int activeIndex = activeIndex(stack, target, enchantments);
-        return activeIndex >= 0 && (maxEnchantments <= 0 || activeIndex >= maxEnchantments);
+        if (activeIndex < 0) {
+            return false;
+        }
+        if (maxEnchantments <= 0 || activeIndex >= maxEnchantments) {
+            return true;
+        }
+        return EnchantmentLimitRules.isOverTagLimit(target, orderedActiveEnchantments(stack, enchantments));
     }
 
     private static boolean usesBonusCapacity(ItemStack stack, Holder<Enchantment> target, HolderLookup.RegistryLookup<Enchantment> enchantments) {
@@ -111,6 +117,16 @@ public final class EnchantmentActivationEvents {
             }
         }
         return -1;
+    }
+
+    private static List<Holder<Enchantment>> orderedActiveEnchantments(ItemStack stack, HolderLookup.RegistryLookup<Enchantment> enchantments) {
+        List<Holder<Enchantment>> activeEnchantments = new ArrayList<>();
+        for (Holder<Enchantment> enchantment : orderedUniqueEnchantments(stack, enchantments)) {
+            if (matchesCurrentItem(stack, enchantment)) {
+                activeEnchantments.add(enchantment);
+            }
+        }
+        return activeEnchantments;
     }
 
     private static List<Holder<Enchantment>> orderedUniqueEnchantments(ItemStack stack, HolderLookup.RegistryLookup<Enchantment> enchantments) {

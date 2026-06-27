@@ -65,7 +65,7 @@ public final class FortunesTouchEnchantmentEvents {
 
         return registryAccess.registryOrThrow(Registries.ENCHANTMENT)
                 .getHolder(ModEnchantments.FORTUNES_TOUCH)
-                .map(holder -> EnchantmentLevelRules.clampLevel(holder, stack.getEnchantmentLevel(holder)))
+                .map(holder -> EnchantmentLevelRules.effectiveLevel(holder, stack.getEnchantmentLevel(holder)))
                 .orElse(0);
     }
 
