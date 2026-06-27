@@ -22,9 +22,11 @@ public final class ApothicEnchantingCompat {
     private static final String APOTHIC_CLASS = "dev.shadowsoffire.apothic_enchanting.ApothicEnchanting";
     private static final String INFO_CLASS = "dev.shadowsoffire.apothic_enchanting.EnchantmentInfo";
     private static final String ARCANA_CLASS = "dev.shadowsoffire.apothic_enchanting.table.Arcana";
+    private static final String INFUSION_RECIPE_CLASS = "dev.shadowsoffire.apothic_enchanting.table.infusion.InfusionRecipe";
 
     private static boolean initialized;
     private static boolean available;
+    private static boolean infusionAvailable;
     private static Method gatherStats;
     private static Method eterna;
     private static Method quanta;
@@ -41,6 +43,9 @@ public final class ApothicEnchantingCompat {
     private static Method getMaxPower;
     private static Method getArcanaForThreshold;
     private static Method adjustArcanaWeight;
+    private static Method findInfusionMatch;
+    private static Method findInfusionItemMatch;
+    private static Method assembleInfusionRecipe;
 
     private ApothicEnchantingCompat() {
     }
@@ -83,7 +88,10 @@ public final class ApothicEnchantingCompat {
             random.setSeed(enchantmentSeed);
             int requirement = 0;
             for (int index = 0; index <= option; index++) {
-                requirement = intValue(getEnchantmentCost.invoke(null, random, index, stats.effectiveEterna(), target));
+                requirement = normalizeOfferRequirement(
+                        intValue(getEnchantmentCost.invoke(null, random, index, stats.effectiveEterna(), target)),
+                        index
+                );
             }
             return Math.max(0, requirement);
         } catch (ReflectiveOperationException | RuntimeException error) {
@@ -158,12 +166,46 @@ public final class ApothicEnchantingCompat {
         return count;
     }
 
+    public static boolean hasInfusionItemMatch(Level level, ItemStack target) {
+        if (!isInfusionAvailable() || target.isEmpty()) {
+            return false;
+        }
+        try {
+            return findInfusionItemMatch.invoke(null, level, target) != null;
+        } catch (ReflectiveOperationException | RuntimeException error) {
+            return false;
+        }
+    }
+
+    public static Optional<ItemStack> assembleInfusion(Level level, ItemStack target, TableStats stats) {
+        if (!isInfusionAvailable() || target.isEmpty()) {
+            return Optional.empty();
+        }
+        try {
+            Object recipe = findInfusionMatch.invoke(null, level, target, stats.eterna(), stats.quanta(), stats.arcana());
+            if (recipe == null) {
+                return Optional.empty();
+            }
+            Object result = assembleInfusionRecipe.invoke(recipe, target, stats.eterna(), stats.quanta(), stats.arcana());
+            return result instanceof ItemStack stack && !stack.isEmpty() ? Optional.of(stack) : Optional.empty();
+        } catch (ReflectiveOperationException | RuntimeException error) {
+            return Optional.empty();
+        }
+    }
+
     private static boolean isAvailable() {
         if (!isLoaded()) {
             return false;
         }
         init();
         return available;
+    }
+
+    private static boolean isInfusionAvailable() {
+        if (!isAvailable()) {
+            return false;
+        }
+        return infusionAvailable;
     }
 
     private static void init() {
@@ -198,8 +240,22 @@ public final class ApothicEnchantingCompat {
             getArcanaForThreshold = arcanaClass.getMethod("getForThreshold", float.class);
             adjustArcanaWeight = arcanaClass.getMethod("adjustWeight", int.class);
             available = true;
+            initInfusion();
         } catch (ReflectiveOperationException | RuntimeException error) {
             available = false;
+            infusionAvailable = false;
+        }
+    }
+
+    private static void initInfusion() {
+        try {
+            Class<?> infusionRecipeClass = Class.forName(INFUSION_RECIPE_CLASS);
+            findInfusionMatch = infusionRecipeClass.getMethod("findMatch", Level.class, ItemStack.class, float.class, float.class, float.class);
+            findInfusionItemMatch = infusionRecipeClass.getMethod("findItemMatch", Level.class, ItemStack.class);
+            assembleInfusionRecipe = infusionRecipeClass.getMethod("assemble", ItemStack.class, float.class, float.class, float.class);
+            infusionAvailable = true;
+        } catch (ReflectiveOperationException | RuntimeException error) {
+            infusionAvailable = false;
         }
     }
 
@@ -208,7 +264,7 @@ public final class ApothicEnchantingCompat {
         random.setSeed(enchantmentSeed);
         int requirement = 0;
         for (int index = 0; index <= option; index++) {
-            requirement = fallbackEnchantmentCost(random, index, stats.effectiveEterna());
+            requirement = normalizeOfferRequirement(fallbackEnchantmentCost(random, index, stats.effectiveEterna()), index);
         }
         return requirement;
     }
@@ -216,11 +272,15 @@ public final class ApothicEnchantingCompat {
     private static int fallbackEnchantmentCost(RandomSource random, int option, float eterna) {
         int level = Math.round(eterna);
         if (option == 2) {
-            return Math.max(1, level);
+            return level;
         }
         float lowBound = 0.6F - 0.4F * (1 - option);
         float highBound = 0.8F - 0.4F * (1 - option);
         return Math.max(1, Math.round(level * Mth.nextFloat(random, lowBound, highBound)));
+    }
+
+    private static int normalizeOfferRequirement(int requirement, int option) {
+        return requirement < option + 1 ? requirement + 1 : requirement;
     }
 
     private static float quantaFactor(RandomSource random, float quanta, boolean stable) {

@@ -16,7 +16,6 @@
   ],
   "client": [
     "client.AnvilScreenMixin",
-    "client.ApothEnchantmentScreenMixin",
     "client.HumanoidArmorLayerMixin",
     "client.ItemRendererMixin",
     "client.LivingEntityRendererMixin"

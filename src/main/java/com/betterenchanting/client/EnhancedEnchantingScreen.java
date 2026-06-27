@@ -11,6 +11,7 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.gui.GuiGraphics;
@@ -36,6 +37,9 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEnchantingMenu> {
     private static final int EXTENDED_IMAGE_WIDTH = 201;
+    private static final int APOTHIC_IMAGE_HEIGHT = 197;
+    private static final int APOTHIC_STAT_BAR_WIDTH = 110;
+    private static final int APOTHIC_STAT_BAR_MAX = 100;
     private static final ResourceLocation[] ENABLED_LEVEL_SPRITES = new ResourceLocation[]{
             ResourceLocation.withDefaultNamespace("container/enchanting_table/level_1"),
             ResourceLocation.withDefaultNamespace("container/enchanting_table/level_2"),
@@ -54,6 +58,7 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
     );
     private static final ResourceLocation ENCHANTMENT_SLOT_SPRITE = ResourceLocation.withDefaultNamespace("container/enchanting_table/enchantment_slot");
     private static final ResourceLocation ENCHANTING_TABLE_LOCATION = BetterEnchanting.id("textures/gui/container/enchanting_table.png");
+    private static final ResourceLocation APOTHIC_ENCHANTING_TABLE_LOCATION = BetterEnchanting.id("textures/gui/container/enchanting_table_apothic.png");
     private static final ResourceLocation ENCHANTING_BOOK_LOCATION = ResourceLocation.withDefaultNamespace("textures/entity/enchanting_table_book.png");
 
     private final RandomSource random = RandomSource.create();
@@ -70,6 +75,9 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
     public EnhancedEnchantingScreen(EnhancedEnchantingMenu menu, Inventory playerInventory, Component title) {
         super(menu, playerInventory, title);
         this.imageWidth = EXTENDED_IMAGE_WIDTH;
+        if (menu.usesApothicLayout()) {
+            this.imageHeight = APOTHIC_IMAGE_HEIGHT;
+        }
     }
 
     @Override
@@ -111,7 +119,8 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
     protected void renderBg(GuiGraphics guiGraphics, float partialTick, int mouseX, int mouseY) {
         int x = (this.width - this.imageWidth) / 2;
         int y = (this.height - this.imageHeight) / 2;
-        guiGraphics.blit(ENCHANTING_TABLE_LOCATION, x, y, 0, 0, this.imageWidth, this.imageHeight);
+        ResourceLocation texture = this.enchantingTableTexture();
+        guiGraphics.blit(texture, x, y, 0, 0, this.imageWidth, this.imageHeight);
         this.renderBook(guiGraphics, x, y, partialTick);
         EnchantmentNames.getInstance().initSeed((long) this.menu.getEnchantmentSeed());
         int lapisCount = this.menu.getLapisCount();
@@ -123,9 +132,7 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
             int requiredLevel = this.menu.requirements[option];
             int xpCost = this.menu.costs[option];
             if (requiredLevel == 0 || xpCost == 0) {
-                RenderSystem.enableBlend();
-                guiGraphics.blitSprite(ENCHANTMENT_SLOT_DISABLED_SPRITE, optionX, y + 14 + 19 * option, 108, 19);
-                RenderSystem.disableBlend();
+                this.renderEnchantmentSlot(guiGraphics, texture, optionX, y + 14 + 19 * option, option, xpCost, true, false);
             } else {
                 String requirementText = requiredLevel + "";
                 int textWidth = 86 - this.font.width(requirementText);
@@ -137,25 +144,17 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                         || this.menu.getDisabledReasonFlags(option) != 0;
 
                 if (disabled) {
-                    RenderSystem.enableBlend();
-                    guiGraphics.blitSprite(ENCHANTMENT_SLOT_DISABLED_SPRITE, optionX, y + 14 + 19 * option, 108, 19);
-                    guiGraphics.blitSprite(levelSprite(xpCost, true), optionX + 1, y + 15 + 19 * option, 16, 16);
-                    RenderSystem.disableBlend();
+                    this.renderEnchantmentSlot(guiGraphics, texture, optionX, y + 14 + 19 * option, option, xpCost, true, true);
                     guiGraphics.drawWordWrap(this.font, randomName, textX, y + 16 + 19 * option, textWidth, (textColor & 16711422) >> 1);
                     textColor = 4226832;
                 } else {
                     int hoverX = mouseX - (x + 60);
                     int hoverY = mouseY - (y + 14 + 19 * option);
-                    RenderSystem.enableBlend();
-                    if (hoverX >= 0 && hoverY >= 0 && hoverX < 108 && hoverY < 19) {
-                        guiGraphics.blitSprite(ENCHANTMENT_SLOT_HIGHLIGHTED_SPRITE, optionX, y + 14 + 19 * option, 108, 19);
+                    boolean highlighted = hoverX >= 0 && hoverY >= 0 && hoverX < 108 && hoverY < 19;
+                    this.renderEnchantmentSlot(guiGraphics, texture, optionX, y + 14 + 19 * option, option, xpCost, false, true, highlighted);
+                    if (highlighted) {
                         textColor = 16777088;
-                    } else {
-                        guiGraphics.blitSprite(ENCHANTMENT_SLOT_SPRITE, optionX, y + 14 + 19 * option, 108, 19);
                     }
-
-                    guiGraphics.blitSprite(levelSprite(xpCost, false), optionX + 1, y + 15 + 19 * option, 16, 16);
-                    RenderSystem.disableBlend();
                     guiGraphics.drawWordWrap(this.font, randomName, textX, y + 16 + 19 * option, textWidth, textColor);
                     textColor = 8453920;
                 }
@@ -163,11 +162,89 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                 guiGraphics.drawString(this.font, requirementText, textX + 86 - this.font.width(requirementText), y + 16 + 19 * option + 7, textColor);
             }
         }
+
+        this.renderApothicStats(guiGraphics, texture, x, y);
+    }
+
+    private void renderEnchantmentSlot(
+            GuiGraphics guiGraphics,
+            ResourceLocation texture,
+            int x,
+            int y,
+            int option,
+            int xpCost,
+            boolean disabled,
+            boolean renderLevel
+    ) {
+        this.renderEnchantmentSlot(guiGraphics, texture, x, y, option, xpCost, disabled, renderLevel, false);
+    }
+
+    private void renderEnchantmentSlot(
+            GuiGraphics guiGraphics,
+            ResourceLocation texture,
+            int x,
+            int y,
+            int option,
+            int xpCost,
+            boolean disabled,
+            boolean renderLevel,
+            boolean highlighted
+    ) {
+        RenderSystem.enableBlend();
+        if (this.menu.usesApothicLayout()) {
+            int slotV = disabled ? 218 : highlighted ? 237 : 199;
+            guiGraphics.blit(texture, x, y, 148, slotV, 108, 19);
+            if (renderLevel) {
+                int iconV = disabled ? 239 : 223;
+                int iconU = 16 * (Mth.clamp(xpCost, 1, 3) - 1);
+                guiGraphics.blit(texture, x + 1, y + 1, iconU, iconV, 16, 16);
+            }
+        } else {
+            if (disabled) {
+                guiGraphics.blitSprite(ENCHANTMENT_SLOT_DISABLED_SPRITE, x, y, 108, 19);
+                if (renderLevel) {
+                    guiGraphics.blitSprite(levelSprite(xpCost, true), x + 1, y + 1, 16, 16);
+                }
+            } else {
+                guiGraphics.blitSprite(highlighted ? ENCHANTMENT_SLOT_HIGHLIGHTED_SPRITE : ENCHANTMENT_SLOT_SPRITE, x, y, 108, 19);
+                if (renderLevel) {
+                    guiGraphics.blitSprite(levelSprite(xpCost, false), x + 1, y + 1, 16, 16);
+                }
+            }
+        }
+        RenderSystem.disableBlend();
+    }
+
+    private void renderApothicStats(GuiGraphics guiGraphics, ResourceLocation texture, int x, int y) {
+        if (!this.menu.usesApothicLayout()) {
+            return;
+        }
+        if (this.menu.getApothicEterna() > 0) {
+            guiGraphics.blit(texture, x + 59, y + 75, 0, 197, apothicBarLength(this.menu.getApothicEterna()), 5);
+        }
+        if (this.menu.getApothicQuanta() > 0) {
+            guiGraphics.blit(texture, x + 59, y + 85, 0, 202, apothicBarLength(this.menu.getApothicQuanta()), 5);
+        }
+        if (this.menu.getApothicArcana() > 0) {
+            guiGraphics.blit(texture, x + 59, y + 95, 0, 207, apothicBarLength(this.menu.getApothicArcana()), 5);
+        }
+    }
+
+    private static int apothicBarLength(float stat) {
+        return Mth.clamp((int) (stat / APOTHIC_STAT_BAR_MAX * APOTHIC_STAT_BAR_WIDTH), 0, APOTHIC_STAT_BAR_WIDTH);
     }
 
     @Override
     protected void renderLabels(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        super.renderLabels(guiGraphics, mouseX, mouseY);
+        if (!this.menu.usesApothicLayout()) {
+            super.renderLabels(guiGraphics, mouseX, mouseY);
+            return;
+        }
+        guiGraphics.drawString(this.font, this.title, 12, 5, 4210752, false);
+        guiGraphics.drawString(this.font, this.playerInventoryTitle, 7, this.imageHeight - 96 + 4, 4210752, false);
+        guiGraphics.drawString(this.font, Component.literal("Eterna"), 19, 74, 0x3DB53D, false);
+        guiGraphics.drawString(this.font, Component.literal("Quanta"), 19, 84, 0xFC5454, false);
+        guiGraphics.drawString(this.font, Component.literal("Arcana"), 19, 94, 0xA800A8, false);
     }
 
     private void renderBook(GuiGraphics guiGraphics, int x, int y, float partialTick) {
@@ -197,6 +274,11 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
         super.render(guiGraphics, mouseX, mouseY, partialTick);
         this.renderTooltip(guiGraphics, mouseX, mouseY);
         this.renderOptionTooltip(guiGraphics, mouseX, mouseY);
+        this.renderApothicStatTooltip(guiGraphics, mouseX, mouseY);
+    }
+
+    private ResourceLocation enchantingTableTexture() {
+        return this.menu.usesApothicLayout() ? APOTHIC_ENCHANTING_TABLE_LOCATION : ENCHANTING_TABLE_LOCATION;
     }
 
     private void renderOptionTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
@@ -223,12 +305,13 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                 OptionDetails details = this.menu.getOptionDetails(option);
                 if (hasOfferPower) {
                     Component clueName = clue.<Component>map(holder -> coloredClueName(holder, clueLevel)).orElse(CommonComponents.EMPTY);
-                    tooltip.add(Component.translatable(
-                            this.menu.isOverlevelOffer(option)
-                                    ? "tooltip.betterenchanting.option.overlevel_clue"
-                                    : "container.enchant.clue",
-                            clueName
-                    ).withStyle(ChatFormatting.WHITE));
+                    String clueKey = "container.enchant.clue";
+                    if (this.menu.isApothicInfusionOffer(option)) {
+                        clueKey = "tooltip.betterenchanting.option.infusion_clue";
+                    } else if (this.menu.isOverlevelOffer(option)) {
+                        clueKey = "tooltip.betterenchanting.option.overlevel_clue";
+                    }
+                    tooltip.add(Component.translatable(clueKey, clueName).withStyle(ChatFormatting.WHITE));
                 } else {
                     tooltip.add(Component.translatable("tooltip.betterenchanting.option.unavailable").withStyle(ChatFormatting.WHITE));
                 }
@@ -263,11 +346,45 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
         }
     }
 
+    private void renderApothicStatTooltip(GuiGraphics guiGraphics, int mouseX, int mouseY) {
+        if (!this.menu.usesApothicLayout()) {
+            return;
+        }
+        if (this.isHovering(60, 14 + 19 * 3 + 5, 110, 5, mouseX, mouseY)) {
+            guiGraphics.renderComponentTooltip(this.font, List.of(
+                    statLine("Eterna", this.menu.getApothicEterna(), ChatFormatting.GREEN),
+                    Component.literal("Raises the base enchanting power from nearby shelves.").withStyle(ChatFormatting.GRAY)
+            ), mouseX, mouseY);
+        } else if (this.isHovering(60, 14 + 19 * 3 + 15, 110, 5, mouseX, mouseY)) {
+            guiGraphics.renderComponentTooltip(this.font, List.of(
+                    statLine("Quanta", this.menu.getApothicQuanta(), ChatFormatting.RED),
+                    Component.literal(this.menu.isApothicStable() ? "Stable: rolls upward without negative variance." : "Adds controlled variance to the final roll power.").withStyle(ChatFormatting.GRAY)
+            ), mouseX, mouseY);
+        } else if (this.isHovering(60, 14 + 19 * 3 + 25, 110, 5, mouseX, mouseY)) {
+            guiGraphics.renderComponentTooltip(this.font, List.of(
+                    statLine("Arcana", this.menu.getApothicArcana(), ChatFormatting.DARK_PURPLE),
+                    Component.literal("Biases the enchantment pool toward rarer and extra selections.").withStyle(ChatFormatting.GRAY),
+                    Component.literal(this.menu.allowsApothicTreasure() ? "Treasure shelves are active." : "Treasure shelves are inactive.").withStyle(ChatFormatting.GRAY)
+            ), mouseX, mouseY);
+        }
+    }
+
+    private static Component statLine(String name, float value, ChatFormatting color) {
+        return Component.literal(name + ": " + String.format(Locale.ROOT, "%.2f", value)).withStyle(color);
+    }
+
     private void addSystemTooltipLines(List<Component> tooltip, int option) {
         addSystemTooltipLines(tooltip, option, this.menu.getOptionDetails(option));
     }
 
     private void addSystemTooltipLines(List<Component> tooltip, int option, OptionDetails details) {
+        if (this.menu.isApothicInfusionOffer(option)) {
+            tooltip.add(detailLine(
+                    "tooltip.betterenchanting.option.mode",
+                    Component.translatable("tooltip.betterenchanting.option.mode.infusion")
+            ));
+            return;
+        }
         Component mode = this.menu.isOverlevelOffer(option)
                 ? Component.translatable("tooltip.betterenchanting.option.mode.overlevel")
                 : Component.translatable(
@@ -344,6 +461,9 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
         }
         if ((flags & EnhancedEnchantingMenu.DISABLED_FUSION_LIMIT) != 0) {
             reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.fusion_limit").withStyle(ChatFormatting.RED));
+        }
+        if ((flags & EnhancedEnchantingMenu.DISABLED_APOTHIC_INFUSION_UNMET) != 0) {
+            reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.apothic_infusion_unmet").withStyle(ChatFormatting.RED));
         }
         if (!creative && requiredLevel > 0 && xpCost > 0) {
             if (lapisCost > 0 && lapisCount < lapisCost) {

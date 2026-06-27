@@ -22,6 +22,7 @@ import net.minecraft.core.IdMap;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.RegistryFriendlyByteBuf;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -58,11 +59,27 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     public static final int DISABLED_WEIGHT_SELECTION_FAILED = 1 << 6;
     public static final int DISABLED_NO_OFFER_POWER = 1 << 7;
     public static final int DISABLED_FUSION_LIMIT = 1 << 8;
+    public static final int DISABLED_APOTHIC_INFUSION_UNMET = 1 << 9;
 
     private static final int PLAYER_INVENTORY_START = ENCHANTING_SLOT_COUNT;
     private static final int PLAYER_INVENTORY_END = PLAYER_INVENTORY_START + 27;
     private static final int HOTBAR_END = PLAYER_INVENTORY_END + 9;
+    private static final int MODIFIER_SLOT_X = 176;
+    private static final int MODIFIER_SLOT_Y = 15;
+    private static final int MODIFIER_SLOT_GAP = 19;
+    private static final int PLAYER_INVENTORY_Y = 84;
+    private static final int HOTBAR_Y = 142;
+    private static final int APOTHIC_PLAYER_INVENTORY_Y = 115;
+    private static final int APOTHIC_HOTBAR_Y = 173;
+    private static final int APOTHIC_STATS_SCALE = 100;
+    private static final int APOTHIC_FLAGS_STABLE = 1;
+    private static final int APOTHIC_FLAGS_TREASURE = 1 << 1;
     private static final ResourceLocation EMPTY_LAPIS_SLOT = ResourceLocation.withDefaultNamespace("item/empty_slot_lapis_lazuli");
+    private static final int APOTHIC_INFUSION_OPTION = 2;
+    private static final ResourceKey<Enchantment> APOTHIC_INFUSION = ResourceKey.create(
+            Registries.ENCHANTMENT,
+            ResourceLocation.fromNamespaceAndPath("apothic_enchanting", "infusion")
+    );
 
     private final Container enchantingSlots = new SimpleContainer(ENCHANTING_SLOT_COUNT) {
         @Override
@@ -74,6 +91,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     private final ContainerLevelAccess access;
     private final net.minecraft.util.RandomSource random = net.minecraft.util.RandomSource.create();
     private final DataSlot enchantmentSeed = DataSlot.standalone();
+    private final boolean apothicLayout = ApothicEnchantingCompat.isLoaded();
 
     public final int[] requirements = new int[]{0, 0, 0};
     public final int[] costs = new int[]{0, 0, 0};
@@ -84,6 +102,8 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     private final int[] bookBoostCounts = new int[]{0, 0, 0};
     private final int[] disabledReasonFlags = new int[]{0, 0, 0};
     private final int[] overlevelOffers = new int[]{0, 0, 0};
+    private final int[] apothicInfusionOffers = new int[]{0, 0, 0};
+    private final int[] apothicStatsData = new int[]{0, 0, 0, 0};
 
     public EnhancedEnchantingMenu(int containerId, Inventory playerInventory) {
         this(containerId, playerInventory, ContainerLevelAccess.NULL, BlockPos.ZERO);
@@ -105,7 +125,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
             @Override
             public boolean mayPlace(ItemStack stack) {
-                return isEnchantingTarget(stack);
+                return isEnchantingTarget(stack) || isPotentialApothicInfusionInput(stack);
             }
         });
         this.addSlot(new Slot(this.enchantingSlots, LAPIS_SLOT, 35, 47) {
@@ -121,7 +141,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         });
 
         for (int slot = 0; slot < MODIFIER_SLOT_COUNT; slot++) {
-            this.addSlot(new Slot(this.enchantingSlots, FIRST_MODIFIER_SLOT + slot, 180, 15 + slot * 19) {
+            this.addSlot(new Slot(this.enchantingSlots, FIRST_MODIFIER_SLOT + slot, MODIFIER_SLOT_X, MODIFIER_SLOT_Y + slot * MODIFIER_SLOT_GAP) {
                 @Override
                 public int getMaxStackSize() {
                     return 1;
@@ -134,14 +154,16 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             });
         }
 
+        int playerInventoryY = this.apothicLayout ? APOTHIC_PLAYER_INVENTORY_Y : PLAYER_INVENTORY_Y;
+        int hotbarY = this.apothicLayout ? APOTHIC_HOTBAR_Y : HOTBAR_Y;
         for (int row = 0; row < 3; row++) {
             for (int column = 0; column < 9; column++) {
-                this.addSlot(new Slot(playerInventory, column + row * 9 + 9, 8 + column * 18, 84 + row * 18));
+                this.addSlot(new Slot(playerInventory, column + row * 9 + 9, 8 + column * 18, playerInventoryY + row * 18));
             }
         }
 
         for (int column = 0; column < 9; column++) {
-            this.addSlot(new Slot(playerInventory, column, 8 + column * 18, 142));
+            this.addSlot(new Slot(playerInventory, column, 8 + column * 18, hotbarY));
         }
 
         this.addDataSlot(DataSlot.shared(this.requirements, 0));
@@ -172,6 +194,13 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         this.addDataSlot(DataSlot.shared(this.overlevelOffers, 0));
         this.addDataSlot(DataSlot.shared(this.overlevelOffers, 1));
         this.addDataSlot(DataSlot.shared(this.overlevelOffers, 2));
+        this.addDataSlot(DataSlot.shared(this.apothicInfusionOffers, 0));
+        this.addDataSlot(DataSlot.shared(this.apothicInfusionOffers, 1));
+        this.addDataSlot(DataSlot.shared(this.apothicInfusionOffers, 2));
+        this.addDataSlot(DataSlot.shared(this.apothicStatsData, 0));
+        this.addDataSlot(DataSlot.shared(this.apothicStatsData, 1));
+        this.addDataSlot(DataSlot.shared(this.apothicStatsData, 2));
+        this.addDataSlot(DataSlot.shared(this.apothicStatsData, 3));
     }
 
     @Override
@@ -181,15 +210,22 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         }
 
         ItemStack target = inventory.getItem(TARGET_SLOT);
-        if (!isEnchantingTarget(target)) {
+        if (target.isEmpty()) {
             clearPreviews();
             return;
         }
 
         this.access.execute((level, blockPos) -> {
+            boolean infusionInput = ApothicEnchantingCompat.hasInfusionItemMatch(level, target);
+            if (!isEnchantingTarget(target) && !infusionInput) {
+                clearPreviews();
+                return;
+            }
+
             IdMap<Holder<Enchantment>> ids = level.registryAccess().registryOrThrow(Registries.ENCHANTMENT).asHolderIdMap();
             ItemStack costTarget = costTarget(target);
             Optional<ApothicEnchantingCompat.TableStats> apothicStats = ApothicEnchantingCompat.gatherTableStats(level, blockPos, costTarget);
+            this.setApothicStats(apothicStats);
             int bookshelfPower = apothicStats
                     .map(ApothicEnchantingCompat.TableStats::bookshelfPower)
                     .orElseGet(() -> EnchantingPowerRules.clampBookshelfPower(EnchantingTablePower.bookshelfPower(level, blockPos)));
@@ -206,13 +242,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 this.bookBoostCounts[option] = 0;
                 this.disabledReasonFlags[option] = 0;
                 this.overlevelOffers[option] = 0;
+                this.apothicInfusionOffers[option] = 0;
                 this.requirements[option] = 0;
                 this.costs[option] = 0;
 
-                if (PoolModifierRules.blocksOffer(modifierPlan, option)) {
-                    this.disabledReasonFlags[option] = DISABLED_BLOCKED_BY_MODIFIER;
-                    continue;
-                }
                 ItemStack modifier = modifierStack(modifierPlan, option);
 
                 int baseRequirement = defaultBaseRequirement;
@@ -232,6 +265,31 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 if (this.requirements[option] <= 0) {
                     this.costs[option] = 0;
                     this.disabledReasonFlags[option] = DISABLED_NO_OFFER_POWER;
+                    continue;
+                }
+
+                if (option == APOTHIC_INFUSION_OPTION && apothicStats.isPresent()) {
+                    Optional<ItemStack> infusionResult = ApothicEnchantingCompat.assembleInfusion(level, target, apothicStats.get());
+                    if (infusionResult.isPresent()) {
+                        this.poolSizes[option] = 1;
+                        this.apothicInfusionOffers[option] = 1;
+                        Optional<Holder.Reference<Enchantment>> infusion = level.registryAccess()
+                                .registryOrThrow(Registries.ENCHANTMENT)
+                                .getHolder(APOTHIC_INFUSION);
+                        if (infusion.isPresent()) {
+                            this.enchantClue[option] = ids.getId(infusion.get());
+                            this.levelClue[option] = 1;
+                        }
+                        continue;
+                    }
+                    if (infusionInput && !isEnchantingTarget(target)) {
+                        this.disabledReasonFlags[option] = DISABLED_APOTHIC_INFUSION_UNMET;
+                        continue;
+                    }
+                }
+
+                if (PoolModifierRules.blocksOffer(modifierPlan, option)) {
+                    this.disabledReasonFlags[option] = DISABLED_BLOCKED_BY_MODIFIER;
                     continue;
                 }
 
@@ -296,9 +354,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         }
         int requiredLevel = this.requirements[id];
         int xpCost = this.costs[id];
+        boolean apothicInfusionOffer = isApothicInfusionOffer(id);
         if (requiredLevel <= 0
                 || xpCost <= 0
-                || !isEnchantingTarget(target)
+                || (!isEnchantingTarget(target) && !apothicInfusionOffer)
                 || player.experienceLevel < Math.max(requiredLevel, xpCost) && !player.getAbilities().instabuild) {
             return false;
         }
@@ -307,6 +366,36 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             ItemStack costTarget = costTarget(target);
             Optional<ApothicEnchantingCompat.TableStats> apothicStats = ApothicEnchantingCompat.gatherTableStats(level, blockPos, costTarget);
             PoolModifierRules.ModifierPlan modifierPlan = modifierPlan();
+            if (id == APOTHIC_INFUSION_OPTION && apothicStats.isPresent()) {
+                Optional<ItemStack> infusionResult = ApothicEnchantingCompat.assembleInfusion(level, target, apothicStats.get());
+                if (infusionResult.isPresent()) {
+                    player.onEnchantmentPerformed(target, xpCost);
+                    ItemStack infused = infusionResult.get();
+                    this.enchantingSlots.setItem(TARGET_SLOT, infused);
+
+                    if (!player.hasInfiniteMaterials() && lapisCost > 0) {
+                        lapis.consume(lapisCost, player);
+                        if (lapis.isEmpty()) {
+                            this.enchantingSlots.setItem(LAPIS_SLOT, ItemStack.EMPTY);
+                        }
+                    }
+
+                    player.awardStat(Stats.ENCHANT_ITEM);
+                    if (player instanceof ServerPlayer serverPlayer) {
+                        CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, infused, xpCost);
+                    }
+
+                    this.enchantingSlots.setChanged();
+                    this.enchantmentSeed.set(player.getEnchantmentSeed());
+                    this.slotsChanged(this.enchantingSlots);
+                    level.playSound(null, blockPos, SoundEvents.ENCHANTMENT_TABLE_USE, SoundSource.BLOCKS, 1.0F, level.random.nextFloat() * 0.1F + 0.9F);
+                    return;
+                }
+                if (!isEnchantingTarget(target)) {
+                    return;
+                }
+            }
+
             Optional<OverlevelTarget> overlevelTarget = overlevelTarget(target, modifierPlan, id);
             if (overlevelTarget.isPresent()) {
                 OverlevelTarget targetOverlevel = overlevelTarget.get();
@@ -431,7 +520,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             if (!this.moveItemStackTo(stack, FIRST_MODIFIER_SLOT, FIRST_MODIFIER_SLOT + MODIFIER_SLOT_COUNT, false)) {
                 return ItemStack.EMPTY;
             }
-        } else if (isEnchantingTarget(stack)) {
+        } else if (isEnchantingTarget(stack) || ApothicEnchantingCompat.hasInfusionItemMatch(player.level(), stack)) {
             if (!this.moveItemStackTo(stack, TARGET_SLOT, TARGET_SLOT + 1, false)) {
                 return ItemStack.EMPTY;
             }
@@ -488,6 +577,34 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
     public boolean isOverlevelOffer(int option) {
         return option >= 0 && option < this.overlevelOffers.length && this.overlevelOffers[option] != 0;
+    }
+
+    public boolean isApothicInfusionOffer(int option) {
+        return option >= 0 && option < this.apothicInfusionOffers.length && this.apothicInfusionOffers[option] != 0;
+    }
+
+    public boolean usesApothicLayout() {
+        return this.apothicLayout;
+    }
+
+    public float getApothicEterna() {
+        return this.apothicStatsData[0] / (float) APOTHIC_STATS_SCALE;
+    }
+
+    public float getApothicQuanta() {
+        return this.apothicStatsData[1] / (float) APOTHIC_STATS_SCALE;
+    }
+
+    public float getApothicArcana() {
+        return this.apothicStatsData[2] / (float) APOTHIC_STATS_SCALE;
+    }
+
+    public boolean isApothicStable() {
+        return (this.apothicStatsData[3] & APOTHIC_FLAGS_STABLE) != 0;
+    }
+
+    public boolean allowsApothicTreasure() {
+        return (this.apothicStatsData[3] & APOTHIC_FLAGS_TREASURE) != 0;
     }
 
     public OptionDetails getOptionDetails(int option) {
@@ -564,8 +681,33 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 || !EnchantmentTargetTags.resolve(stack).isEmpty());
     }
 
+    private static boolean isPotentialApothicInfusionInput(ItemStack stack) {
+        return !stack.isEmpty() && ApothicEnchantingCompat.isLoaded();
+    }
+
     private static ItemStack costTarget(ItemStack stack) {
         return stack.is(Items.ENCHANTED_BOOK) ? new ItemStack(Items.BOOK) : stack;
+    }
+
+    private void setApothicStats(Optional<ApothicEnchantingCompat.TableStats> stats) {
+        if (stats.isEmpty()) {
+            this.apothicStatsData[0] = 0;
+            this.apothicStatsData[1] = 0;
+            this.apothicStatsData[2] = 0;
+            this.apothicStatsData[3] = 0;
+            return;
+        }
+
+        ApothicEnchantingCompat.TableStats tableStats = stats.get();
+        this.apothicStatsData[0] = scaledStat(tableStats.eterna());
+        this.apothicStatsData[1] = scaledStat(tableStats.quanta());
+        this.apothicStatsData[2] = scaledStat(tableStats.arcana());
+        this.apothicStatsData[3] = (tableStats.stable() ? APOTHIC_FLAGS_STABLE : 0)
+                | (tableStats.treasure() ? APOTHIC_FLAGS_TREASURE : 0);
+    }
+
+    private static int scaledStat(float stat) {
+        return Math.max(0, Math.round(stat * APOTHIC_STATS_SCALE));
     }
 
     private void clearPreviews() {
@@ -577,11 +719,13 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             this.poolSizes[index] = 0;
             this.disabledReasonFlags[index] = 0;
             this.overlevelOffers[index] = 0;
+            this.apothicInfusionOffers[index] = 0;
         }
         for (int index = 0; index < 3; index++) {
             this.activeTagCounts[index] = 0;
             this.bookBoostCounts[index] = 0;
         }
+        this.setApothicStats(Optional.empty());
         this.broadcastChanges();
     }
 
