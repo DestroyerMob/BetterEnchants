@@ -2,8 +2,21 @@
   "values": [
     "betterenchanting:overcharged",
     "betterenchanting:shocking",
-    { "id": "minecraft:channeling", "required": false },
-    { "id": "minecraft:quick_charge", "required": false },
-    { "id": "minecraft:loyalty", "required": false }
+    {
+      "id": "minecraft:channeling",
+      "required": false
+    },
+    {
+      "id": "minecraft:quick_charge",
+      "required": false
+    },
+    {
+      "id": "minecraft:loyalty",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:crescendo_of_bolts",
+      "required": false
+    }
   ]
 }

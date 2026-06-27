@@ -4,9 +4,41 @@
     "betterenchanting:curse_of_fragility",
     "betterenchanting:sticky_grip",
     "betterenchanting:verdant_regrowth",
-    { "id": "minecraft:mending", "required": false },
-    { "id": "minecraft:unbreaking", "required": false },
-    { "id": "minecraft:respiration", "required": false },
-    { "id": "minecraft:aqua_affinity", "required": false }
+    {
+      "id": "minecraft:mending",
+      "required": false
+    },
+    {
+      "id": "minecraft:unbreaking",
+      "required": false
+    },
+    {
+      "id": "minecraft:respiration",
+      "required": false
+    },
+    {
+      "id": "minecraft:aqua_affinity",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:growth_serum",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:life_mending",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:natures_blessing",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:tempting",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:worker_exploitation",
+      "required": false
+    }
   ]
 }

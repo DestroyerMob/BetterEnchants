@@ -3,6 +3,14 @@
     "#betterenchanting:weapons/swords",
     "#betterenchanting:tools/axes",
     "#betterenchanting:weapons/maces",
-    "#betterenchanting:weapons/tridents"
+    "#betterenchanting:weapons/tridents",
+    {
+      "id": "#minecraft:enchantable/melee_weapon",
+      "required": false
+    },
+    {
+      "id": "#minecraft:enchantable/sharp_weapon",
+      "required": false
+    }
   ]
 }

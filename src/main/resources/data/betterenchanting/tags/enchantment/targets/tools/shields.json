@@ -1,0 +1,14 @@
+{
+  "replace": false,
+  "values": [
+    {
+      "id": "apothic_enchanting:shield_bash",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:reflective_defenses",
+      "required": false
+    },
+    "#betterenchanting:targets/tools"
+  ]
+}

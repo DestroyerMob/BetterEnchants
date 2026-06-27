@@ -1,5 +1,9 @@
 {
   "values": [
-    "minecraft:mace"
+    "minecraft:mace",
+    {
+      "id": "#minecraft:enchantable/mace",
+      "required": false
+    }
   ]
 }

@@ -1,6 +1,10 @@
 {
   "values": [
     "betterenchanting:tree_capitator",
-    "betterenchanting:vein_miner"
+    "betterenchanting:vein_miner",
+    {
+      "id": "apothic_enchanting:chainsaw",
+      "required": false
+    }
   ]
 }

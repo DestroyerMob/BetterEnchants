@@ -1,6 +1,14 @@
 {
   "values": [
     "betterenchanting:harvest",
-    "#betterenchanting:targets/tools/harvesters"
+    "#betterenchanting:targets/tools/harvesters",
+    {
+      "id": "apothic_enchanting:natures_blessing",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:tempting",
+      "required": false
+    }
   ]
 }

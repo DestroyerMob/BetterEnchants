@@ -4,6 +4,14 @@
     "#betterenchanting:tools/axes",
     "#betterenchanting:tools/shovels",
     "#betterenchanting:tools/hoes",
-    "#betterenchanting:tools/shears"
+    "#betterenchanting:tools/shears",
+    {
+      "id": "#minecraft:enchantable/mining",
+      "required": false
+    },
+    {
+      "id": "#minecraft:enchantable/mining_loot",
+      "required": false
+    }
   ]
 }

@@ -1,14 +1,65 @@
 {
   "values": [
     "betterenchanting:beheading",
-    { "id": "minecraft:mending", "required": false },
-    { "id": "minecraft:infinity", "required": false },
-    { "id": "minecraft:looting", "required": false },
-    { "id": "minecraft:luck_of_the_sea", "required": false },
-    { "id": "minecraft:lure", "required": false },
-    { "id": "minecraft:frost_walker", "required": false },
-    { "id": "minecraft:soul_speed", "required": false },
-    { "id": "minecraft:swift_sneak", "required": false },
-    { "id": "minecraft:wind_burst", "required": false }
+    {
+      "id": "minecraft:mending",
+      "required": false
+    },
+    {
+      "id": "minecraft:infinity",
+      "required": false
+    },
+    {
+      "id": "minecraft:looting",
+      "required": false
+    },
+    {
+      "id": "minecraft:luck_of_the_sea",
+      "required": false
+    },
+    {
+      "id": "minecraft:lure",
+      "required": false
+    },
+    {
+      "id": "minecraft:frost_walker",
+      "required": false
+    },
+    {
+      "id": "minecraft:soul_speed",
+      "required": false
+    },
+    {
+      "id": "minecraft:swift_sneak",
+      "required": false
+    },
+    {
+      "id": "minecraft:wind_burst",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:boon_of_the_earth",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:endless_quiver",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:knowledge_of_the_ages",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:life_mending",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:scavenger",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:chromatic",
+      "required": false
+    }
   ]
 }

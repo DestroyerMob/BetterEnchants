@@ -1,0 +1,17 @@
+{
+  "item_tags": [
+    {
+      "tag": "betterenchanting:tools/shields",
+      "label": "Shield",
+      "color": "#55d66b"
+    }
+  ],
+  "enchantment_tags": [],
+  "enchantment_target_tags": [
+    {
+      "tag": "betterenchanting:targets/tools/shields",
+      "label": "Shield",
+      "color": "#55d66b"
+    }
+  ]
+}

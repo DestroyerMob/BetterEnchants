@@ -1,5 +1,9 @@
 {
   "values": [
-    "minecraft:bow"
+    "minecraft:bow",
+    {
+      "id": "#minecraft:enchantable/bow",
+      "required": false
+    }
   ]
 }

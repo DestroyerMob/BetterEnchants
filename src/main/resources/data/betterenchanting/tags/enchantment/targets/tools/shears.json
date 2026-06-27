@@ -1,5 +1,17 @@
 {
   "values": [
-    "#betterenchanting:targets/tools/harvesters"
+    "#betterenchanting:targets/tools/harvesters",
+    {
+      "id": "apothic_enchanting:chromatic",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:growth_serum",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:worker_exploitation",
+      "required": false
+    }
   ]
 }

@@ -1,5 +1,9 @@
 {
   "values": [
-    "minecraft:fishing_rod"
+    "minecraft:fishing_rod",
+    {
+      "id": "#minecraft:enchantable/fishing",
+      "required": false
+    }
   ]
 }

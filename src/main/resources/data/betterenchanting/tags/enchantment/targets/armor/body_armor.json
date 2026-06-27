@@ -1,6 +1,18 @@
 {
   "values": [
     "betterenchanting:overcharged",
-    "#betterenchanting:targets/armor"
+    "#betterenchanting:targets/armor",
+    {
+      "id": "apothic_enchanting:berserkers_fury",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:icy_thorns",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:rebounding",
+      "required": false
+    }
   ]
 }

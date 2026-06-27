@@ -3,7 +3,14 @@
     "betterenchanting:beheading",
     "betterenchanting:perfect_strike",
     "betterenchanting:tree_capitator",
-    { "id": "minecraft:looting", "required": false },
-    "#betterenchanting:targets/tools/harvesters"
+    {
+      "id": "minecraft:looting",
+      "required": false
+    },
+    "#betterenchanting:targets/tools/harvesters",
+    {
+      "id": "apothic_enchanting:chainsaw",
+      "required": false
+    }
   ]
 }

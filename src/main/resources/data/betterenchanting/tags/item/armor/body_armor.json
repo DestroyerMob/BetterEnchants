@@ -1,5 +1,9 @@
 {
   "values": [
-    "#minecraft:chest_armor"
+    "#minecraft:chest_armor",
+    {
+      "id": "#minecraft:enchantable/chest_armor",
+      "required": false
+    }
   ]
 }

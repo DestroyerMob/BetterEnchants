@@ -4,8 +4,25 @@
     "betterenchanting:vacuum",
     "betterenchanting:vein_miner",
     "#betterenchanting:targets/tools",
-    { "id": "minecraft:efficiency", "required": false },
-    { "id": "minecraft:fortune", "required": false },
-    { "id": "minecraft:silk_touch", "required": false }
+    {
+      "id": "minecraft:efficiency",
+      "required": false
+    },
+    {
+      "id": "minecraft:fortune",
+      "required": false
+    },
+    {
+      "id": "minecraft:silk_touch",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:boon_of_the_earth",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:miners_fervor",
+      "required": false
+    }
   ]
 }

@@ -1,8 +1,21 @@
 {
   "values": [
     "#betterenchanting:targets/weapons/ranged",
-    { "id": "minecraft:quick_charge", "required": false },
-    { "id": "minecraft:multishot", "required": false },
-    { "id": "minecraft:piercing", "required": false }
+    {
+      "id": "minecraft:quick_charge",
+      "required": false
+    },
+    {
+      "id": "minecraft:multishot",
+      "required": false
+    },
+    {
+      "id": "minecraft:piercing",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:crescendo_of_bolts",
+      "required": false
+    }
   ]
 }

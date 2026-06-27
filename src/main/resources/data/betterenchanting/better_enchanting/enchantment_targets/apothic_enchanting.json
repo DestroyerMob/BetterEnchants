@@ -1,0 +1,8 @@
+{
+  "rules": [
+    {
+      "item_tag": "betterenchanting:tools/shields",
+      "enchantment_tag": "betterenchanting:targets/tools/shields"
+    }
+  ]
+}

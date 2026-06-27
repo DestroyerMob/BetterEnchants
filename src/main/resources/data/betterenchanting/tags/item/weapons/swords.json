@@ -1,5 +1,9 @@
 {
   "values": [
-    "#minecraft:swords"
+    "#minecraft:swords",
+    {
+      "id": "#minecraft:enchantable/sword",
+      "required": false
+    }
   ]
 }

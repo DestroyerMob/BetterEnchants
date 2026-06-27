@@ -4,9 +4,25 @@
     "betterenchanting:gelbound",
     "betterenchanting:seismic_cushion",
     "#betterenchanting:targets/armor",
-    { "id": "minecraft:feather_falling", "required": false },
-    { "id": "minecraft:depth_strider", "required": false },
-    { "id": "minecraft:frost_walker", "required": false },
-    { "id": "minecraft:soul_speed", "required": false }
+    {
+      "id": "minecraft:feather_falling",
+      "required": false
+    },
+    {
+      "id": "minecraft:depth_strider",
+      "required": false
+    },
+    {
+      "id": "minecraft:frost_walker",
+      "required": false
+    },
+    {
+      "id": "minecraft:soul_speed",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:stable_footing",
+      "required": false
+    }
   ]
 }

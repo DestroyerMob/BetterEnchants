@@ -1,5 +1,9 @@
 {
   "values": [
-    "#minecraft:foot_armor"
+    "#minecraft:foot_armor",
+    {
+      "id": "#minecraft:enchantable/foot_armor",
+      "required": false
+    }
   ]
 }

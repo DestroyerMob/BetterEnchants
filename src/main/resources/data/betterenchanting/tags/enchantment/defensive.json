@@ -1,13 +1,61 @@
 {
   "values": [
     "betterenchanting:overcharged",
-    { "id": "minecraft:protection", "required": false },
-    { "id": "minecraft:fire_protection", "required": false },
-    { "id": "minecraft:blast_protection", "required": false },
-    { "id": "minecraft:projectile_protection", "required": false },
-    { "id": "minecraft:feather_falling", "required": false },
-    { "id": "minecraft:respiration", "required": false },
-    { "id": "minecraft:aqua_affinity", "required": false },
-    { "id": "minecraft:thorns", "required": false }
+    {
+      "id": "minecraft:protection",
+      "required": false
+    },
+    {
+      "id": "minecraft:fire_protection",
+      "required": false
+    },
+    {
+      "id": "minecraft:blast_protection",
+      "required": false
+    },
+    {
+      "id": "minecraft:projectile_protection",
+      "required": false
+    },
+    {
+      "id": "minecraft:feather_falling",
+      "required": false
+    },
+    {
+      "id": "minecraft:respiration",
+      "required": false
+    },
+    {
+      "id": "minecraft:aqua_affinity",
+      "required": false
+    },
+    {
+      "id": "minecraft:thorns",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:berserkers_fury",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:icy_thorns",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:rebounding",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:reflective_defenses",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:shield_bash",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:stable_footing",
+      "required": false
+    }
   ]
 }

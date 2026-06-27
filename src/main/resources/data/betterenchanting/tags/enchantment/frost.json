@@ -1,6 +1,13 @@
 {
   "values": [
     "betterenchanting:frostbite",
-    { "id": "minecraft:frost_walker", "required": false }
+    {
+      "id": "minecraft:frost_walker",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:icy_thorns",
+      "required": false
+    }
   ]
 }
