@@ -511,6 +511,9 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
         if ((flags & EnhancedEnchantingMenu.DISABLED_APOTHIC_INFUSION_UNMET) != 0) {
             reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.apothic_infusion_unmet").withStyle(ChatFormatting.RED));
         }
+        if ((flags & EnhancedEnchantingMenu.DISABLED_APOTHIC_INFUSION_MODIFIER) != 0) {
+            reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.apothic_infusion_modifier").withStyle(ChatFormatting.RED));
+        }
         if (!creative && requiredLevel > 0 && xpCost > 0) {
             if (lapisCost > 0 && lapisCount < lapisCost) {
                 reasons.add(Component.translatable("tooltip.betterenchanting.option.disabled.not_enough_lapis", lapisCost).withStyle(ChatFormatting.RED));

@@ -116,6 +116,7 @@
   "tooltip.betterenchanting.option.disabled.no_offer_power": "The table has not generated an offer for this slot.",
   "tooltip.betterenchanting.option.disabled.fusion_limit": "The resulting fusion would exceed this item's enchantment limit.",
   "tooltip.betterenchanting.option.disabled.apothic_infusion_unmet": "This item can be infused, but the current Eterna, Quanta, and Arcana do not meet a recipe.",
+  "tooltip.betterenchanting.option.disabled.apothic_infusion_modifier": "This infusion needs additional modifier-slot inputs.",
   "tooltip.betterenchanting.option.disabled.not_enough_lapis": "Needs %s lapis.",
   "tooltip.betterenchanting.option.disabled.not_enough_level": "Requires level %s.",
   "tooltip.betterenchanting.option.disabled.not_enough_xp_cost": "Needs %s level(s) to apply.",

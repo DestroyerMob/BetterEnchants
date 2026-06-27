@@ -3,6 +3,7 @@ package com.betterenchanting.world.inventory;
 import com.mojang.datafixers.util.Pair;
 import com.betterenchanting.compat.ApothicEnchantingCompat;
 import com.betterenchanting.config.EffectiveBalance;
+import com.betterenchanting.data.ApothicInfusionModifierRules;
 import com.betterenchanting.data.EnchantmentLevelRules;
 import com.betterenchanting.data.EnchantmentLevelRules.OverlevelTarget;
 import com.betterenchanting.data.EnchantmentLimitRules;
@@ -61,6 +62,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     public static final int DISABLED_NO_OFFER_POWER = 1 << 7;
     public static final int DISABLED_FUSION_LIMIT = 1 << 8;
     public static final int DISABLED_APOTHIC_INFUSION_UNMET = 1 << 9;
+    public static final int DISABLED_APOTHIC_INFUSION_MODIFIER = 1 << 10;
 
     private static final int PLAYER_INVENTORY_START = ENCHANTING_SLOT_COUNT;
     private static final int PLAYER_INVENTORY_END = PLAYER_INVENTORY_START + 27;
@@ -286,8 +288,8 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 }
 
                 if (option == APOTHIC_INFUSION_OPTION && apothicStats.isPresent()) {
-                    Optional<ItemStack> infusionResult = ApothicEnchantingCompat.assembleInfusion(level, target, apothicStats.get());
-                    if (infusionResult.isPresent()) {
+                    Optional<ApothicEnchantingCompat.InfusionMatch> infusionMatch = ApothicEnchantingCompat.findInfusion(level, target, apothicStats.get());
+                    if (infusionMatch.isPresent()) {
                         this.poolSizes[option] = 1;
                         this.apothicInfusionOffers[option] = 1;
                         Optional<Holder.Reference<Enchantment>> infusion = level.registryAccess()
@@ -295,6 +297,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                                 .getHolder(APOTHIC_INFUSION);
                         if (infusion.isPresent()) {
                             this.setSingleRevealedClue(option, ids.getId(infusion.get()), 1);
+                        }
+                        ApothicInfusionModifierRules.Match modifierMatch = infusionModifierMatch(infusionMatch.get());
+                        if (!modifierMatch.matches()) {
+                            this.disabledReasonFlags[option] = DISABLED_APOTHIC_INFUSION_MODIFIER;
                         }
                         continue;
                     }
@@ -361,6 +367,9 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             Util.logAndPauseIfInIde(player.getName() + " pressed invalid enhanced enchanting button id: " + id);
             return false;
         }
+        if (this.disabledReasonFlags[id] != 0) {
+            return false;
+        }
 
         ItemStack target = this.enchantingSlots.getItem(TARGET_SLOT);
         ItemStack lapis = this.enchantingSlots.getItem(LAPIS_SLOT);
@@ -383,10 +392,15 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             Optional<ApothicEnchantingCompat.TableStats> apothicStats = ApothicEnchantingCompat.gatherTableStats(level, blockPos, costTarget);
             PoolModifierRules.ModifierPlan modifierPlan = modifierPlan();
             if (id == APOTHIC_INFUSION_OPTION && apothicStats.isPresent()) {
-                Optional<ItemStack> infusionResult = ApothicEnchantingCompat.assembleInfusion(level, target, apothicStats.get());
-                if (infusionResult.isPresent()) {
+                Optional<ApothicEnchantingCompat.InfusionMatch> infusionMatch = ApothicEnchantingCompat.findInfusion(level, target, apothicStats.get());
+                if (infusionMatch.isPresent()) {
+                    ApothicInfusionModifierRules.Match modifierMatch = infusionModifierMatch(infusionMatch.get());
+                    if (!modifierMatch.matches()) {
+                        return;
+                    }
+
                     player.onEnchantmentPerformed(target, xpCost);
-                    ItemStack infused = infusionResult.get();
+                    ItemStack infused = infusionMatch.get().result().copy();
                     this.enchantingSlots.setItem(TARGET_SLOT, infused);
 
                     if (!player.hasInfiniteMaterials() && lapisCost > 0) {
@@ -394,6 +408,9 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                         if (lapis.isEmpty()) {
                             this.enchantingSlots.setItem(LAPIS_SLOT, ItemStack.EMPTY);
                         }
+                    }
+                    if (!player.hasInfiniteMaterials()) {
+                        ApothicInfusionModifierRules.consume(this.enchantingSlots, modifierMatch, player);
                     }
 
                     player.awardStat(Stats.ENCHANT_ITEM);
@@ -664,6 +681,17 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
     private PoolModifierRules.ModifierPlan modifierPlan() {
         return PoolModifierRules.plan(this.enchantingSlots, FIRST_MODIFIER_SLOT, MODIFIER_SLOT_COUNT, this.enchantmentSeed.get());
+    }
+
+    private ApothicInfusionModifierRules.Match infusionModifierMatch(ApothicEnchantingCompat.InfusionMatch infusionMatch) {
+        return infusionMatch.recipeId()
+                .map(recipeId -> ApothicInfusionModifierRules.match(
+                        recipeId,
+                        this.enchantingSlots,
+                        FIRST_MODIFIER_SLOT,
+                        MODIFIER_SLOT_COUNT
+                ))
+                .orElseGet(ApothicInfusionModifierRules::unrestricted);
     }
 
     private ItemStack modifierStack(PoolModifierRules.ModifierPlan plan, int option) {

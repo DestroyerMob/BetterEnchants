@@ -1,15 +1,19 @@
 package com.betterenchanting.compat;
 
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Holder;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelReader;
@@ -22,6 +26,7 @@ public final class ApothicEnchantingCompat {
     private static final String APOTHIC_CLASS = "dev.shadowsoffire.apothic_enchanting.ApothicEnchanting";
     private static final String INFO_CLASS = "dev.shadowsoffire.apothic_enchanting.EnchantmentInfo";
     private static final String ARCANA_CLASS = "dev.shadowsoffire.apothic_enchanting.table.Arcana";
+    private static final String RECIPE_TYPES_CLASS = "dev.shadowsoffire.apothic_enchanting.Ench$RecipeTypes";
     private static final String INFUSION_RECIPE_CLASS = "dev.shadowsoffire.apothic_enchanting.table.infusion.InfusionRecipe";
 
     private static boolean initialized;
@@ -46,6 +51,7 @@ public final class ApothicEnchantingCompat {
     private static Method findInfusionMatch;
     private static Method findInfusionItemMatch;
     private static Method assembleInfusionRecipe;
+    private static Object infusionRecipeType;
 
     private ApothicEnchantingCompat() {
     }
@@ -178,6 +184,10 @@ public final class ApothicEnchantingCompat {
     }
 
     public static Optional<ItemStack> assembleInfusion(Level level, ItemStack target, TableStats stats) {
+        return findInfusion(level, target, stats).map(match -> match.result().copy());
+    }
+
+    public static Optional<InfusionMatch> findInfusion(Level level, ItemStack target, TableStats stats) {
         if (!isInfusionAvailable() || target.isEmpty()) {
             return Optional.empty();
         }
@@ -187,10 +197,31 @@ public final class ApothicEnchantingCompat {
                 return Optional.empty();
             }
             Object result = assembleInfusionRecipe.invoke(recipe, target, stats.eterna(), stats.quanta(), stats.arcana());
-            return result instanceof ItemStack stack && !stack.isEmpty() ? Optional.of(stack) : Optional.empty();
+            if (result instanceof ItemStack stack && !stack.isEmpty()) {
+                return Optional.of(new InfusionMatch(infusionRecipeId(level, recipe), stack.copy()));
+            }
+            return Optional.empty();
         } catch (ReflectiveOperationException | RuntimeException error) {
             return Optional.empty();
         }
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static Optional<ResourceLocation> infusionRecipeId(Level level, Object recipe) {
+        if (infusionRecipeType == null) {
+            return Optional.empty();
+        }
+
+        try {
+            for (Object holderObject : level.getRecipeManager().getAllRecipesFor((RecipeType) infusionRecipeType)) {
+                if (holderObject instanceof RecipeHolder<?> holder && holder.value() == recipe) {
+                    return Optional.of(holder.id());
+                }
+            }
+        } catch (RuntimeException error) {
+            return Optional.empty();
+        }
+        return Optional.empty();
     }
 
     private static boolean isAvailable() {
@@ -249,13 +280,24 @@ public final class ApothicEnchantingCompat {
 
     private static void initInfusion() {
         try {
+            Class<?> recipeTypesClass = Class.forName(RECIPE_TYPES_CLASS);
+            Field infusionRecipeTypeField = recipeTypesClass.getField("INFUSION");
+            infusionRecipeType = infusionRecipeTypeField.get(null);
+
             Class<?> infusionRecipeClass = Class.forName(INFUSION_RECIPE_CLASS);
             findInfusionMatch = infusionRecipeClass.getMethod("findMatch", Level.class, ItemStack.class, float.class, float.class, float.class);
             findInfusionItemMatch = infusionRecipeClass.getMethod("findItemMatch", Level.class, ItemStack.class);
             assembleInfusionRecipe = infusionRecipeClass.getMethod("assemble", ItemStack.class, float.class, float.class, float.class);
             infusionAvailable = true;
         } catch (ReflectiveOperationException | RuntimeException error) {
+            infusionRecipeType = null;
             infusionAvailable = false;
+        }
+    }
+
+    public record InfusionMatch(Optional<ResourceLocation> recipeId, ItemStack result) {
+        public InfusionMatch {
+            result = result.copy();
         }
     }
 

@@ -2,6 +2,7 @@ package com.betterenchanting;
 
 import com.betterenchanting.client.ClientModEvents;
 import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.data.ApothicInfusionModifierRules;
 import com.betterenchanting.data.EnchantmentFusionRecipes;
 import com.betterenchanting.data.EnchantmentLimitRules;
 import com.betterenchanting.data.EssenceTradeDefinitions;
@@ -115,6 +116,7 @@ public final class BetterEnchanting {
         event.addListener(new EssenceTradeDefinitions.ReloadListener());
         event.addListener(new EnchantmentLimitRules.ReloadListener());
         event.addListener(new EnchantmentFusionRecipes.ReloadListener());
+        event.addListener(new ApothicInfusionModifierRules.ReloadListener());
         event.addListener(new TagDisplayRules.ReloadListener());
         event.addListener(new TagSimplifier.ReloadListener());
         event.addListener(new EnchantmentTargetTags.ReloadListener());
