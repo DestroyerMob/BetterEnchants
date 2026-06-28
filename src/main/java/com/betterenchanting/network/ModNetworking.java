@@ -2,6 +2,7 @@ package com.betterenchanting.network;
 
 import com.betterenchanting.client.ResonanceHighlights;
 import com.betterenchanting.world.enchantment.FlashStepEnchantmentEvents;
+import com.betterenchanting.world.enchantment.VeinMinerModeState;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
@@ -15,8 +16,15 @@ public final class ModNetworking {
 
     public static void registerPayloads(RegisterPayloadHandlersEvent event) {
         PayloadRegistrar registrar = event.registrar(PROTOCOL_VERSION);
+        registrar.playToServer(CycleVeinMinerModePayload.TYPE, CycleVeinMinerModePayload.STREAM_CODEC, ModNetworking::handleCycleVeinMinerMode);
         registrar.playToServer(FlashStepPayload.TYPE, FlashStepPayload.STREAM_CODEC, ModNetworking::handleFlashStep);
         registrar.playToClient(ResonanceHighlightPayload.TYPE, ResonanceHighlightPayload.STREAM_CODEC, ModNetworking::handleResonanceHighlights);
+    }
+
+    private static void handleCycleVeinMinerMode(CycleVeinMinerModePayload payload, IPayloadContext context) {
+        if (context.player() instanceof ServerPlayer player) {
+            VeinMinerModeState.cycle(player);
+        }
     }
 
     private static void handleFlashStep(FlashStepPayload payload, IPayloadContext context) {

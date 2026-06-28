@@ -20,6 +20,7 @@ public final class ClientModEvents {
         modBus.addListener(ClientModEvents::registerScreens);
         modBus.addListener(ClientModEvents::registerReloadListeners);
         modBus.addListener(ClientModEvents::registerRenderBuffers);
+        modBus.addListener(ClientInputEvents::registerKeyMappings);
         NeoForge.EVENT_BUS.addListener(ClientInputEvents::detectFlashStep);
         NeoForge.EVENT_BUS.addListener(ResonanceHighlights::render);
     }
