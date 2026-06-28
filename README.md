@@ -5,7 +5,7 @@ tag-driven system using essences, enchanted books, and item affinity.
 
 ## Current status
 
-Pre-alpha / internal playtesting.
+Pre-alpha / internal playtesting. The current branch includes explicit Apotheosis / Apothic Enchanting integration for Minecraft Beyond.
 
 ## Features
 
@@ -19,12 +19,13 @@ Pre-alpha / internal playtesting.
 - Multiple durability-maintenance paths through Mending, material repair, and passive recovery
 - Configurable anvil, mending, XP, and roll behaviour
 - Optional Silent Gear and Mobs Tool Forging material support
+- Optional Apothic Enchanting support, including Apothic table stats, clues, arcana/quanta weighting, infusion offers, and datapack-driven infusion modifier requirements
 
 ## Supported versions
 
-Minecraft 1.21.1  
-NeoForge 21.1.228  
-Java 21
+- Minecraft 1.21.1
+- NeoForge 21.1.234
+- Java 21
 
 ## Build
 
@@ -50,13 +51,17 @@ See [docs/enhanced-enchanting-guidebook.md](docs/enhanced-enchanting-guidebook.m
 
 Balance notes live in [docs/enchantment-balance-pass.md](docs/enchantment-balance-pass.md).
 
+Apothic infusion modifier datapack hooks are documented in [docs/apothic-infusion-modifier-rules.md](docs/apothic-infusion-modifier-rules.md).
+
+When Apothic Enchanting is installed, Better Enchanting leaves the vanilla enchanting table to Apothic and uses the Arcane Crucible as the Better Enchanting table surface. The config option `enchanting.enhanced_table_takeover` still controls vanilla-table takeover in non-Apothic setups.
+
 ## Known issues
 
 - Pre-alpha balance is not final.
 - Public release jars are not published yet.
 - Screenshots/GIFs still need to be captured from an in-game build.
 - The mod changes anvil, mending, XP, and enchanting behavior, so compatibility testing with other enchanting/anvil overhaul mods is still required.
-- For Apotheosis or Apothic Enchanting, the safest setup is to let that mod own the vanilla enchanting table and use the Arcane Crucible for Better Enchanting.
+- Apothic support uses reflection to avoid a hard dependency; if Apothic internals change, the integration should fail closed and fall back instead of crashing.
 
 ## License
 
