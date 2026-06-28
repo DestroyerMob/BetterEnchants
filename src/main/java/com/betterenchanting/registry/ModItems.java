@@ -23,7 +23,6 @@ public final class ModItems {
     public static final Supplier<EssenceItem> VITALITY_ESSENCE = essence("vitality_essence", Rarity.COMMON);
     public static final Supplier<EssenceItem> MOBILITY_ESSENCE = essence("mobility_essence", Rarity.COMMON);
     public static final Supplier<EssenceItem> VOID_ESSENCE = essence("void_essence", Rarity.UNCOMMON);
-    public static final Supplier<EssenceItem> TREASURE_ESSENCE = essence("treasure_essence", Rarity.RARE);
     public static final Supplier<EssenceItem> PURIFICATION_ESSENCE = essence("purification_essence", Rarity.UNCOMMON);
     public static final DeferredItem<BlockItem> ARCANE_CRUCIBLE = ITEMS.registerSimpleBlockItem(
             "arcane_crucible",
@@ -40,7 +39,6 @@ public final class ModItems {
             VITALITY_ESSENCE,
             MOBILITY_ESSENCE,
             VOID_ESSENCE,
-            TREASURE_ESSENCE,
             PURIFICATION_ESSENCE
     );
 

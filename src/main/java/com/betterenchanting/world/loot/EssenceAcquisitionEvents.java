@@ -67,11 +67,6 @@ public final class EssenceAcquisitionEvents {
         if (event.getHookEntity().level().getFluidState(event.getHookEntity().blockPosition()).is(FluidTags.LAVA) && roll(level.getRandom())) {
             event.getDrops().add(new ItemStack(ModItems.FIRE_ESSENCE.get()));
         }
-
-        ItemStack rod = fishingRod(player);
-        if (enchantmentLevel(level, rod, Enchantments.LUCK_OF_THE_SEA) > 0 && roll(level.getRandom())) {
-            event.getDrops().add(new ItemStack(ModItems.TREASURE_ESSENCE.get()));
-        }
     }
 
     public static void addVillagerTrades(VillagerTradesEvent event) {
@@ -96,16 +91,6 @@ public final class EssenceAcquisitionEvents {
     private static void addTrade(VillagerTradesEvent event, int level, VillagerTrades.ItemListing listing) {
         List<VillagerTrades.ItemListing> trades = event.getTrades().computeIfAbsent(level, ignored -> new ArrayList<>());
         trades.add(listing);
-    }
-
-    private static ItemStack fishingRod(Player player) {
-        ItemStack mainHand = player.getMainHandItem();
-        if (mainHand.is(Items.FISHING_ROD)) {
-            return mainHand;
-        }
-
-        ItemStack offhand = player.getOffhandItem();
-        return offhand.is(Items.FISHING_ROD) ? offhand : ItemStack.EMPTY;
     }
 
     private static int enchantmentLevel(ServerLevel level, ItemStack stack, net.minecraft.resources.ResourceKey<Enchantment> enchantment) {

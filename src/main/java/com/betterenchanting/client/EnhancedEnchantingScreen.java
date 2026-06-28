@@ -410,7 +410,7 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
             guiGraphics.renderComponentTooltip(this.font, List.of(
                     statLine("Arcana", this.menu.getApothicArcana(), ChatFormatting.DARK_PURPLE),
                     Component.literal("Biases the enchantment pool toward rarer and extra selections.").withStyle(ChatFormatting.GRAY),
-                    Component.literal(this.menu.allowsApothicTreasure() ? "Treasure shelves are active." : "Treasure shelves are inactive.").withStyle(ChatFormatting.GRAY)
+                    Component.literal(this.menu.allowsApothicTreasure() ? "Rare enchantment shelves are active." : "Rare enchantment shelves are inactive.").withStyle(ChatFormatting.GRAY)
             ), mouseX, mouseY);
         }
     }

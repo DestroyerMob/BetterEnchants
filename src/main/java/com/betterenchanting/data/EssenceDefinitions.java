@@ -61,7 +61,6 @@ public final class EssenceDefinitions {
         add(map, "vitality_essence", 1.0, true, "vitality");
         add(map, "mobility_essence", 1.0, true, "mobility");
         add(map, "void_essence", 1.0, true, "void");
-        add(map, "treasure_essence", 1.0, true, "treasure");
         addSpecial(map, "purification_essence", 1.0, false, List.of(EnchantmentTags.CURSE.location()), true, true, "purification");
         return Map.copyOf(map);
     }

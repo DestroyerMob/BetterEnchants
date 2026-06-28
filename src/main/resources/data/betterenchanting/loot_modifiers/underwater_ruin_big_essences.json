@@ -4,5 +4,5 @@
     { "condition": "neoforge:loot_table_id", "loot_table_id": "minecraft:chests/underwater_ruin_big" },
     { "condition": "minecraft:random_chance", "chance": 0.2 }
   ],
-  "table": "betterenchanting:injected/treasure_essences"
+  "table": "betterenchanting:injected/shipwreck_essences"
 }

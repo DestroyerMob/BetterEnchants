@@ -101,7 +101,6 @@ public final class ModTags {
         public static final TagKey<Enchantment> VITALITY = enchantment("vitality");
         public static final TagKey<Enchantment> MOBILITY = enchantment("mobility");
         public static final TagKey<Enchantment> VOID = enchantment("void");
-        public static final TagKey<Enchantment> TREASURE = enchantment("treasure");
         public static final TagKey<Enchantment> CURSE = enchantment("curse");
 
         public static final TagKey<Enchantment> TARGET_ARMOR = enchantment("targets/armor");

@@ -91,10 +91,22 @@ public final class HarvestEnchantmentEvents {
         BlockState replanted = state.setValue(age, minimumAge(age));
         level.setBlock(pos, replanted, Block.UPDATE_CLIENTS);
         level.levelEvent(2001, pos, Block.getId(state));
+        boolean vacuum = VacuumEnchantmentEvents.hasVacuum(level, tool);
         for (ItemStack drop : drops) {
-            if (!drop.isEmpty()) {
-                Block.popResource(level, pos, drop);
+            ItemStack remainder = drop.copy();
+            if (remainder.isEmpty()) {
+                continue;
             }
+            if (vacuum) {
+                player.getInventory().add(remainder);
+                if (remainder.isEmpty()) {
+                    continue;
+                }
+            }
+            Block.popResource(level, pos, remainder);
+        }
+        if (vacuum) {
+            player.getInventory().setChanged();
         }
         return true;
     }

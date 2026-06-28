@@ -68,7 +68,7 @@ public abstract class ItemRendererMixin {
             Operation<VertexConsumer> original
     ) {
         return betterenchanting$isRenderingOverleveled()
-                ? OverleveledGlintRenderTypes.getCompassFoilBuffer(bufferSource, renderType, pose)
+                ? OverleveledGlintRenderTypes.getCompassFoilBuffer(bufferSource, renderType, pose, betterenchanting$currentStack())
                 : original.call(bufferSource, renderType, pose);
     }
 
@@ -87,7 +87,7 @@ public abstract class ItemRendererMixin {
             Operation<VertexConsumer> original
     ) {
         return betterenchanting$isRenderingOverleveled()
-                ? OverleveledGlintRenderTypes.getFoilBuffer(bufferSource, renderType, isItem, true)
+                ? OverleveledGlintRenderTypes.getFoilBuffer(bufferSource, renderType, isItem, true, betterenchanting$currentStack())
                 : original.call(bufferSource, renderType, isItem, withGlint);
     }
 
@@ -106,7 +106,7 @@ public abstract class ItemRendererMixin {
             Operation<VertexConsumer> original
     ) {
         return betterenchanting$isRenderingOverleveled()
-                ? OverleveledGlintRenderTypes.getFoilBufferDirect(bufferSource, renderType, isItem, true)
+                ? OverleveledGlintRenderTypes.getFoilBufferDirect(bufferSource, renderType, isItem, true, betterenchanting$currentStack())
                 : original.call(bufferSource, renderType, isItem, withGlint);
     }
 
@@ -118,7 +118,7 @@ public abstract class ItemRendererMixin {
             CallbackInfoReturnable<VertexConsumer> callbackInfo
     ) {
         if (betterenchanting$isRenderingOverleveled()) {
-            callbackInfo.setReturnValue(OverleveledGlintRenderTypes.getCompassFoilBuffer(bufferSource, renderType, pose));
+            callbackInfo.setReturnValue(OverleveledGlintRenderTypes.getCompassFoilBuffer(bufferSource, renderType, pose, betterenchanting$currentStack()));
         }
     }
 
@@ -131,7 +131,7 @@ public abstract class ItemRendererMixin {
             CallbackInfoReturnable<VertexConsumer> callbackInfo
     ) {
         if (betterenchanting$isRenderingOverleveled()) {
-            callbackInfo.setReturnValue(OverleveledGlintRenderTypes.getFoilBuffer(bufferSource, renderType, isItem, true));
+            callbackInfo.setReturnValue(OverleveledGlintRenderTypes.getFoilBuffer(bufferSource, renderType, isItem, true, betterenchanting$currentStack()));
         }
     }
 
@@ -144,13 +144,18 @@ public abstract class ItemRendererMixin {
             CallbackInfoReturnable<VertexConsumer> callbackInfo
     ) {
         if (betterenchanting$isRenderingOverleveled()) {
-            callbackInfo.setReturnValue(OverleveledGlintRenderTypes.getFoilBufferDirect(bufferSource, renderType, isItem, true));
+            callbackInfo.setReturnValue(OverleveledGlintRenderTypes.getFoilBufferDirect(bufferSource, renderType, isItem, true, betterenchanting$currentStack()));
         }
     }
 
     @Unique
     private static boolean betterenchanting$isRenderingOverleveled() {
+        return EnchantmentLevelRules.hasOverleveledEnchantment(betterenchanting$currentStack());
+    }
+
+    @Unique
+    private static ItemStack betterenchanting$currentStack() {
         ItemStack stack = betterenchanting$renderingStack.get();
-        return stack != null && EnchantmentLevelRules.hasOverleveledEnchantment(stack);
+        return stack == null ? ItemStack.EMPTY : stack;
     }
 }

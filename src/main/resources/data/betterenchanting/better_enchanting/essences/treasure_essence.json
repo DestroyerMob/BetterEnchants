@@ -1,8 +1,0 @@
-{
-  "item": "betterenchanting:treasure_essence",
-  "tags": [
-    "betterenchanting:treasure"
-  ],
-  "weight_multiplier": 1.0,
-  "restricts_pool": true
-}

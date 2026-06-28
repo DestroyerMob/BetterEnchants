@@ -42,6 +42,10 @@ public final class ClientModEvents {
         event.registerRenderBuffer(OverleveledGlintRenderTypes.glintTranslucent());
         event.registerRenderBuffer(OverleveledGlintRenderTypes.entityGlint());
         event.registerRenderBuffer(OverleveledGlintRenderTypes.entityGlintDirect());
+        event.registerRenderBuffer(OverleveledGlintRenderTypes.layeredToolGlint());
+        event.registerRenderBuffer(OverleveledGlintRenderTypes.layeredToolGlintTranslucent());
+        event.registerRenderBuffer(OverleveledGlintRenderTypes.layeredToolEntityGlint());
+        event.registerRenderBuffer(OverleveledGlintRenderTypes.layeredToolEntityGlintDirect());
         event.registerRenderBuffer(ResonanceRenderTypes.lines());
     }
 }

@@ -48,7 +48,6 @@
     { "tag": "betterenchanting:vitality", "label": "Vitality", "color": "#ff75b7" },
     { "tag": "betterenchanting:mobility", "label": "Mobility", "color": "#f2f2f2" },
     { "tag": "betterenchanting:void", "label": "Void", "color": "#8f55ff" },
-    { "tag": "betterenchanting:treasure", "label": "Treasure", "color": "#ffd166" },
     { "tag": "betterenchanting:purification", "label": "Purification", "color": "#ffffff" }
   ],
   "enchantment_target_tags": [

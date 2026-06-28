@@ -54,7 +54,7 @@ public final class VacuumEnchantmentEvents {
         return hasVacuum(player.level(), player.getMainHandItem()) || hasVacuum(player.level(), player.getOffhandItem());
     }
 
-    private static boolean hasVacuum(net.minecraft.world.level.Level level, @Nullable ItemStack stack) {
+    public static boolean hasVacuum(net.minecraft.world.level.Level level, @Nullable ItemStack stack) {
         if (!(level instanceof ServerLevel serverLevel) || stack == null || stack.isEmpty()) {
             return false;
         }

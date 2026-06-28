@@ -14,6 +14,7 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.event.level.BlockDropsEvent;
 
 public final class VeinMinerEnchantmentEvents {
@@ -35,7 +36,11 @@ public final class VeinMinerEnchantmentEvents {
         }
 
         BlockState originState = event.getState();
-        if (originState.isAir() || originState.hasBlockEntity() || event.getBlockEntity() != null || originState.getDestroySpeed(level, event.getPos()) < 0.0F) {
+        if (originState.isAir()
+                || !originState.is(Tags.Blocks.ORES)
+                || originState.hasBlockEntity()
+                || event.getBlockEntity() != null
+                || originState.getDestroySpeed(level, event.getPos()) < 0.0F) {
             return;
         }
 
@@ -84,7 +89,7 @@ public final class VeinMinerEnchantmentEvents {
         if (!level.isLoaded(pos) || !level.getWorldBorder().isWithinBounds(pos) || state.isAir() || state.hasBlockEntity()) {
             return false;
         }
-        if (!state.is(originState.getBlock()) || state.getDestroySpeed(level, pos) < 0.0F) {
+        if (!state.is(originState.getBlock()) || !state.is(Tags.Blocks.ORES) || state.getDestroySpeed(level, pos) < 0.0F) {
             return false;
         }
         return player.mayInteract(level, pos) && state.canHarvestBlock(level, pos, player);
