@@ -33,10 +33,18 @@ public final class EnchantmentTargetTags {
     }
 
     public static List<ResourceLocation> resolve(ItemStack target) {
+        return resolve(target, true);
+    }
+
+    public static List<ResourceLocation> resolveForActivation(ItemStack target) {
+        return resolve(target, false);
+    }
+
+    private static List<ResourceLocation> resolve(ItemStack target, boolean blockFinishedToolEnchanting) {
         if (target.isEmpty() || isBookTarget(target)) {
             return List.of();
         }
-        if (ModularMaterialCompat.blocksFinishedToolEnchanting(target)) {
+        if (blockFinishedToolEnchanting && ModularMaterialCompat.blocksFinishedToolEnchanting(target)) {
             return List.of();
         }
 

@@ -22,6 +22,7 @@ import com.betterenchanting.world.EnchantmentTargetTags;
 import com.betterenchanting.world.ItemTagsCommand;
 import com.betterenchanting.world.enchantment.AutoSmeltEnchantmentEvents;
 import com.betterenchanting.world.enchantment.BeheadingEnchantmentEvents;
+import com.betterenchanting.world.enchantment.BleedEnchantmentEvents;
 import com.betterenchanting.world.enchantment.CinderstepEnchantmentEvents;
 import com.betterenchanting.world.enchantment.CurseOfReboundEnchantmentEvents;
 import com.betterenchanting.world.enchantment.FortunesTouchEnchantmentEvents;
@@ -78,6 +79,8 @@ public final class BetterEnchanting {
         NeoForge.EVENT_BUS.addListener(ShockingEnchantmentEvents::increaseShockedDamage);
         NeoForge.EVENT_BUS.addListener(ShockingEnchantmentEvents::applyShocked);
         NeoForge.EVENT_BUS.addListener(ShockingEnchantmentEvents::emitShockedParticles);
+        NeoForge.EVENT_BUS.addListener(BleedEnchantmentEvents::applyBleed);
+        NeoForge.EVENT_BUS.addListener(BleedEnchantmentEvents::tickBleeding);
         NeoForge.EVENT_BUS.addListener(HeadshotEnchantmentEvents::recordProjectileImpact);
         NeoForge.EVENT_BUS.addListener(HeadshotEnchantmentEvents::increaseHeadshotDamage);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, OverchargedEnchantmentEvents::applyOvercharged);

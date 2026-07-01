@@ -1,5 +1,6 @@
 package com.betterenchanting.world;
 
+import com.betterenchanting.BetterEnchanting;
 import com.betterenchanting.compat.ApothicEnchantingCompat;
 import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.data.EssenceDefinition;
@@ -38,6 +39,8 @@ import net.minecraft.world.item.enchantment.ItemEnchantments;
 
 public final class EnchantingRoller {
     private static final int TAG_TARGET_FALLBACK_ENCHANTABILITY = 1;
+    private static final ResourceLocation MINECRAFT_CURSE_TAG = ResourceLocation.withDefaultNamespace("curse");
+    private static final ResourceLocation BETTER_ENCHANTING_CURSE_TAG = BetterEnchanting.id("curse");
 
     private EnchantingRoller() {
     }
@@ -220,9 +223,6 @@ public final class EnchantingRoller {
             }
 
             boolean inVanillaPool = vanillaPool.map(named -> named.contains(holder)).orElse(false);
-            boolean inApothicTreasurePool = apothicStats
-                    .map(stats -> stats.treasure() && holder.is(EnchantmentTags.TREASURE))
-                    .orElse(false);
             BookBoost bookBoost = profile.bookBoosts().get(holder);
             if (EnchantmentFusionRecipes.isFusionResult(registryAccess, holder) && bookBoost == null) {
                 return;
@@ -231,14 +231,18 @@ public final class EnchantingRoller {
             Set<ResourceLocation> essenceMatches = matchingTags(holder, profile.essenceTags());
             Set<ResourceLocation> targetMatches = matchingTags(holder, profile.targetTags());
             boolean matchesEssence = !essenceMatches.isEmpty();
+            boolean matchesNonCurseEssence = essenceMatches.stream().anyMatch(EnchantingRoller::isNonCurseEssenceTag);
 
             if (!isBookTarget(target) && targetMatches.isEmpty()) {
+                return;
+            }
+            if (holder.is(EnchantmentTags.CURSE) && !matchesNonCurseEssence && bookBoost == null) {
                 return;
             }
             if (profile.restricted() && !matchesEssence && bookBoost == null) {
                 return;
             }
-            if (!profile.restricted() && !inVanillaPool && !inApothicTreasurePool && bookBoost == null) {
+            if (!profile.restricted() && !inVanillaPool && bookBoost == null) {
                 return;
             }
 
@@ -388,6 +392,10 @@ public final class EnchantingRoller {
             }
         }
         return false;
+    }
+
+    private static boolean isNonCurseEssenceTag(ResourceLocation tagId) {
+        return !MINECRAFT_CURSE_TAG.equals(tagId) && !BETTER_ENCHANTING_CURSE_TAG.equals(tagId);
     }
 
     private static WeightedCandidate pick(

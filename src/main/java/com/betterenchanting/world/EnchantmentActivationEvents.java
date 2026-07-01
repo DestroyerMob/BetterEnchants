@@ -183,7 +183,7 @@ public final class EnchantmentActivationEvents {
     private static boolean matchesCurrentItem(ItemStack stack, Holder<Enchantment> enchantment) {
         Set<ResourceLocation> targetTags = betterEnchantingTargetTags(enchantment);
         if (!targetTags.isEmpty()) {
-            Set<ResourceLocation> currentTargetTags = new HashSet<>(EnchantmentTargetTags.resolve(stack));
+            Set<ResourceLocation> currentTargetTags = new HashSet<>(EnchantmentTargetTags.resolveForActivation(stack));
             return targetTags.stream().anyMatch(currentTargetTags::contains);
         }
         return stack.supportsEnchantment(enchantment);
