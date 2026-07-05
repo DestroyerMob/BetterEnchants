@@ -12,6 +12,7 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
@@ -43,12 +44,20 @@ public final class EnchantmentLimitRules {
         if (!overridesVanillaLimits()) {
             return Integer.MAX_VALUE;
         }
+        OptionalInt routedLimit = ModularMaterialCompat.routedMaxEnchantments(stack);
+        if (routedLimit.isPresent()) {
+            return routedLimit.getAsInt();
+        }
         return rules.maxEnchantments(stack);
     }
 
     public static int baseMaxEnchantments(ItemStack stack) {
         if (!overridesVanillaLimits()) {
             return Integer.MAX_VALUE;
+        }
+        OptionalInt routedLimit = ModularMaterialCompat.routedMaxEnchantments(stack);
+        if (routedLimit.isPresent()) {
+            return routedLimit.getAsInt();
         }
         return rules.baseMaxEnchantments(stack);
     }
@@ -68,6 +77,14 @@ public final class EnchantmentLimitRules {
     }
 
     public static boolean canApplyAll(ItemStack target, Iterable<EnchantmentInstance> additions) {
+        if (ModularMaterialCompat.hasRoutedParts(target)) {
+            java.util.ArrayList<Holder<Enchantment>> enchantments = new java.util.ArrayList<>();
+            for (EnchantmentInstance addition : additions) {
+                enchantments.add(addition.enchantment);
+            }
+            return ModularMaterialCompat.canApplyRoutedEnchantments(null, target, enchantments);
+        }
+
         Map<Holder<Enchantment>, Integer> enchantments = new HashMap<>();
         addEnchantments(enchantments, target.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY));
         addEnchantments(enchantments, target.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY));

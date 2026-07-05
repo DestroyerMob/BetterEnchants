@@ -1,6 +1,7 @@
 package com.betterenchanting.mixin;
 
 import com.betterenchanting.config.EffectiveBalance;
+import com.betterenchanting.compat.ModularMaterialCompat;
 import com.betterenchanting.data.EnchantmentFusionRecipes;
 import com.betterenchanting.data.EnchantmentLevelRules;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -43,6 +44,7 @@ public abstract class AnvilMenuMixin {
         if (EffectiveBalance.usesAdditiveAnvilLevelMerging()) {
             betterenchanting$applyAdditiveAnvilLevels(menu);
         }
+        ModularMaterialCompat.reconcileRoutedEnchantments(betterenchanting$getPlayer().level().registryAccess(), menu.getSlot(AnvilMenu.RESULT_SLOT).getItem());
         EnchantmentFusionRecipes.apply(betterenchanting$getPlayer().level().registryAccess(), menu.getSlot(AnvilMenu.RESULT_SLOT).getItem());
         EnchantmentLevelRules.clampEnchantments(menu.getSlot(AnvilMenu.RESULT_SLOT).getItem());
 

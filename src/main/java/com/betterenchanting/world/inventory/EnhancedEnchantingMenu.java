@@ -2,6 +2,7 @@ package com.betterenchanting.world.inventory;
 
 import com.mojang.datafixers.util.Pair;
 import com.betterenchanting.compat.ApothicEnchantingCompat;
+import com.betterenchanting.compat.ModularMaterialCompat;
 import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.data.ApothicInfusionModifierRules;
 import com.betterenchanting.data.EnchantmentLevelRules;
@@ -433,8 +434,15 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             if (overlevelTarget.isPresent()) {
                 OverlevelTarget targetOverlevel = overlevelTarget.get();
                 player.onEnchantmentPerformed(target, xpCost);
-                ItemStack enchanted = target.copy();
-                EnchantmentLevelRules.overlevel(enchanted, targetOverlevel.enchantment());
+                Optional<ItemStack> routedOverlevel = ModularMaterialCompat.overlevelRoutedEnchantment(level.registryAccess(), target, targetOverlevel.enchantment());
+                if (routedOverlevel.isEmpty() && ModularMaterialCompat.hasRoutedParts(target)) {
+                    return;
+                }
+                ItemStack enchanted = routedOverlevel.orElseGet(() -> {
+                            ItemStack copy = target.copy();
+                            EnchantmentLevelRules.overlevel(copy, targetOverlevel.enchantment());
+                            return copy;
+                        });
                 EnchantmentLevelRules.clampEnchantments(enchanted);
                 this.enchantingSlots.setItem(TARGET_SLOT, enchanted);
                 List<EnchantmentInstance> overlevelEnchantments = List.of(new EnchantmentInstance(
@@ -486,8 +494,13 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             }
 
             player.onEnchantmentPerformed(target, xpCost);
-            ItemStack enchanted = target.getItem().applyEnchantments(target, enchantments);
+            Optional<ItemStack> routedEnchanted = ModularMaterialCompat.applyRoutedEnchantments(level.registryAccess(), target, enchantments);
+            if (routedEnchanted.isEmpty() && ModularMaterialCompat.hasRoutedParts(target)) {
+                return;
+            }
+            ItemStack enchanted = routedEnchanted.orElseGet(() -> target.getItem().applyEnchantments(target, enchantments));
             FortunesTouchEnchantmentEvents.fuseFortunesTouch(level.registryAccess(), enchanted);
+            ModularMaterialCompat.reconcileRoutedEnchantments(level.registryAccess(), enchanted);
             EnchantmentLevelRules.clampEnchantments(enchanted);
             this.enchantingSlots.setItem(TARGET_SLOT, enchanted);
             net.neoforged.neoforge.common.CommonHooks.onPlayerEnchantItem(player, enchanted, enchantments);
@@ -723,8 +736,13 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
     private static boolean canApplyWithFusion(RegistryAccess registryAccess, ItemStack target, List<EnchantmentInstance> enchantments) {
         ItemStack simulatedTarget = target.copy();
-        ItemStack simulatedResult = simulatedTarget.getItem().applyEnchantments(simulatedTarget, enchantments);
+        Optional<ItemStack> routedResult = ModularMaterialCompat.applyRoutedEnchantments(registryAccess, simulatedTarget, enchantments);
+        if (routedResult.isEmpty() && ModularMaterialCompat.hasRoutedParts(target)) {
+            return false;
+        }
+        ItemStack simulatedResult = routedResult.orElseGet(() -> simulatedTarget.getItem().applyEnchantments(simulatedTarget, enchantments));
         FortunesTouchEnchantmentEvents.fuseFortunesTouch(registryAccess, simulatedResult);
+        ModularMaterialCompat.reconcileRoutedEnchantments(registryAccess, simulatedResult);
         EnchantmentLevelRules.clampEnchantments(simulatedResult);
         return EnchantmentLimitRules.isWithinLimits(simulatedResult);
     }
@@ -745,6 +763,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
     private static boolean isEnchantingTarget(ItemStack stack) {
         return !stack.isEmpty()
+                && !ModularMaterialCompat.blocksDirectPartEnchanting(stack)
                 && (stack.getItem().isEnchantable(stack)
                 || stack.is(Items.ENCHANTED_BOOK)
                 || !EnchantmentTargetTags.resolve(stack).isEmpty());

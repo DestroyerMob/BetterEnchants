@@ -7,10 +7,12 @@ import com.betterenchanting.data.EnchantmentFusionRecipes;
 import com.betterenchanting.data.EnchantmentLimitRules;
 import com.betterenchanting.data.EssenceTradeDefinitions;
 import com.betterenchanting.data.EssenceDefinitions;
+import com.betterenchanting.data.PartEnchantmentRoutes;
 import com.betterenchanting.data.TagDisplayRules;
 import com.betterenchanting.data.TagSimplifier;
 import com.betterenchanting.network.ModNetworking;
 import com.betterenchanting.registry.CreativeTabEvents;
+import com.betterenchanting.registry.ModCreativeTabs;
 import com.betterenchanting.registry.ModDataComponents;
 import com.betterenchanting.registry.ModEffects;
 import com.betterenchanting.registry.ModBlocks;
@@ -63,6 +65,7 @@ public final class BetterEnchanting {
         ModEffects.register(modBus);
         ModGameRules.init();
         ModItems.register(modBus);
+        ModCreativeTabs.register(modBus);
         ModMenus.register(modBus);
         modBus.addListener(ModNetworking::registerPayloads);
         modBus.addListener(CreativeTabEvents::addContents);
@@ -120,6 +123,7 @@ public final class BetterEnchanting {
         event.addListener(new EnchantmentLimitRules.ReloadListener());
         event.addListener(new EnchantmentFusionRecipes.ReloadListener());
         event.addListener(new ApothicInfusionModifierRules.ReloadListener());
+        event.addListener(new PartEnchantmentRoutes.ReloadListener());
         event.addListener(new TagDisplayRules.ReloadListener());
         event.addListener(new TagSimplifier.ReloadListener());
         event.addListener(new EnchantmentTargetTags.ReloadListener());

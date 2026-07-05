@@ -24,6 +24,10 @@ public final class ModItems {
     public static final Supplier<EssenceItem> MOBILITY_ESSENCE = essence("mobility_essence", Rarity.COMMON);
     public static final Supplier<EssenceItem> VOID_ESSENCE = essence("void_essence", Rarity.UNCOMMON);
     public static final Supplier<EssenceItem> PURIFICATION_ESSENCE = essence("purification_essence", Rarity.UNCOMMON);
+    public static final DeferredItem<Item> ATTUNEMENT_FOCUS = ITEMS.registerSimpleItem(
+            "attunement_focus",
+            new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON)
+    );
     public static final DeferredItem<BlockItem> ARCANE_CRUCIBLE = ITEMS.registerSimpleBlockItem(
             "arcane_crucible",
             ModBlocks.ARCANE_CRUCIBLE

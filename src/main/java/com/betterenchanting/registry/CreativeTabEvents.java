@@ -12,6 +12,9 @@ public final class CreativeTabEvents {
         if (event.getTabKey() == CreativeModeTabs.INGREDIENTS) {
             ModItems.ESSENCES.forEach(item -> event.accept(item.get()));
         }
+        if (event.getTabKey() == CreativeModeTabs.TOOLS_AND_UTILITIES) {
+            event.accept(ModItems.ATTUNEMENT_FOCUS.get());
+        }
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS && !EffectiveBalance.takesOverEnchantingTable()) {
             event.accept(ModItems.ARCANE_CRUCIBLE.get());
         }

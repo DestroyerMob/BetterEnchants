@@ -1,20 +1,43 @@
 package com.betterenchanting.compat;
 
+import com.betterenchanting.data.EnchantmentFusionRecipes;
+import com.betterenchanting.data.EnchantmentLevelRules;
+import com.betterenchanting.data.PartEnchantmentRoutes;
+import com.betterenchanting.data.PartEnchantmentRoutes.SlotRule;
+import com.betterenchanting.registry.ModDataComponents;
+import com.betterenchanting.world.EnchantmentTargetTags;
 import com.mojang.logging.LogUtils;
+import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.function.Supplier;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Holder;
+import net.minecraft.core.HolderSet;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.component.DataComponentType;
+import net.minecraft.core.registries.Registries;
+import net.minecraft.core.Registry;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.EnchantmentTags;
+import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
+import net.minecraft.world.item.enchantment.EnchantmentInstance;
+import net.minecraft.world.item.enchantment.ItemEnchantments;
+import net.minecraft.world.level.Level;
 import org.slf4j.Logger;
 
 public final class MobsToolForgingCompat {
@@ -28,6 +51,9 @@ public final class MobsToolForgingCompat {
     private static final ResourceLocation OAK = material("oak");
     private static final ResourceLocation BLAZE = material("blaze");
     private static final ResourceLocation BREEZE = material("breeze");
+    private static final ResourceLocation HANDLE_PART_TAG = ResourceLocation.fromNamespaceAndPath("mobstoolforging", "parts/handle");
+    private static final String BETTER_ENCHANTING_NAMESPACE = "betterenchanting";
+    private static final String TARGET_TAG_PREFIX = "targets/";
     private static volatile boolean reflectionAttempted;
     private static volatile boolean runtimeWarningLogged;
     private static volatile Reflection reflection;
@@ -59,6 +85,340 @@ public final class MobsToolForgingCompat {
         return List.copyOf(tags);
     }
 
+    public static boolean blocksDirectPartEnchanting(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return false;
+        }
+
+        Reflection access = reflection();
+        if (access == null) {
+            return false;
+        }
+
+        try {
+            return stack.get(access.toolPartComponent()) != null
+                    || stack.is(TagKey.create(Registries.ITEM, HANDLE_PART_TAG));
+        } catch (LinkageError | RuntimeException exception) {
+            logRuntimeWarning(exception);
+            return false;
+        }
+    }
+
+    public static boolean hasRoutedParts(ItemStack stack) {
+        return routedTool(stack).isPresent();
+    }
+
+    public static OptionalInt routedMaxEnchantments(ItemStack stack) {
+        Optional<RoutedTool> routed = routedTool(stack);
+        if (routed.isEmpty()) {
+            return OptionalInt.empty();
+        }
+
+        int limit = 0;
+        for (RoutedSlot slot : routed.get().slots()) {
+            limit += slot.rule().limit();
+        }
+        return OptionalInt.of(Math.max(0, limit));
+    }
+
+    public static List<ResourceLocation> routedTargetTags(ItemStack stack) {
+        Optional<RoutedTool> routed = routedTool(stack);
+        if (routed.isEmpty()) {
+            return List.of();
+        }
+
+        Set<ResourceLocation> tags = new LinkedHashSet<>();
+        for (RoutedSlot slot : routed.get().slots()) {
+            tags.addAll(EnchantmentTargetTags.resolveForRouting(slot.stack()));
+        }
+        return List.copyOf(tags);
+    }
+
+    public static Set<Holder<Enchantment>> storedRoutedEnchantments(ItemStack stack) {
+        Optional<RoutedTool> routed = routedTool(stack);
+        if (routed.isEmpty()) {
+            return Set.of();
+        }
+
+        Set<Holder<Enchantment>> enchantments = new LinkedHashSet<>();
+        for (RoutedSlot slot : routed.get().slots()) {
+            addEnchantments(enchantments, EnchantmentHelper.getEnchantmentsForCrafting(slot.stack()));
+        }
+        return Set.copyOf(enchantments);
+    }
+
+    public static boolean canApplyRoutedEnchantments(RegistryAccess registryAccess, ItemStack target, Iterable<Holder<Enchantment>> additions) {
+        if (target.isEmpty()) {
+            return false;
+        }
+
+        ItemStack simulated = target.copy();
+        Optional<RoutedTool> routed = routedTool(simulated);
+        if (routed.isEmpty()) {
+            return false;
+        }
+
+        for (Holder<Enchantment> addition : additions) {
+            if (!assignToBestSlot(routed.get(), addition, 1, false)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static Optional<ItemStack> applyRoutedEnchantments(RegistryAccess registryAccess, ItemStack target, List<EnchantmentInstance> additions) {
+        if (target.isEmpty() || additions.isEmpty()) {
+            return Optional.empty();
+        }
+
+        ItemStack result = target.copy();
+        Optional<RoutedTool> routed = routedTool(result);
+        if (routed.isEmpty()) {
+            return Optional.empty();
+        }
+
+        RoutedTool routedTool = routed.get();
+        for (EnchantmentInstance addition : additions) {
+            if (!assignToBestSlot(routedTool, addition.enchantment, addition.level, false)) {
+                return Optional.empty();
+            }
+        }
+        routedTool.writeParts(result);
+        syncRoutedToolEnchantments(registryAccess, result);
+        return Optional.of(result);
+    }
+
+    public static Optional<ItemStack> overlevelRoutedEnchantment(RegistryAccess registryAccess, ItemStack target, Holder<Enchantment> enchantment) {
+        if (target.isEmpty()) {
+            return Optional.empty();
+        }
+
+        ItemStack result = target.copy();
+        Optional<RoutedTool> routed = routedTool(result);
+        if (routed.isEmpty()) {
+            return Optional.empty();
+        }
+
+        if (!assignToBestSlot(routed.get(), enchantment, EnchantmentLevelRules.overlevelMaxLevel(enchantment), true)) {
+            return Optional.empty();
+        }
+        routed.get().writeParts(result);
+        syncRoutedToolEnchantments(registryAccess, result);
+        return Optional.of(result);
+    }
+
+    public static boolean reconcileRoutedEnchantments(RegistryAccess registryAccess, ItemStack stack) {
+        if (stack.isEmpty()) {
+            return false;
+        }
+
+        Optional<RoutedTool> routed = routedTool(stack);
+        if (routed.isEmpty()) {
+            return false;
+        }
+
+        ItemEnchantments requested = EnchantmentHelper.getEnchantmentsForCrafting(stack);
+        ItemEnchantments routedVisible = visibleEnchantments(registryAccess, stack, routed.get());
+        boolean changed = false;
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : requested.entrySet()) {
+            int routedLevel = routedVisible.getLevel(entry.getKey());
+            if (entry.getIntValue() > routedLevel) {
+                changed |= assignToBestSlot(routed.get(), entry.getKey(), entry.getIntValue(), false);
+            }
+        }
+        if (changed) {
+            routed.get().writeParts(stack);
+        }
+        return syncRoutedToolEnchantments(registryAccess, stack) || changed;
+    }
+
+    public static boolean syncRoutedToolEnchantments(RegistryAccess registryAccess, ItemStack stack) {
+        if (stack.isEmpty()) {
+            return false;
+        }
+
+        Optional<RoutedTool> routed = routedTool(stack);
+        if (routed.isEmpty()) {
+            return false;
+        }
+
+        ItemEnchantments before = EnchantmentHelper.getEnchantmentsForCrafting(stack);
+        ItemEnchantments visible = visibleEnchantments(registryAccess, stack, routed.get());
+        if (!before.equals(visible)) {
+            EnchantmentHelper.setEnchantments(stack, visible);
+        }
+        EnchantmentLevelRules.clampEnchantments(stack);
+        return !before.equals(EnchantmentHelper.getEnchantmentsForCrafting(stack));
+    }
+
+    public static Optional<RoutedEnchantmentBreakdown> routedEnchantmentBreakdown(RegistryAccess registryAccess, ItemStack stack) {
+        if (stack.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Optional<RoutedTool> routed = routedTool(stack);
+        if (routed.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Registry<Enchantment> registry = registryAccess.registryOrThrow(Registries.ENCHANTMENT);
+        List<RoutedPartBreakdown> parts = new ArrayList<>();
+        boolean hasStoredEnchantments = false;
+        for (RoutedSlot slot : routed.get().slots()) {
+            List<RoutedEnchantmentState> enchantments = new ArrayList<>();
+            int carried = 0;
+            for (EnchantmentEntry entry : orderedEntries(slot.stack(), registry)) {
+                boolean canCarry = slotCanCarry(slot, entry.enchantment());
+                boolean active = canCarry && carried < slot.rule().limit();
+                if (canCarry) {
+                    carried++;
+                }
+                enchantments.add(new RoutedEnchantmentState(
+                        entry.enchantment(),
+                        enchantmentId(entry.enchantment()),
+                        entry.level(),
+                        active,
+                        active ? Optional.empty() : Optional.of(canCarry ? "slot_limit" : "incompatible")
+                ));
+            }
+            hasStoredEnchantments |= !enchantments.isEmpty();
+            parts.add(new RoutedPartBreakdown(
+                    slot.partIndex(),
+                    slot.rule().id().or(() -> slot.rule().partType()).orElse("part_" + slot.partIndex()),
+                    slot.rule().partType(),
+                    slot.rule().limit(),
+                    slot.stack().copyWithCount(1),
+                    List.copyOf(enchantments)
+            ));
+        }
+
+        if (parts.isEmpty() || !hasStoredEnchantments) {
+            return Optional.empty();
+        }
+        return Optional.of(new RoutedEnchantmentBreakdown(List.copyOf(parts), visibleEnchantments(registryAccess, stack, routed.get())));
+    }
+
+    public static boolean promoteRoutedEnchantment(RegistryAccess registryAccess, ItemStack stack, int partIndex, ResourceLocation enchantmentId) {
+        if (stack.isEmpty()) {
+            return false;
+        }
+
+        Optional<RoutedTool> routed = routedTool(stack);
+        if (routed.isEmpty()) {
+            return false;
+        }
+
+        Registry<Enchantment> registry = registryAccess.registryOrThrow(Registries.ENCHANTMENT);
+        Optional<Holder.Reference<Enchantment>> enchantment = registry.getHolder(ResourceKey.create(Registries.ENCHANTMENT, enchantmentId));
+        if (enchantment.isEmpty()) {
+            return false;
+        }
+
+        for (RoutedSlot slot : routed.get().slots()) {
+            if (slot.partIndex() != partIndex) {
+                continue;
+            }
+            if (!slotCanCarry(slot, enchantment.get()) || EnchantmentHelper.getEnchantmentsForCrafting(slot.stack()).getLevel(enchantment.get()) <= 0) {
+                return false;
+            }
+
+            List<ResourceLocation> priority = new ArrayList<>();
+            priority.add(enchantmentId);
+            for (ResourceLocation existing : routedPriority(slot.stack())) {
+                if (!existing.equals(enchantmentId) && !priority.contains(existing)) {
+                    priority.add(existing);
+                }
+            }
+            for (EnchantmentEntry entry : orderedEntries(slot.stack(), registry)) {
+                ResourceLocation existing = enchantmentId(entry.enchantment());
+                if (!existing.equals(enchantmentId) && !priority.contains(existing)) {
+                    priority.add(existing);
+                }
+            }
+
+            slot.stack().set(ModDataComponents.ROUTED_ENCHANTMENT_PRIORITY.get(), List.copyOf(priority));
+            routed.get().writeParts(stack);
+            syncRoutedToolEnchantments(registryAccess, stack);
+            return true;
+        }
+        return false;
+    }
+
+    public static Optional<RoutedEnchantmentBreakdown> stationRoutedEnchantmentBreakdown(Level level, BlockPos pos) {
+        return stationRoutedEnchantmentPreview(level, pos)
+                .flatMap(StationRoutedEnchantmentPreview::breakdown);
+    }
+
+    public static Optional<StationRoutedEnchantmentPreview> stationRoutedEnchantmentPreview(Level level, BlockPos pos) {
+        if (level == null) {
+            return Optional.empty();
+        }
+
+        Reflection access = reflection();
+        if (access == null) {
+            return Optional.empty();
+        }
+
+        Object station = level.getBlockEntity(pos);
+        if (!access.toolForgeBlockEntityClass().isInstance(station)) {
+            return Optional.empty();
+        }
+
+        List<ItemStack> stacks = stationBenchStacks(access, station);
+        Optional<ItemStack> preview = stationFinishedTool(access, stacks);
+        if (preview.isEmpty()) {
+            return Optional.empty();
+        }
+
+        ItemStack toolStack = preview.get().copyWithCount(1);
+        Optional<RoutedEnchantmentBreakdown> breakdown = routedEnchantmentBreakdown(level.registryAccess(), preview.get());
+        if (breakdown.isPresent()) {
+            return Optional.of(new StationRoutedEnchantmentPreview(toolStack, breakdown, ""));
+        }
+
+        if (toolAssemblyParts(access, preview.get()).isEmpty()) {
+            return Optional.of(new StationRoutedEnchantmentPreview(toolStack, Optional.empty(), "This tool has no stored part data"));
+        }
+        if (PartEnchantmentRoutes.routeFor(preview.get()).isEmpty()) {
+            return Optional.of(new StationRoutedEnchantmentPreview(toolStack, Optional.empty(), "No enchantment route is defined for this tool"));
+        }
+        return Optional.of(new StationRoutedEnchantmentPreview(toolStack, Optional.empty(), "No enchantments are stored on these parts"));
+    }
+
+    public static boolean promoteStationRoutedEnchantment(Level level, BlockPos pos, int partIndex, ResourceLocation enchantmentId) {
+        if (level == null || level.isClientSide || partIndex < 0) {
+            return false;
+        }
+
+        Reflection access = reflection();
+        if (access == null) {
+            return false;
+        }
+
+        Object station = level.getBlockEntity(pos);
+        if (!access.toolForgeBlockEntityClass().isInstance(station)) {
+            return false;
+        }
+
+        List<ItemStack> stationStacks = stationBenchStacks(access, station);
+        ItemStack preview = stationFinishedTool(access, stationStacks).orElse(ItemStack.EMPTY);
+        if (preview.isEmpty() || !promoteRoutedEnchantment(level.registryAccess(), preview, partIndex, enchantmentId)) {
+            return false;
+        }
+
+        return replaceToolmakerStack(access, station, 0, preview);
+    }
+
+    private static boolean replaceToolmakerStack(Reflection access, Object station, int stackIndex, ItemStack replacement) {
+        try {
+            Object result = access.replaceToolmakerStack().invoke(station, stackIndex, replacement);
+            return result instanceof Boolean replaced && replaced;
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
+            logRuntimeWarning(exception);
+            return false;
+        }
+    }
+
     public static boolean blocksFinishedToolEnchanting(ItemStack stack) {
         if (stack.isEmpty()) {
             return false;
@@ -74,6 +434,324 @@ public final class MobsToolForgingCompat {
         } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
             logRuntimeWarning(exception);
             return false;
+        }
+    }
+
+    private static Optional<RoutedTool> routedTool(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Reflection access = reflection();
+        if (access == null) {
+            return Optional.empty();
+        }
+
+        try {
+            Object construction = stack.get(access.toolConstructionComponent());
+            Object assembly = stack.get(access.toolAssemblyPartsComponent());
+            if (construction == null || assembly == null) {
+                return Optional.empty();
+            }
+
+            Optional<PartEnchantmentRoutes.Route> route = PartEnchantmentRoutes.routeFor(stack);
+            if (route.isEmpty()) {
+                return Optional.empty();
+            }
+
+            List<ItemStack> parts = copyAssemblyStacks(access, assembly);
+            if (parts.isEmpty()) {
+                return Optional.empty();
+            }
+
+            List<RoutedSlot> slots = matchSlots(route.get(), parts);
+            if (slots.isEmpty()) {
+                return Optional.empty();
+            }
+            return Optional.of(new RoutedTool(access, route.get(), parts, slots));
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
+            logRuntimeWarning(exception);
+            return Optional.empty();
+        }
+    }
+
+    private static Optional<ItemStack> stationPreviewTool(Level level, BlockPos pos) {
+        if (level == null) {
+            return Optional.empty();
+        }
+
+        Reflection access = reflection();
+        if (access == null) {
+            return Optional.empty();
+        }
+
+        Object station = level.getBlockEntity(pos);
+        if (!access.toolForgeBlockEntityClass().isInstance(station)) {
+            return Optional.empty();
+        }
+        return stationPreviewTool(access, stationBenchStacks(access, station), level.registryAccess());
+    }
+
+    private static Optional<ItemStack> stationPreviewTool(Reflection access, List<ItemStack> stacks, RegistryAccess registryAccess) {
+        return stationFinishedTool(access, stacks);
+    }
+
+    private static Optional<ItemStack> stationFinishedTool(Reflection access, List<ItemStack> stacks) {
+        if (stacks.size() != 1) {
+            return Optional.empty();
+        }
+
+        return finishedToolStack(access, stacks.get(0));
+    }
+
+    private static Optional<ItemStack> finishedToolStack(Reflection access, ItemStack stack) {
+        try {
+            return stack.get(access.toolConstructionComponent()) == null
+                    ? Optional.empty()
+                    : Optional.of(stack.copyWithCount(1));
+        } catch (LinkageError | RuntimeException exception) {
+            logRuntimeWarning(exception);
+            return Optional.empty();
+        }
+    }
+
+    private static List<ItemStack> stationBenchStacks(Reflection access, Object station) {
+        try {
+            Object value = access.toolForgeBenchStacks().invoke(station);
+            if (!(value instanceof List<?> list)) {
+                return List.of();
+            }
+
+            List<ItemStack> stacks = new ArrayList<>(list.size());
+            for (Object entry : list) {
+                if (entry instanceof ItemStack stack && !stack.isEmpty()) {
+                    stacks.add(stack.copyWithCount(1));
+                }
+            }
+            return List.copyOf(stacks);
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
+            logRuntimeWarning(exception);
+            return List.of();
+        }
+    }
+
+    private static List<ItemStack> assemblyStacksFromTool(Reflection access, ItemStack stack) {
+        Object assembly = toolAssemblyParts(access, stack).orElse(null);
+        if (assembly == null) {
+            return List.of();
+        }
+        try {
+            return copyAssemblyStacks(access, assembly);
+        } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
+            logRuntimeWarning(exception);
+            return List.of();
+        }
+    }
+
+    private static Optional<Object> toolAssemblyParts(Reflection access, ItemStack stack) {
+        try {
+            Object assembly = stack.get(access.toolAssemblyPartsComponent());
+            return assembly == null ? Optional.empty() : Optional.of(assembly);
+        } catch (LinkageError | RuntimeException exception) {
+            logRuntimeWarning(exception);
+            return Optional.empty();
+        }
+    }
+
+    private static List<ItemStack> copyAssemblyStacks(Reflection access, Object assembly) throws ReflectiveOperationException {
+        Object value = access.assemblyCopyStacks().invoke(assembly);
+        if (!(value instanceof List<?> list)) {
+            return List.of();
+        }
+
+        List<ItemStack> stacks = new ArrayList<>(list.size());
+        for (Object entry : list) {
+            if (entry instanceof ItemStack stack && !stack.isEmpty()) {
+                stacks.add(stack.copyWithCount(1));
+            }
+        }
+        return stacks;
+    }
+
+    private static List<RoutedSlot> matchSlots(PartEnchantmentRoutes.Route route, List<ItemStack> parts) {
+        List<RoutedSlot> slots = new ArrayList<>();
+        boolean[] used = new boolean[parts.size()];
+        for (SlotRule rule : route.slots()) {
+            for (int index = 0; index < parts.size(); index++) {
+                if (used[index]) {
+                    continue;
+                }
+
+                ItemStack part = parts.get(index);
+                if (rule.matches(part, partType(part))) {
+                    used[index] = true;
+                    slots.add(new RoutedSlot(rule, part, index));
+                    break;
+                }
+            }
+        }
+        return List.copyOf(slots);
+    }
+
+    private static boolean assignToBestSlot(RoutedTool routed, Holder<Enchantment> enchantment, int level, boolean requireExisting) {
+        if (level <= 0) {
+            return true;
+        }
+
+        RoutedSlot existing = null;
+        for (RoutedSlot slot : routed.slots()) {
+            if (slotCanCarry(slot, enchantment) && EnchantmentHelper.getEnchantmentsForCrafting(slot.stack()).getLevel(enchantment) > 0) {
+                existing = slot;
+                break;
+            }
+        }
+        if (existing != null) {
+            return setPartEnchantment(existing.stack(), enchantment, level);
+        }
+        if (requireExisting) {
+            return false;
+        }
+
+        for (RoutedSlot slot : routed.slots()) {
+            if (slot.rule().limit() > 0 && slotCanCarry(slot, enchantment) && slotEnchantmentCount(slot) < slot.rule().limit()) {
+                return setPartEnchantment(slot.stack(), enchantment, level);
+            }
+        }
+        return false;
+    }
+
+    private static boolean setPartEnchantment(ItemStack stack, Holder<Enchantment> enchantment, int level) {
+        int clampedLevel = EnchantmentLevelRules.clampLevel(enchantment, level);
+        if (level > enchantment.value().getMaxLevel()) {
+            clampedLevel = Math.min(level, EnchantmentLevelRules.overlevelMaxLevel(enchantment));
+        }
+        if (clampedLevel <= 0) {
+            return false;
+        }
+
+        ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(EnchantmentHelper.getEnchantmentsForCrafting(stack));
+        int existingLevel = mutable.getLevel(enchantment);
+        int newLevel = Math.max(existingLevel, clampedLevel);
+        if (existingLevel >= newLevel) {
+            return false;
+        }
+
+        mutable.set(enchantment, newLevel);
+        EnchantmentHelper.setEnchantments(stack, mutable.toImmutable());
+        EnchantmentLevelRules.clampEnchantments(stack);
+        return true;
+    }
+
+    private static int slotEnchantmentCount(RoutedSlot slot) {
+        int count = 0;
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : EnchantmentHelper.getEnchantmentsForCrafting(slot.stack()).entrySet()) {
+            if (entry.getIntValue() > 0 && slotCanCarry(slot, entry.getKey())) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private static boolean slotCanCarry(RoutedSlot slot, Holder<Enchantment> enchantment) {
+        Set<ResourceLocation> enchantmentTargets = betterEnchantingTargetTags(enchantment);
+        if (!enchantmentTargets.isEmpty()) {
+            List<ResourceLocation> partTargets = EnchantmentTargetTags.resolveForRouting(slot.stack());
+            for (ResourceLocation target : enchantmentTargets) {
+                if (partTargets.contains(target)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return slot.stack().supportsEnchantment(enchantment);
+    }
+
+    private static Set<ResourceLocation> betterEnchantingTargetTags(Holder<Enchantment> enchantment) {
+        return enchantment.tags()
+                .map(TagKey::location)
+                .filter(MobsToolForgingCompat::isBetterEnchantingTargetTag)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    private static boolean isBetterEnchantingTargetTag(ResourceLocation tagId) {
+        return BETTER_ENCHANTING_NAMESPACE.equals(tagId.getNamespace())
+                && tagId.getPath().startsWith(TARGET_TAG_PREFIX);
+    }
+
+    private static ItemEnchantments visibleEnchantments(RegistryAccess registryAccess, ItemStack target, RoutedTool routed) {
+        Registry<Enchantment> registry = registryAccess.registryOrThrow(Registries.ENCHANTMENT);
+        Map<Holder<Enchantment>, Integer> active = new LinkedHashMap<>();
+        for (RoutedSlot slot : routed.slots()) {
+            int slotCount = 0;
+            for (EnchantmentEntry entry : orderedEntries(slot.stack(), registry)) {
+                if (!slotCanCarry(slot, entry.enchantment())) {
+                    continue;
+                }
+                if (slotCount++ >= slot.rule().limit()) {
+                    continue;
+                }
+                active.merge(entry.enchantment(), entry.level(), Math::max);
+            }
+        }
+
+        ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+        active.forEach(mutable::set);
+        ItemStack visible = target.copy();
+        EnchantmentHelper.setEnchantments(visible, mutable.toImmutable());
+        EnchantmentFusionRecipes.apply(registryAccess, visible);
+        EnchantmentLevelRules.clampEnchantments(visible);
+        return EnchantmentHelper.getEnchantmentsForCrafting(visible);
+    }
+
+    private static List<EnchantmentEntry> orderedEntries(ItemStack stack, Registry<Enchantment> registry) {
+        ItemEnchantments source = EnchantmentHelper.getEnchantmentsForCrafting(stack);
+        if (source.isEmpty()) {
+            return List.of();
+        }
+
+        List<EnchantmentEntry> entries = new ArrayList<>();
+        Set<Holder<Enchantment>> added = new HashSet<>();
+        for (ResourceLocation priority : routedPriority(stack)) {
+            registry.getHolder(ResourceKey.create(Registries.ENCHANTMENT, priority))
+                    .ifPresent(enchantment -> addOrderedEntry(entries, added, source, enchantment));
+        }
+        Optional<HolderSet.Named<Enchantment>> ordered = registry.getTag(EnchantmentTags.TOOLTIP_ORDER);
+        if (ordered.isPresent()) {
+            for (Holder<Enchantment> enchantment : ordered.get()) {
+                addOrderedEntry(entries, added, source, enchantment);
+            }
+        }
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : source.entrySet()) {
+            if (entry.getIntValue() > 0 && added.add(entry.getKey())) {
+                entries.add(new EnchantmentEntry(entry.getKey(), entry.getIntValue()));
+            }
+        }
+        return List.copyOf(entries);
+    }
+
+    private static void addOrderedEntry(List<EnchantmentEntry> entries, Set<Holder<Enchantment>> added, ItemEnchantments source, Holder<Enchantment> enchantment) {
+        int level = source.getLevel(enchantment);
+        if (level > 0 && added.add(enchantment)) {
+            entries.add(new EnchantmentEntry(enchantment, level));
+        }
+    }
+
+    private static List<ResourceLocation> routedPriority(ItemStack stack) {
+        List<ResourceLocation> priority = stack.get(ModDataComponents.ROUTED_ENCHANTMENT_PRIORITY.get());
+        return priority == null ? List.of() : priority;
+    }
+
+    private static ResourceLocation enchantmentId(Holder<Enchantment> enchantment) {
+        return enchantment.unwrapKey()
+                .map(ResourceKey::location)
+                .orElseGet(() -> ResourceLocation.fromNamespaceAndPath(BETTER_ENCHANTING_NAMESPACE, "unknown"));
+    }
+
+    private static void addEnchantments(Set<Holder<Enchantment>> output, ItemEnchantments source) {
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : source.entrySet()) {
+            if (entry.getIntValue() > 0) {
+                output.add(entry.getKey());
+            }
         }
     }
 
@@ -257,7 +935,9 @@ public final class MobsToolForgingCompat {
             try {
                 Class<?> modDataComponentsClass = Class.forName("org.destroyermob.mobstoolforging.registry.ModDataComponents");
                 Class<?> constructionClass = Class.forName("org.destroyermob.mobstoolforging.world.ToolConstructionData");
+                Class<?> assemblyPartsClass = Class.forName("org.destroyermob.mobstoolforging.world.ToolAssemblyParts");
                 Class<?> partClass = Class.forName("org.destroyermob.mobstoolforging.world.ToolPartData");
+                Class<?> toolForgeBlockEntityClass = Class.forName("org.destroyermob.mobstoolforging.world.ToolForgeBlockEntity");
 
                 Field toolConstructionField = modDataComponentsClass.getField("TOOL_CONSTRUCTION");
                 Object toolConstructionHolder = toolConstructionField.get(null);
@@ -268,6 +948,17 @@ public final class MobsToolForgingCompat {
                 Object toolConstructionComponent = toolConstructionSupplier.get();
                 if (!(toolConstructionComponent instanceof DataComponentType<?> toolConstructionComponentType)) {
                     throw new IllegalStateException("Mobs Tool Forging TOOL_CONSTRUCTION did not resolve to a data component type");
+                }
+
+                Field toolAssemblyPartsField = modDataComponentsClass.getField("TOOL_ASSEMBLY_PARTS");
+                Object toolAssemblyPartsHolder = toolAssemblyPartsField.get(null);
+                if (!(toolAssemblyPartsHolder instanceof Supplier<?> toolAssemblyPartsSupplier)) {
+                    throw new IllegalStateException("Mobs Tool Forging TOOL_ASSEMBLY_PARTS did not resolve to a component holder");
+                }
+
+                Object toolAssemblyPartsComponent = toolAssemblyPartsSupplier.get();
+                if (!(toolAssemblyPartsComponent instanceof DataComponentType<?> toolAssemblyPartsComponentType)) {
+                    throw new IllegalStateException("Mobs Tool Forging TOOL_ASSEMBLY_PARTS did not resolve to a data component type");
                 }
 
                 Field toolPartField = modDataComponentsClass.getField("TOOL_PART");
@@ -295,7 +986,10 @@ public final class MobsToolForgingCompat {
 
                 reflection = new Reflection(
                         toolConstructionComponentType,
+                        toolAssemblyPartsComponentType,
                         toolPartComponentType,
+                        assemblyPartsClass.getMethod("copyStacks"),
+                        assemblyPartsClass.getMethod("from", List.class),
                         constructionClass.getMethod("headMaterial"),
                         constructionClass.getMethod("handleMaterial"),
                         constructionClass.getMethod("bindingMaterial"),
@@ -304,6 +998,10 @@ public final class MobsToolForgingCompat {
                         constructionClass.getMethod("treatment"),
                         partClass.getMethod("partType"),
                         partClass.getMethod("materialId"),
+                        toolForgeBlockEntityClass,
+                        toolForgeBlockEntityClass.getMethod("benchStacks"),
+                        toolForgeBlockEntityClass.getMethod("replaceToolmakerAssemblyStack", int.class, ItemStack.class),
+                        toolForgeBlockEntityClass.getMethod("replaceToolmakerStack", int.class, ItemStack.class),
                         finishedToolEnchantingValue,
                         configValueGetter
                 );
@@ -332,9 +1030,51 @@ public final class MobsToolForgingCompat {
         return ResourceLocation.fromNamespaceAndPath("mobstoolforging", path);
     }
 
+    private record RoutedTool(
+            Reflection access,
+            PartEnchantmentRoutes.Route route,
+            List<ItemStack> parts,
+            List<RoutedSlot> slots
+    ) {
+        private void writeParts(ItemStack stack) {
+            try {
+                Object assemblyParts = access.assemblyFromStacks().invoke(null, parts);
+                setComponent(stack, access.toolAssemblyPartsComponent(), assemblyParts);
+            } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
+                logRuntimeWarning(exception);
+            }
+        }
+    }
+
+    private record RoutedSlot(SlotRule rule, ItemStack stack, int partIndex) {
+    }
+
+    private record EnchantmentEntry(Holder<Enchantment> enchantment, int level) {
+    }
+
+    public record RoutedEnchantmentBreakdown(List<RoutedPartBreakdown> parts, ItemEnchantments visibleEnchantments) {
+    }
+
+    public record StationRoutedEnchantmentPreview(ItemStack toolStack, Optional<RoutedEnchantmentBreakdown> breakdown, String status) {
+    }
+
+    public record RoutedPartBreakdown(int partIndex, String slotId, Optional<String> partType, int limit, ItemStack partStack, List<RoutedEnchantmentState> enchantments) {
+    }
+
+    public record RoutedEnchantmentState(Holder<Enchantment> enchantment, ResourceLocation enchantmentId, int level, boolean active, Optional<String> inactiveReason) {
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static void setComponent(ItemStack stack, DataComponentType<?> component, Object value) {
+        stack.set((DataComponentType) component, value);
+    }
+
     private record Reflection(
             DataComponentType<?> toolConstructionComponent,
+            DataComponentType<?> toolAssemblyPartsComponent,
             DataComponentType<?> toolPartComponent,
+            Method assemblyCopyStacks,
+            Method assemblyFromStacks,
             Method headMaterial,
             Method handleMaterial,
             Method bindingMaterial,
@@ -343,6 +1083,10 @@ public final class MobsToolForgingCompat {
             Method treatment,
             Method partType,
             Method partMaterial,
+            Class<?> toolForgeBlockEntityClass,
+            Method toolForgeBenchStacks,
+            Method replaceToolmakerAssemblyStack,
+            Method replaceToolmakerStack,
             Object allowFinishedToolEnchantingConfig,
             Method allowFinishedToolEnchantingGetter
     ) {

@@ -40,11 +40,21 @@ public final class EnchantmentTargetTags {
         return resolve(target, false);
     }
 
-    private static List<ResourceLocation> resolve(ItemStack target, boolean blockFinishedToolEnchanting) {
+    public static List<ResourceLocation> resolveForRouting(ItemStack target) {
+        return resolve(target, false);
+    }
+
+    private static List<ResourceLocation> resolve(ItemStack target, boolean directTarget) {
         if (target.isEmpty() || isBookTarget(target)) {
             return List.of();
         }
-        if (blockFinishedToolEnchanting && ModularMaterialCompat.blocksFinishedToolEnchanting(target)) {
+        if (directTarget) {
+            List<ResourceLocation> routedTags = ModularMaterialCompat.routedTargetTags(target);
+            if (!routedTags.isEmpty()) {
+                return routedTags;
+            }
+        }
+        if (directTarget && ModularMaterialCompat.blocksFinishedToolEnchanting(target)) {
             return List.of();
         }
 

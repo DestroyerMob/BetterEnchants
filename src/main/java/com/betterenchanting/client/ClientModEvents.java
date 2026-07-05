@@ -2,6 +2,7 @@ package com.betterenchanting.client;
 
 import com.betterenchanting.data.EnchantmentLimitRules;
 import com.betterenchanting.data.EssenceDefinitions;
+import com.betterenchanting.data.PartEnchantmentRoutes;
 import com.betterenchanting.data.TagDisplayRules;
 import com.betterenchanting.data.TagSimplifier;
 import com.betterenchanting.registry.ModMenus;
@@ -23,6 +24,9 @@ public final class ClientModEvents {
         modBus.addListener(ClientInputEvents::registerKeyMappings);
         NeoForge.EVENT_BUS.addListener(ClientInputEvents::detectFlashStep);
         NeoForge.EVENT_BUS.addListener(ResonanceHighlights::render);
+        NeoForge.EVENT_BUS.addListener(RoutedEnchantmentOrbOverlay::render);
+        NeoForge.EVENT_BUS.addListener(RoutedEnchantmentOrbOverlay::renderGui);
+        NeoForge.EVENT_BUS.addListener(RoutedEnchantmentOrbOverlay::handleInteraction);
     }
 
     public static void registerScreens(RegisterMenuScreensEvent event) {
@@ -32,6 +36,7 @@ public final class ClientModEvents {
     private static void registerReloadListeners(RegisterClientReloadListenersEvent event) {
         event.registerReloadListener(new EssenceDefinitions.ReloadListener());
         event.registerReloadListener(new EnchantmentLimitRules.ReloadListener());
+        event.registerReloadListener(new PartEnchantmentRoutes.ReloadListener());
         event.registerReloadListener(new EnchantmentTargetTags.ReloadListener());
         event.registerReloadListener(new TagDisplayRules.ReloadListener());
         event.registerReloadListener(new TagSimplifier.ReloadListener());

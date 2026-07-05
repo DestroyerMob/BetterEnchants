@@ -4,11 +4,16 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
+import net.minecraft.core.Holder;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.enchantment.EnchantmentInstance;
 
 public final class ModularMaterialCompat {
     private ModularMaterialCompat() {
@@ -46,6 +51,42 @@ public final class ModularMaterialCompat {
 
     public static boolean blocksFinishedToolEnchanting(ItemStack stack) {
         return MobsToolForgingCompat.blocksFinishedToolEnchanting(stack);
+    }
+
+    public static boolean blocksDirectPartEnchanting(ItemStack stack) {
+        return MobsToolForgingCompat.blocksDirectPartEnchanting(stack);
+    }
+
+    public static boolean hasRoutedParts(ItemStack stack) {
+        return MobsToolForgingCompat.hasRoutedParts(stack);
+    }
+
+    public static OptionalInt routedMaxEnchantments(ItemStack stack) {
+        return MobsToolForgingCompat.routedMaxEnchantments(stack);
+    }
+
+    public static List<ResourceLocation> routedTargetTags(ItemStack stack) {
+        return MobsToolForgingCompat.routedTargetTags(stack);
+    }
+
+    public static Set<Holder<Enchantment>> storedRoutedEnchantments(ItemStack stack) {
+        return MobsToolForgingCompat.storedRoutedEnchantments(stack);
+    }
+
+    public static boolean canApplyRoutedEnchantments(RegistryAccess registryAccess, ItemStack target, Iterable<Holder<Enchantment>> additions) {
+        return MobsToolForgingCompat.canApplyRoutedEnchantments(registryAccess, target, additions);
+    }
+
+    public static java.util.Optional<ItemStack> applyRoutedEnchantments(RegistryAccess registryAccess, ItemStack target, List<EnchantmentInstance> additions) {
+        return MobsToolForgingCompat.applyRoutedEnchantments(registryAccess, target, additions);
+    }
+
+    public static java.util.Optional<ItemStack> overlevelRoutedEnchantment(RegistryAccess registryAccess, ItemStack target, Holder<Enchantment> enchantment) {
+        return MobsToolForgingCompat.overlevelRoutedEnchantment(registryAccess, target, enchantment);
+    }
+
+    public static boolean reconcileRoutedEnchantments(RegistryAccess registryAccess, ItemStack stack) {
+        return MobsToolForgingCompat.reconcileRoutedEnchantments(registryAccess, stack);
     }
 
     private static void mergeCounts(Map<ResourceLocation, Integer> counts, Map<ResourceLocation, Integer> additions) {

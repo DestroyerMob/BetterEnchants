@@ -3,6 +3,7 @@ package com.betterenchanting.world;
 import com.betterenchanting.BetterEnchanting;
 import com.betterenchanting.compat.ApothicEnchantingCompat;
 import com.betterenchanting.config.EffectiveBalance;
+import com.betterenchanting.compat.ModularMaterialCompat;
 import com.betterenchanting.data.EssenceDefinition;
 import com.betterenchanting.data.EssenceDefinitions;
 import com.betterenchanting.data.EnchantmentFusionRecipes;
@@ -277,6 +278,10 @@ public final class EnchantingRoller {
     }
 
     private static Set<Holder<Enchantment>> existingEnchantments(ItemStack stack) {
+        if (ModularMaterialCompat.hasRoutedParts(stack)) {
+            return ModularMaterialCompat.storedRoutedEnchantments(stack);
+        }
+
         Set<Holder<Enchantment>> enchantments = new LinkedHashSet<>();
         addExistingEnchantments(enchantments, stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY));
         addExistingEnchantments(enchantments, stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY));
@@ -333,6 +338,17 @@ public final class EnchantingRoller {
             Set<Holder<Enchantment>> selectedEnchantments,
             Holder<Enchantment> candidate
     ) {
+        if (ModularMaterialCompat.hasRoutedParts(target)) {
+            List<EnchantmentInstance> additions = new ArrayList<>();
+            for (Holder<Enchantment> selected : selectedEnchantments) {
+                additions.add(new EnchantmentInstance(selected, 1));
+            }
+            additions.add(new EnchantmentInstance(candidate, 1));
+            return ModularMaterialCompat.applyRoutedEnchantments(registryAccess, target, additions)
+                    .map(EnchantmentLimitRules::isWithinLimits)
+                    .orElse(false);
+        }
+
         Set<Holder<Enchantment>> enchantments = new LinkedHashSet<>(existingEnchantments);
         enchantments.addAll(selectedEnchantments);
         enchantments.add(candidate);
