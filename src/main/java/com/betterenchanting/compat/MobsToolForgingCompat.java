@@ -251,6 +251,36 @@ public final class MobsToolForgingCompat {
         return !before.equals(EnchantmentHelper.getEnchantmentsForCrafting(stack));
     }
 
+    public static boolean removeNonCurseRoutedEnchantments(RegistryAccess registryAccess, ItemStack stack) {
+        if (stack.isEmpty()) {
+            return false;
+        }
+
+        Optional<RoutedTool> routed = routedTool(stack);
+        if (routed.isEmpty()) {
+            return false;
+        }
+
+        boolean changed = false;
+        for (RoutedSlot slot : routed.get().slots()) {
+            boolean partChanged = EnchantmentLevelRules.removeNonCurseEnchantments(slot.stack());
+            if (partChanged) {
+                slot.stack().remove(ModDataComponents.ROUTED_ENCHANTMENT_PRIORITY.get());
+                changed = true;
+            } else if (EnchantmentHelper.getEnchantmentsForCrafting(slot.stack()).isEmpty()
+                    && slot.stack().has(ModDataComponents.ROUTED_ENCHANTMENT_PRIORITY.get())) {
+                slot.stack().remove(ModDataComponents.ROUTED_ENCHANTMENT_PRIORITY.get());
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            routed.get().writeParts(stack);
+            stack.remove(ModDataComponents.ROUTED_OVERLEVEL_BONUS_PRIORITY.get());
+        }
+        return syncRoutedToolEnchantments(registryAccess, stack) || changed;
+    }
+
     public static Optional<RoutedEnchantmentBreakdown> routedEnchantmentBreakdown(RegistryAccess registryAccess, ItemStack stack) {
         if (stack.isEmpty()) {
             return Optional.empty();
@@ -262,6 +292,8 @@ public final class MobsToolForgingCompat {
         }
 
         Registry<Enchantment> registry = registryAccess.registryOrThrow(Registries.ENCHANTMENT);
+        Map<Holder<Enchantment>, Integer> activeEnchantments = activeRoutedEnchantments(registry, routed.get());
+        Optional<ResourceLocation> selectedOverlevelBonus = selectedOverlevelBonus(stack, activeEnchantments);
         List<RoutedPartBreakdown> parts = new ArrayList<>();
         boolean hasStoredEnchantments = false;
         for (RoutedSlot slot : routed.get().slots()) {
@@ -273,11 +305,21 @@ public final class MobsToolForgingCompat {
                 if (canCarry) {
                     carried++;
                 }
+                boolean overleveled = EnchantmentLevelRules.isOverleveled(entry.enchantment(), entry.level());
+                boolean bonusActive = active
+                        && overleveled
+                        && selectedOverlevelBonus.filter(enchantmentId(entry.enchantment())::equals).isPresent();
+                int effectiveLevel = active
+                        ? effectiveRoutedLevel(entry.enchantment(), entry.level(), bonusActive)
+                        : 0;
                 enchantments.add(new RoutedEnchantmentState(
                         entry.enchantment(),
                         enchantmentId(entry.enchantment()),
                         entry.level(),
+                        effectiveLevel,
                         active,
+                        overleveled,
+                        bonusActive,
                         active ? Optional.empty() : Optional.of(canCarry ? "slot_limit" : "incompatible")
                 ));
             }
@@ -319,6 +361,17 @@ public final class MobsToolForgingCompat {
                 continue;
             }
             if (!slotCanCarry(slot, enchantment.get()) || EnchantmentHelper.getEnchantmentsForCrafting(slot.stack()).getLevel(enchantment.get()) <= 0) {
+                return false;
+            }
+
+            Optional<EnchantmentEntryState> clicked = routedEntryState(slot, registry, enchantmentId);
+            if (clicked.isEmpty()) {
+                return false;
+            }
+            if (clicked.get().active()) {
+                if (EnchantmentLevelRules.isOverleveled(clicked.get().entry().enchantment(), clicked.get().entry().level())) {
+                    return selectRoutedOverlevelBonus(registryAccess, stack, routed.get(), enchantmentId);
+                }
                 return false;
             }
 
@@ -680,6 +733,22 @@ public final class MobsToolForgingCompat {
 
     private static ItemEnchantments visibleEnchantments(RegistryAccess registryAccess, ItemStack target, RoutedTool routed) {
         Registry<Enchantment> registry = registryAccess.registryOrThrow(Registries.ENCHANTMENT);
+        Map<Holder<Enchantment>, Integer> active = activeRoutedEnchantments(registry, routed);
+        Optional<ResourceLocation> selectedOverlevelBonus = selectedOverlevelBonus(target, active);
+
+        ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+        active.forEach((enchantment, level) -> mutable.set(
+                enchantment,
+                effectiveRoutedLevel(enchantment, level, selectedOverlevelBonus.filter(enchantmentId(enchantment)::equals).isPresent())
+        ));
+        ItemStack visible = target.copy();
+        EnchantmentHelper.setEnchantments(visible, mutable.toImmutable());
+        EnchantmentFusionRecipes.apply(registryAccess, visible);
+        EnchantmentLevelRules.clampEnchantments(visible);
+        return EnchantmentHelper.getEnchantmentsForCrafting(visible);
+    }
+
+    private static Map<Holder<Enchantment>, Integer> activeRoutedEnchantments(Registry<Enchantment> registry, RoutedTool routed) {
         Map<Holder<Enchantment>, Integer> active = new LinkedHashMap<>();
         for (RoutedSlot slot : routed.slots()) {
             int slotCount = 0;
@@ -693,14 +762,79 @@ public final class MobsToolForgingCompat {
                 active.merge(entry.enchantment(), entry.level(), Math::max);
             }
         }
+        return active;
+    }
 
-        ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
-        active.forEach(mutable::set);
-        ItemStack visible = target.copy();
-        EnchantmentHelper.setEnchantments(visible, mutable.toImmutable());
-        EnchantmentFusionRecipes.apply(registryAccess, visible);
-        EnchantmentLevelRules.clampEnchantments(visible);
-        return EnchantmentHelper.getEnchantmentsForCrafting(visible);
+    private static Optional<ResourceLocation> selectedOverlevelBonus(ItemStack stack, Map<Holder<Enchantment>, Integer> active) {
+        List<ResourceLocation> candidates = active.entrySet().stream()
+                .filter(entry -> EnchantmentLevelRules.isOverleveled(entry.getKey(), entry.getValue()))
+                .map(entry -> enchantmentId(entry.getKey()))
+                .toList();
+        if (candidates.isEmpty()) {
+            return Optional.empty();
+        }
+
+        for (ResourceLocation priority : routedOverlevelBonusPriority(stack)) {
+            if (candidates.contains(priority)) {
+                return Optional.of(priority);
+            }
+        }
+        return Optional.of(candidates.getFirst());
+    }
+
+    private static int effectiveRoutedLevel(Holder<Enchantment> enchantment, int level, boolean overlevelBonusActive) {
+        if (!EnchantmentLevelRules.isOverleveled(enchantment, level)) {
+            return EnchantmentLevelRules.clampLevel(enchantment, level);
+        }
+        return overlevelBonusActive
+                ? EnchantmentLevelRules.effectiveLevel(enchantment, level)
+                : EnchantmentLevelRules.maxLevel(enchantment);
+    }
+
+    private static boolean selectRoutedOverlevelBonus(RegistryAccess registryAccess, ItemStack stack, RoutedTool routed, ResourceLocation enchantmentId) {
+        Registry<Enchantment> registry = registryAccess.registryOrThrow(Registries.ENCHANTMENT);
+        Map<Holder<Enchantment>, Integer> active = activeRoutedEnchantments(registry, routed);
+        if (active.entrySet().stream().noneMatch(entry -> enchantmentId(entry.getKey()).equals(enchantmentId)
+                && EnchantmentLevelRules.isOverleveled(entry.getKey(), entry.getValue()))) {
+            return false;
+        }
+
+        Optional<ResourceLocation> current = selectedOverlevelBonus(stack, active);
+        if (current.filter(enchantmentId::equals).isPresent()) {
+            return false;
+        }
+
+        List<ResourceLocation> priority = new ArrayList<>();
+        priority.add(enchantmentId);
+        for (ResourceLocation existing : routedOverlevelBonusPriority(stack)) {
+            if (!existing.equals(enchantmentId) && !priority.contains(existing)) {
+                priority.add(existing);
+            }
+        }
+        active.entrySet().stream()
+                .filter(entry -> EnchantmentLevelRules.isOverleveled(entry.getKey(), entry.getValue()))
+                .map(entry -> enchantmentId(entry.getKey()))
+                .filter(existing -> !existing.equals(enchantmentId) && !priority.contains(existing))
+                .forEach(priority::add);
+
+        stack.set(ModDataComponents.ROUTED_OVERLEVEL_BONUS_PRIORITY.get(), List.copyOf(priority));
+        syncRoutedToolEnchantments(registryAccess, stack);
+        return true;
+    }
+
+    private static Optional<EnchantmentEntryState> routedEntryState(RoutedSlot slot, Registry<Enchantment> registry, ResourceLocation enchantmentId) {
+        int carried = 0;
+        for (EnchantmentEntry entry : orderedEntries(slot.stack(), registry)) {
+            boolean canCarry = slotCanCarry(slot, entry.enchantment());
+            boolean active = canCarry && carried < slot.rule().limit();
+            if (canCarry) {
+                carried++;
+            }
+            if (enchantmentId(entry.enchantment()).equals(enchantmentId)) {
+                return canCarry ? Optional.of(new EnchantmentEntryState(entry, active)) : Optional.empty();
+            }
+        }
+        return Optional.empty();
     }
 
     private static List<EnchantmentEntry> orderedEntries(ItemStack stack, Registry<Enchantment> registry) {
@@ -738,6 +872,11 @@ public final class MobsToolForgingCompat {
 
     private static List<ResourceLocation> routedPriority(ItemStack stack) {
         List<ResourceLocation> priority = stack.get(ModDataComponents.ROUTED_ENCHANTMENT_PRIORITY.get());
+        return priority == null ? List.of() : priority;
+    }
+
+    private static List<ResourceLocation> routedOverlevelBonusPriority(ItemStack stack) {
+        List<ResourceLocation> priority = stack.get(ModDataComponents.ROUTED_OVERLEVEL_BONUS_PRIORITY.get());
         return priority == null ? List.of() : priority;
     }
 
@@ -1052,6 +1191,9 @@ public final class MobsToolForgingCompat {
     private record EnchantmentEntry(Holder<Enchantment> enchantment, int level) {
     }
 
+    private record EnchantmentEntryState(EnchantmentEntry entry, boolean active) {
+    }
+
     public record RoutedEnchantmentBreakdown(List<RoutedPartBreakdown> parts, ItemEnchantments visibleEnchantments) {
     }
 
@@ -1061,7 +1203,16 @@ public final class MobsToolForgingCompat {
     public record RoutedPartBreakdown(int partIndex, String slotId, Optional<String> partType, int limit, ItemStack partStack, List<RoutedEnchantmentState> enchantments) {
     }
 
-    public record RoutedEnchantmentState(Holder<Enchantment> enchantment, ResourceLocation enchantmentId, int level, boolean active, Optional<String> inactiveReason) {
+    public record RoutedEnchantmentState(
+            Holder<Enchantment> enchantment,
+            ResourceLocation enchantmentId,
+            int level,
+            int effectiveLevel,
+            boolean active,
+            boolean overleveled,
+            boolean overlevelBonusActive,
+            Optional<String> inactiveReason
+    ) {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})

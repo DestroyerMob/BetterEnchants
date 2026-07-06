@@ -6,6 +6,7 @@ import com.betterenchanting.compat.MobsToolForgingCompat.RoutedEnchantmentState;
 import com.betterenchanting.compat.MobsToolForgingCompat.RoutedPartBreakdown;
 import com.betterenchanting.compat.MobsToolForgingCompat.StationRoutedEnchantmentPreview;
 import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.data.EnchantmentLevelRules;
 import com.betterenchanting.network.PromoteRoutedEnchantmentPayload;
 import com.betterenchanting.registry.ModItems;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -33,6 +34,7 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
@@ -78,6 +80,8 @@ public final class RoutedEnchantmentOrbOverlay {
     private static final float PART_BILLBOARD_SCALE = 0.26F;
     private static final int ACTIVE_COLOR = 0xFFFF5CFF;
     private static final int DORMANT_COLOR = 0xFF9AA4B2;
+    private static final int OVERLEVEL_BONUS_COLOR = 0xFFFFD166;
+    private static final String OVERLEVEL_MARKER = "✦";
     private static final int HOVER_COLOR = 0xFFFFFFFF;
     private static final int STATUS_COLOR = 0xFFFFD166;
     private static final int TEXT_BACKGROUND = 0xAA000000;
@@ -130,10 +134,10 @@ public final class RoutedEnchantmentOrbOverlay {
         List<StationPreview> scannedStations = nearbyStations(minecraft);
         boolean overlayEnabled = canUseRoutingOverlay(minecraft);
         List<StationRender> stations = revealStations(scannedStations.stream()
-                .filter(RoutedEnchantmentOrbOverlay::hasLimitOverflow)
+                .filter(RoutedEnchantmentOrbOverlay::hasRoutedEnchantments)
                 .toList(), minecraft, camera, renderTime, overlayEnabled);
         if (stations.isEmpty()) {
-            if (overlayEnabled && scannedStations.stream().noneMatch(RoutedEnchantmentOrbOverlay::hasLimitOverflow)) {
+            if (overlayEnabled && scannedStations.stream().noneMatch(RoutedEnchantmentOrbOverlay::hasRoutedEnchantments)) {
                 renderNearbyDiagnostics(event.getPoseStack(), camera, scannedStations);
             }
             clearDisplayState();
@@ -212,9 +216,7 @@ public final class RoutedEnchantmentOrbOverlay {
         Font font = minecraft.font;
         int width = minecraft.getWindow().getGuiScaledWidth();
         int height = minecraft.getWindow().getGuiScaledHeight();
-        Component action = orb.active()
-                ? Component.literal("Currently active").withStyle(ChatFormatting.GRAY)
-                : Component.literal("Use to make active").withStyle(ChatFormatting.GRAY);
+        Component action = orbAction(orb);
         int panelWidth = Math.max(font.width(orb.name()), Math.max(font.width(orb.description()), font.width(action))) + 22;
         panelWidth = Math.min(Math.max(panelWidth, 112), width - 16);
         int panelHeight = 36;
@@ -258,7 +260,7 @@ public final class RoutedEnchantmentOrbOverlay {
         Optional<RenderOrb> selected = lastOrbs.stream()
                 .filter(orb -> orb.hit().sameTarget(hit))
                 .findFirst();
-        if (selected.isEmpty() || selected.get().active()) {
+        if (selected.isEmpty() || !canUseOrb(selected.get())) {
             return;
         }
 
@@ -272,6 +274,23 @@ public final class RoutedEnchantmentOrbOverlay {
         ));
         event.setSwingHand(true);
         event.setCanceled(true);
+    }
+
+    private static boolean canUseOrb(RenderOrb orb) {
+        return !orb.active() || (orb.overleveled() && !orb.overlevelBonusActive());
+    }
+
+    private static Component orbAction(RenderOrb orb) {
+        if (!orb.active()) {
+            return Component.literal("Use to make active").withStyle(ChatFormatting.GRAY);
+        }
+        if (orb.overleveled() && orb.overlevelBonusActive()) {
+            return Component.literal("Applying +1 bonus").withStyle(ChatFormatting.GOLD);
+        }
+        if (orb.overleveled()) {
+            return Component.literal("Use to focus +1 bonus").withStyle(ChatFormatting.GRAY);
+        }
+        return Component.literal("Currently active").withStyle(ChatFormatting.GRAY);
     }
 
     private static void clearDisplayState() {
@@ -457,10 +476,27 @@ public final class RoutedEnchantmentOrbOverlay {
                 Vec3 position = partPosition
                         .add(outward.scale(Math.cos(orbAngle) * orbRadius))
                         .add(tangent.scale(Math.sin(orbAngle) * orbRadius));
-                Component name = Enchantment.getFullname(enchantment.enchantment(), enchantment.level());
+                int displayLevel = enchantment.effectiveLevel() > 0 ? enchantment.effectiveLevel() : enchantment.level();
+                Component name = orbName(enchantment, displayLevel);
                 Component description = stateDescription(part, enchantment);
                 OrbHit hit = new OrbHit(position, stationPos, part.partIndex(), enchantment.enchantmentId());
-                orbs.add(new RenderOrb(hit, partPosition, outward, tangent, orbRadius, orbAngle, name, description, enchantment.active(), part.partIndex(), part.slotId(), revealWeight, interactive));
+                orbs.add(new RenderOrb(
+                        hit,
+                        partPosition,
+                        outward,
+                        tangent,
+                        orbRadius,
+                        orbAngle,
+                        name,
+                        description,
+                        enchantment.active(),
+                        enchantment.overleveled(),
+                        enchantment.overlevelBonusActive(),
+                        part.partIndex(),
+                        part.slotId(),
+                        revealWeight,
+                        interactive
+                ));
             }
         }
     }
@@ -502,31 +538,45 @@ public final class RoutedEnchantmentOrbOverlay {
         return activeEnchantments / (double) part.enchantments().size();
     }
 
-    private static boolean hasLimitOverflow(StationPreview station) {
+    private static boolean hasRoutedEnchantments(StationPreview station) {
         return station.preview().breakdown()
-                .map(RoutedEnchantmentOrbOverlay::hasLimitOverflow)
+                .map(RoutedEnchantmentOrbOverlay::hasRoutedEnchantments)
                 .orElse(false);
     }
 
-    private static boolean hasLimitOverflow(RoutedEnchantmentBreakdown breakdown) {
-        return breakdown.parts().stream().anyMatch(RoutedEnchantmentOrbOverlay::hasLimitOverflow);
+    private static boolean hasRoutedEnchantments(RoutedEnchantmentBreakdown breakdown) {
+        return breakdown.parts().stream().anyMatch(RoutedEnchantmentOrbOverlay::hasRoutedEnchantments);
     }
 
-    private static boolean hasLimitOverflow(RoutedPartBreakdown part) {
-        return part.enchantments().stream().anyMatch(RoutedEnchantmentOrbOverlay::isDormantByLimit);
-    }
-
-    private static boolean isDormantByLimit(RoutedEnchantmentState enchantment) {
-        return !enchantment.active()
-                && enchantment.inactiveReason().filter("slot_limit"::equals).isPresent();
+    private static boolean hasRoutedEnchantments(RoutedPartBreakdown part) {
+        return !part.enchantments().isEmpty();
     }
 
     private static Component stateDescription(RoutedPartBreakdown part, RoutedEnchantmentState enchantment) {
         String slot = readableSlot(part.slotId());
         if (enchantment.active()) {
+            if (enchantment.overleveled() && enchantment.overlevelBonusActive()) {
+                return Component.literal("Bonus focused on " + slot).withStyle(ChatFormatting.GOLD);
+            }
+            if (enchantment.overleveled()) {
+                return Component.literal("Active on " + slot + ", bonus ready").withStyle(ChatFormatting.LIGHT_PURPLE);
+            }
             return Component.literal("Active on " + slot).withStyle(ChatFormatting.LIGHT_PURPLE);
         }
         return Component.literal("Dormant on " + slot).withStyle(ChatFormatting.GRAY);
+    }
+
+    private static Component orbName(RoutedEnchantmentState enchantment, int displayLevel) {
+        MutableComponent name = Enchantment.getFullname(enchantment.enchantment(), displayLevel).copy();
+        if (enchantment.active()
+                && !enchantment.overleveled()
+                && EnchantmentLevelRules.isOverlevelPrimed(enchantment.enchantment(), displayLevel)) {
+            name.withStyle(ChatFormatting.ITALIC);
+        }
+        if (enchantment.overleveled()) {
+            name.append(Component.literal(" " + OVERLEVEL_MARKER).withStyle(ChatFormatting.GOLD, ChatFormatting.BOLD));
+        }
+        return name;
     }
 
     private static String readableSlot(String slotId) {
@@ -639,6 +689,23 @@ public final class RoutedEnchantmentOrbOverlay {
             drawBillboardDiamond(poseStack, camera, orbConsumer, position, radius * (1.45D + pulse * 0.22D), red, green, blue, (float) (lerp(0.13D, 0.24D, visual.hoverWeight()) * reveal));
             drawBillboardDiamond(poseStack, camera, orbConsumer, position, radius, red, green, blue, alpha);
             drawBillboardDiamond(poseStack, camera, orbConsumer, position, radius * 0.48D, 1.0F, 1.0F, 1.0F, (float) (lerp(0.42D, 0.9D, visual.hoverWeight()) * reveal));
+            if (orb.overleveled() && orb.active()) {
+                double bonusPulse = (Math.sin(renderTime * 0.18D + animationPhase(orb)) + 1.0D) * 0.5D;
+                double bonusWeight = visual.bonusWeight();
+                int bonusColor = blendColor(ACTIVE_COLOR, OVERLEVEL_BONUS_COLOR, Math.max(0.35D, bonusWeight));
+                float bonusRed = red(bonusColor);
+                float bonusGreen = green(bonusColor);
+                float bonusBlue = blue(bonusColor);
+                double ringRadius = radius * lerp(1.72D, 2.25D + bonusPulse * 0.16D, bonusWeight);
+                float ringAlpha = (float) (lerp(0.18D, 0.82D, bonusWeight) * reveal * lerp(0.65D, 1.0D, visual.activeWeight()));
+                drawBillboardDiamond(poseStack, camera, orbConsumer, position, ringRadius, bonusRed, bonusGreen, bonusBlue, ringAlpha);
+                if (bonusWeight > 0.03D) {
+                    float focusAlpha = (float) (bonusWeight * reveal * 0.92D);
+                    double markRadius = radius * 1.42D;
+                    drawBillboardLine(poseStack, camera, lineConsumer, position, -markRadius, 0.0D, markRadius, 0.0D, bonusRed, bonusGreen, bonusBlue, focusAlpha);
+                    drawBillboardLine(poseStack, camera, lineConsumer, position, 0.0D, -markRadius, 0.0D, markRadius, bonusRed, bonusGreen, bonusBlue, focusAlpha);
+                }
+            }
             double activeWeight = visual.activeWeight();
             double dormantWeight = 1.0D - activeWeight;
             if (activeWeight > 0.01D) {
@@ -726,20 +793,31 @@ public final class RoutedEnchantmentOrbOverlay {
 
         transition.lastSeenTime = renderTime;
         double activeWeight = transition.activeWeight(renderTime);
-        return new OrbVisualState(activeWeight, transition.hoverWeight(renderTime), blendColor(DORMANT_COLOR, ACTIVE_COLOR, activeWeight));
+        return new OrbVisualState(
+                activeWeight,
+                transition.hoverWeight(renderTime),
+                transition.bonusWeight(renderTime),
+                blendColor(DORMANT_COLOR, ACTIVE_COLOR, activeWeight)
+        );
     }
 
     private static OrbVisualTransition visualTransitionFor(RenderOrb orb, double renderTime) {
         OrbVisualKey key = OrbVisualKey.from(orb.hit());
         double targetWeight = orb.active() ? 1.0D : 0.0D;
+        double targetBonusWeight = orb.overlevelBonusActive() ? 1.0D : 0.0D;
         OrbVisualTransition transition = orbVisualTransitions.get(key);
         if (transition == null) {
-            transition = new OrbVisualTransition(targetWeight, 0.0D, renderTime);
+            transition = new OrbVisualTransition(targetWeight, targetBonusWeight, 0.0D, renderTime);
             orbVisualTransitions.put(key, transition);
         } else if (Math.abs(transition.targetWeight - targetWeight) > 0.001D) {
             transition.startWeight = transition.activeWeight(renderTime);
             transition.targetWeight = targetWeight;
             transition.transitionStartTime = renderTime;
+        }
+        if (Math.abs(transition.targetBonusWeight - targetBonusWeight) > 0.001D) {
+            transition.startBonusWeight = transition.bonusWeight(renderTime);
+            transition.targetBonusWeight = targetBonusWeight;
+            transition.bonusTransitionStartTime = renderTime;
         }
         transition.lastSeenTime = renderTime;
         return transition;
@@ -814,8 +892,8 @@ public final class RoutedEnchantmentOrbOverlay {
         if (status != null && !status.isBlank()) {
             return status;
         }
-        return station.preview().breakdown().filter(breakdown -> !hasLimitOverflow(breakdown)).isPresent()
-                ? "No dormant enchantments exceed part limits"
+        return station.preview().breakdown().filter(breakdown -> !hasRoutedEnchantments(breakdown)).isPresent()
+                ? "No routed enchantments are stored on this tool"
                 : "";
     }
 
@@ -1019,6 +1097,8 @@ public final class RoutedEnchantmentOrbOverlay {
             Component name,
             Component description,
             boolean active,
+            boolean overleveled,
+            boolean overlevelBonusActive,
             int partIndex,
             String slotId,
             double revealWeight,
@@ -1026,7 +1106,7 @@ public final class RoutedEnchantmentOrbOverlay {
     ) {
     }
 
-    private record OrbVisualState(double activeWeight, double hoverWeight, int color) {
+    private record OrbVisualState(double activeWeight, double hoverWeight, double bonusWeight, int color) {
     }
 
     private record PartOrbitKey(BlockPos stationPos, int partIndex) {
@@ -1119,15 +1199,21 @@ public final class RoutedEnchantmentOrbOverlay {
         private double startWeight;
         private double targetWeight;
         private double transitionStartTime;
+        private double startBonusWeight;
+        private double targetBonusWeight;
+        private double bonusTransitionStartTime;
         private double startHoverWeight;
         private double targetHoverWeight;
         private double hoverTransitionStartTime;
         private double lastSeenTime;
 
-        private OrbVisualTransition(double targetWeight, double targetHoverWeight, double renderTime) {
+        private OrbVisualTransition(double targetWeight, double targetBonusWeight, double targetHoverWeight, double renderTime) {
             this.startWeight = targetWeight;
             this.targetWeight = targetWeight;
             this.transitionStartTime = renderTime;
+            this.startBonusWeight = targetBonusWeight;
+            this.targetBonusWeight = targetBonusWeight;
+            this.bonusTransitionStartTime = renderTime;
             this.startHoverWeight = 0.0D;
             this.targetHoverWeight = targetHoverWeight;
             this.hoverTransitionStartTime = renderTime;
@@ -1137,6 +1223,11 @@ public final class RoutedEnchantmentOrbOverlay {
         private double activeWeight(double renderTime) {
             double progress = smoothStep((renderTime - transitionStartTime) / STATE_TRANSITION_TICKS);
             return lerp(startWeight, targetWeight, progress);
+        }
+
+        private double bonusWeight(double renderTime) {
+            double progress = smoothStep((renderTime - bonusTransitionStartTime) / STATE_TRANSITION_TICKS);
+            return lerp(startBonusWeight, targetBonusWeight, progress);
         }
 
         private double hoverWeight(double renderTime) {

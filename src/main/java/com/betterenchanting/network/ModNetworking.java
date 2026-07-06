@@ -54,9 +54,12 @@ public final class ModNetworking {
         }
 
         boolean wasActive = isStationEnchantmentActive(player, payload);
+        boolean hadBonus = isStationOverlevelBonusFocused(player, payload);
         if (MobsToolForgingCompat.promoteStationRoutedEnchantment(player.level(), payload.stationPos(), payload.partIndex(), payload.enchantment())) {
             player.containerMenu.broadcastChanges();
-            if (!wasActive && isStationEnchantmentActive(player, payload)) {
+            boolean becameActive = !wasActive && isStationEnchantmentActive(player, payload);
+            boolean gainedBonus = !hadBonus && isStationOverlevelBonusFocused(player, payload);
+            if (becameActive || gainedBonus) {
                 float pitch = 1.25F + player.level().random.nextFloat() * 0.15F;
                 Vec3 particlePosition = activationParticlePosition(payload);
                 ServerLevel level = player.serverLevel();
@@ -116,6 +119,18 @@ public final class ModNetworking {
                         .filter(enchantment -> enchantment.enchantmentId().equals(payload.enchantment()))
                         .findFirst())
                 .map(enchantment -> enchantment.active())
+                .orElse(false);
+    }
+
+    private static boolean isStationOverlevelBonusFocused(ServerPlayer player, PromoteRoutedEnchantmentPayload payload) {
+        return MobsToolForgingCompat.stationRoutedEnchantmentPreview(player.level(), payload.stationPos())
+                .flatMap(preview -> preview.breakdown())
+                .flatMap(breakdown -> breakdown.parts().stream()
+                        .filter(part -> part.partIndex() == payload.partIndex())
+                        .flatMap(part -> part.enchantments().stream())
+                        .filter(enchantment -> enchantment.enchantmentId().equals(payload.enchantment()))
+                        .findFirst())
+                .map(enchantment -> enchantment.overlevelBonusActive())
                 .orElse(false);
     }
 }

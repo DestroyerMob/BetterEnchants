@@ -42,6 +42,7 @@ import com.betterenchanting.world.enchantment.VacuumEnchantmentEvents;
 import com.betterenchanting.world.enchantment.VeinMinerEnchantmentEvents;
 import com.betterenchanting.world.enchantment.VerdantRegrowthEnchantmentEvents;
 import com.betterenchanting.world.level.block.EnchantingTableEvents;
+import com.betterenchanting.world.level.block.GrindstoneDisenchantEvents;
 import com.betterenchanting.world.loot.EssenceAcquisitionEvents;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.EventPriority;
@@ -110,6 +111,7 @@ public final class BetterEnchanting {
         NeoForge.EVENT_BUS.addListener(EventPriority.LOW, BeheadingEnchantmentEvents::dropHead);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, VacuumEnchantmentEvents::vacuumBlockDrops);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, VacuumEnchantmentEvents::vacuumLivingDrops);
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, GrindstoneDisenchantEvents::disenchantHeldItem);
         NeoForge.EVENT_BUS.addListener(this::addReloadListeners);
     }
 

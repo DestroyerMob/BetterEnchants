@@ -31,6 +31,14 @@ public final class ModDataComponents {
                     .build()
     );
 
+    public static final Supplier<DataComponentType<List<ResourceLocation>>> ROUTED_OVERLEVEL_BONUS_PRIORITY = COMPONENTS.register(
+            "routed_overlevel_bonus_priority",
+            () -> DataComponentType.<List<ResourceLocation>>builder()
+                    .persistent(ResourceLocation.CODEC.listOf())
+                    .networkSynchronized(ResourceLocation.STREAM_CODEC.apply(ByteBufCodecs.list()))
+                    .build()
+    );
+
     private ModDataComponents() {
     }
 

@@ -17,6 +17,7 @@
   "container.betterenchanting.enchanting_table": "Enchanting Table",
   "key.categories.betterenchanting": "Better Enchanting",
   "key.betterenchanting.toggle_vein_miner_mode": "Cycle Vein Miner Mode",
+  "message.betterenchanting.grindstone_disenchanted": "Removed enchantments from %s",
   "message.betterenchanting.vein_miner_mode": "Vein Miner: %s",
   "vein_miner_mode.betterenchanting.connected_matching": "Connected Matching Ores",
   "vein_miner_mode.betterenchanting.radius_matching": "Radius Matching Ores",

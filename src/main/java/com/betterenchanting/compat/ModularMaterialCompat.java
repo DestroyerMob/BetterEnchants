@@ -89,6 +89,10 @@ public final class ModularMaterialCompat {
         return MobsToolForgingCompat.reconcileRoutedEnchantments(registryAccess, stack);
     }
 
+    public static boolean removeNonCurseRoutedEnchantments(RegistryAccess registryAccess, ItemStack stack) {
+        return MobsToolForgingCompat.removeNonCurseRoutedEnchantments(registryAccess, stack);
+    }
+
     private static void mergeCounts(Map<ResourceLocation, Integer> counts, Map<ResourceLocation, Integer> additions) {
         for (Map.Entry<ResourceLocation, Integer> entry : additions.entrySet()) {
             counts.merge(entry.getKey(), entry.getValue(), Integer::sum);

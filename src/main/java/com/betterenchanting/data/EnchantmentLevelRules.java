@@ -1,16 +1,19 @@
 package com.betterenchanting.data;
 
+import com.betterenchanting.compat.ApothicEnchantingCompat;
 import com.betterenchanting.registry.ModDataComponents;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import net.minecraft.core.Holder;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.enchantment.Enchantment;
@@ -22,7 +25,13 @@ public final class EnchantmentLevelRules {
     }
 
     public static int maxLevel(Holder<Enchantment> enchantment) {
-        return enchantment.value().getMaxLevel();
+        int baseMax = enchantment.value().getMaxLevel();
+        if (baseMax <= 1) {
+            return baseMax;
+        }
+
+        OptionalInt apothicMax = ApothicEnchantingCompat.maxLevel(enchantment);
+        return apothicMax.isPresent() ? Math.max(baseMax, apothicMax.getAsInt()) : baseMax;
     }
 
     public static int clampLevel(Holder<Enchantment> enchantment, int level) {
@@ -47,10 +56,46 @@ public final class EnchantmentLevelRules {
         return level > maxLevel(enchantment);
     }
 
+    public static boolean isOverlevelPrimed(Holder<Enchantment> enchantment, int level) {
+        int maxLevel = maxLevel(enchantment);
+        return maxLevel > 1 && level == maxLevel;
+    }
+
+    public static boolean hasNonCurseEnchantments(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return false;
+        }
+
+        return hasNonCurseEnchantments(EnchantmentHelper.getEnchantmentsForCrafting(stack))
+                || hasNonCurseEnchantments(stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY));
+    }
+
+    public static boolean removeNonCurseEnchantments(ItemStack stack) {
+        if (stack.isEmpty()) {
+            return false;
+        }
+
+        boolean hadOverleveledMarker = stack.has(ModDataComponents.OVERLEVELED.get());
+        boolean changed = removeNonCurseItemEnchantments(stack);
+        ItemEnchantments stored = stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY);
+        if (!stored.isEmpty()) {
+            ItemEnchantments kept = cursesOnly(stored);
+            if (!stored.equals(kept)) {
+                if (kept.isEmpty()) {
+                    stack.remove(DataComponents.STORED_ENCHANTMENTS);
+                } else {
+                    stack.set(DataComponents.STORED_ENCHANTMENTS, kept);
+                }
+                changed = true;
+            }
+        }
+
+        syncOverleveledMarker(stack);
+        return changed || (hadOverleveledMarker && !stack.has(ModDataComponents.OVERLEVELED.get()));
+    }
+
     public static boolean hasOverleveledEnchantment(ItemStack stack) {
-        return stack.getOrDefault(ModDataComponents.OVERLEVELED.get(), false)
-                || overleveledEnchantmentCount(stack) > 0
-                || hasLegacyOverleveledLevel(stack);
+        return overleveledEnchantmentCount(stack) > 0;
     }
 
     public static int overleveledEnchantmentCount(ItemStack stack) {
@@ -100,6 +145,7 @@ public final class EnchantmentLevelRules {
 
         ItemEnchantments current = EnchantmentHelper.getEnchantmentsForCrafting(stack);
         if (current.isEmpty()) {
+            syncOverleveledMarker(stack);
             return;
         }
 
@@ -122,6 +168,44 @@ public final class EnchantmentLevelRules {
         EnchantmentHelper.updateEnchantments(stack, mutable -> mutable.set(enchantment, overlevelMaxLevel(enchantment)));
         stack.set(ModDataComponents.OVERLEVELED.get(), true);
         stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);
+    }
+
+    private static boolean removeNonCurseItemEnchantments(ItemStack stack) {
+        ItemEnchantments current = EnchantmentHelper.getEnchantmentsForCrafting(stack);
+        if (current.isEmpty()) {
+            return false;
+        }
+
+        ItemEnchantments kept = cursesOnly(current);
+        if (current.equals(kept)) {
+            return false;
+        }
+
+        EnchantmentHelper.setEnchantments(stack, kept);
+        return true;
+    }
+
+    private static boolean hasNonCurseEnchantments(ItemEnchantments enchantments) {
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : enchantments.entrySet()) {
+            if (entry.getIntValue() > 0 && !entry.getKey().is(EnchantmentTags.CURSE)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static ItemEnchantments cursesOnly(ItemEnchantments enchantments) {
+        if (enchantments.isEmpty()) {
+            return ItemEnchantments.EMPTY;
+        }
+
+        ItemEnchantments.Mutable mutable = new ItemEnchantments.Mutable(ItemEnchantments.EMPTY);
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : enchantments.entrySet()) {
+            if (entry.getIntValue() > 0 && entry.getKey().is(EnchantmentTags.CURSE)) {
+                mutable.set(entry.getKey(), entry.getIntValue());
+            }
+        }
+        return mutable.toImmutable();
     }
 
     private static int clampStackLevel(Holder<Enchantment> enchantment, int level, boolean allowOverlevel) {
@@ -151,23 +235,8 @@ public final class EnchantmentLevelRules {
                 .orElse(enchantment.toString());
     }
 
-    private static boolean hasLegacyOverleveledLevel(ItemStack stack) {
-        if (stack.isEmpty()) {
-            return false;
-        }
-
-        // Existing test/dev stacks predate the marker component; current data maxes are 1 or 5.
-        ItemEnchantments current = EnchantmentHelper.getEnchantmentsForCrafting(stack);
-        for (Object2IntMap.Entry<Holder<Enchantment>> entry : current.entrySet()) {
-            if (entry.getIntValue() > 5) {
-                return true;
-            }
-        }
-        return false;
-    }
-
     private static void syncOverleveledMarker(ItemStack stack) {
-        boolean overleveled = overleveledEnchantmentCount(stack) > 0 || hasLegacyOverleveledLevel(stack);
+        boolean overleveled = overleveledEnchantmentCount(stack) > 0;
         if (overleveled) {
             stack.set(ModDataComponents.OVERLEVELED.get(), true);
             stack.set(DataComponents.ENCHANTMENT_GLINT_OVERRIDE, true);

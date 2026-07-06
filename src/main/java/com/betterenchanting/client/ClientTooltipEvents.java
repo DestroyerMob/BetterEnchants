@@ -2,6 +2,7 @@ package com.betterenchanting.client;
 
 import com.betterenchanting.BetterEnchanting;
 import com.betterenchanting.data.EnchantmentLimitRules;
+import com.betterenchanting.data.EnchantmentLevelRules;
 import com.betterenchanting.data.EssenceDefinitions;
 import com.betterenchanting.data.TagDisplayRules;
 import com.betterenchanting.data.TagDisplayRules.TagLabel;
@@ -34,6 +35,8 @@ import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
 
 @EventBusSubscriber(modid = BetterEnchanting.MOD_ID, value = Dist.CLIENT)
 public final class ClientTooltipEvents {
+    private static final String OVERLEVEL_MARKER = "✦";
+    private static final int OVERLEVEL_MARKER_COLOR = 0xFFD166;
     private static final List<SynergyDefinition> SYNERGY_DEFINITIONS = List.of(
             new SynergyDefinition(ModEnchantments.BEHEADING, Enchantments.LOOTING, "◆", 0xFFD44D),
             new SynergyDefinition(ModEnchantments.HEADSHOT, Enchantments.POWER, "◆◆", 0x55D6FF)
@@ -281,13 +284,37 @@ public final class ClientTooltipEvents {
         if (entry.usesBonusCapacity() || entry.status().has(InactiveReason.OVER_LIMIT)) {
             line.withStyle(style -> style.withItalic(true));
         }
+        if (isOverlevelPrimed(entry)) {
+            line.withStyle(style -> style.withItalic(true));
+        }
         if (!entry.status().active()) {
             line.withStyle(style -> style.withStrikethrough(true));
             appendInactiveReason(line, entry, InactiveReason.WRONG_TAG);
             appendInactiveReason(line, entry, InactiveReason.OVER_LIMIT);
         }
+        appendOverlevelMarker(line, entry);
         appendSynergyMarkers(line, synergyMarkers);
         return line;
+    }
+
+    private static boolean isOverlevelPrimed(TooltipEntry entry) {
+        return entry.status().active()
+                && EnchantmentLevelRules.isOverlevelPrimed(entry.enchantment(), entry.level());
+    }
+
+    private static boolean isOverleveled(TooltipEntry entry) {
+        return EnchantmentLevelRules.isOverleveled(entry.enchantment(), entry.level());
+    }
+
+    private static void appendOverlevelMarker(MutableComponent line, TooltipEntry entry) {
+        if (!isOverleveled(entry)) {
+            return;
+        }
+        line.append(Component.literal(" ").withStyle(ChatFormatting.DARK_GRAY))
+                .append(Component.literal(OVERLEVEL_MARKER).withStyle(style -> style
+                        .withColor(TextColor.fromRgb(OVERLEVEL_MARKER_COLOR))
+                        .withBold(true)
+                        .withItalic(false)));
     }
 
     private static void appendSynergyMarkers(MutableComponent line, List<SynergyMarker> synergyMarkers) {

@@ -145,6 +145,20 @@ public final class ApothicEnchantingCompat {
         }
     }
 
+    public static OptionalInt maxLevel(Holder<Enchantment> enchantment) {
+        if (!isAvailable()) {
+            return OptionalInt.empty();
+        }
+        try {
+            Object info = getEnchInfo.invoke(null, enchantment);
+            return OptionalInt.of(intValue(getMaxLevel.invoke(info)));
+        } catch (InvocationTargetException error) {
+            return OptionalInt.empty();
+        } catch (ReflectiveOperationException | RuntimeException error) {
+            return OptionalInt.empty();
+        }
+    }
+
     public static int adjustedWeight(Holder<Enchantment> enchantment, TableStats stats) {
         int baseWeight = Math.max(1, enchantment.value().getWeight());
         if (!isAvailable()) {
