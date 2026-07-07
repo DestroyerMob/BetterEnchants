@@ -62,6 +62,13 @@ public final class EnchantmentLimitRules {
         return rules.baseMaxEnchantments(stack);
     }
 
+    public static int materialCapacityBonus(ItemStack stack) {
+        if (!overridesVanillaLimits()) {
+            return 0;
+        }
+        return rules.materialBonus(stack);
+    }
+
     public static int currentEnchantmentCount(ItemStack stack) {
         Map<Holder<Enchantment>, Integer> enchantments = new HashMap<>();
         addEnchantments(enchantments, stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY));
@@ -234,6 +241,10 @@ public final class EnchantmentLimitRules {
 
         private int maxEnchantments(ItemStack stack) {
             int baseLimit = baseMaxEnchantments(stack);
+            return Math.max(0, baseLimit + materialBonus(stack));
+        }
+
+        private int materialBonus(ItemStack stack) {
             int bonus = 0;
             Map<ResourceLocation, Integer> virtualMaterialTagCounts = ModularMaterialCompat.materialItemTagCounts(stack);
             for (Map.Entry<ResourceLocation, Integer> entry : this.materialBonuses.entrySet()) {
@@ -245,7 +256,7 @@ public final class EnchantmentLimitRules {
                     bonus += entry.getValue() * virtualCount;
                 }
             }
-            return Math.max(0, baseLimit + bonus);
+            return bonus;
         }
 
         private int baseMaxEnchantments(ItemStack stack) {

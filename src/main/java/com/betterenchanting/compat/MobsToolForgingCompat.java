@@ -2,6 +2,7 @@ package com.betterenchanting.compat;
 
 import com.betterenchanting.data.EnchantmentFusionRecipes;
 import com.betterenchanting.data.EnchantmentLevelRules;
+import com.betterenchanting.data.EnchantmentLimitRules;
 import com.betterenchanting.data.PartEnchantmentRoutes;
 import com.betterenchanting.data.PartEnchantmentRoutes.SlotRule;
 import com.betterenchanting.registry.ModDataComponents;
@@ -116,7 +117,7 @@ public final class MobsToolForgingCompat {
 
         int limit = 0;
         for (RoutedSlot slot : routed.get().slots()) {
-            limit += slot.rule().limit();
+            limit += effectiveSlotLimit(slot);
         }
         return OptionalInt.of(Math.max(0, limit));
     }
@@ -299,9 +300,10 @@ public final class MobsToolForgingCompat {
         for (RoutedSlot slot : routed.get().slots()) {
             List<RoutedEnchantmentState> enchantments = new ArrayList<>();
             int carried = 0;
+            int limit = effectiveSlotLimit(slot);
             for (EnchantmentEntry entry : orderedEntries(slot.stack(), registry)) {
                 boolean canCarry = slotCanCarry(slot, entry.enchantment());
-                boolean active = canCarry && carried < slot.rule().limit();
+                boolean active = canCarry && carried < limit;
                 if (canCarry) {
                     carried++;
                 }
@@ -328,7 +330,7 @@ public final class MobsToolForgingCompat {
                     slot.partIndex(),
                     slot.rule().id().or(() -> slot.rule().partType()).orElse("part_" + slot.partIndex()),
                     slot.rule().partType(),
-                    slot.rule().limit(),
+                    limit,
                     slot.stack().copyWithCount(1),
                     List.copyOf(enchantments)
             ));
@@ -666,7 +668,8 @@ public final class MobsToolForgingCompat {
         }
 
         for (RoutedSlot slot : routed.slots()) {
-            if (slot.rule().limit() > 0 && slotCanCarry(slot, enchantment) && slotEnchantmentCount(slot) < slot.rule().limit()) {
+            int limit = effectiveSlotLimit(slot);
+            if (limit > 0 && slotCanCarry(slot, enchantment) && slotEnchantmentCount(slot) < limit) {
                 return setPartEnchantment(slot.stack(), enchantment, level);
             }
         }
@@ -703,6 +706,10 @@ public final class MobsToolForgingCompat {
             }
         }
         return count;
+    }
+
+    private static int effectiveSlotLimit(RoutedSlot slot) {
+        return Math.max(0, slot.rule().limit() + EnchantmentLimitRules.materialCapacityBonus(slot.stack()));
     }
 
     private static boolean slotCanCarry(RoutedSlot slot, Holder<Enchantment> enchantment) {
@@ -752,11 +759,12 @@ public final class MobsToolForgingCompat {
         Map<Holder<Enchantment>, Integer> active = new LinkedHashMap<>();
         for (RoutedSlot slot : routed.slots()) {
             int slotCount = 0;
+            int slotLimit = effectiveSlotLimit(slot);
             for (EnchantmentEntry entry : orderedEntries(slot.stack(), registry)) {
                 if (!slotCanCarry(slot, entry.enchantment())) {
                     continue;
                 }
-                if (slotCount++ >= slot.rule().limit()) {
+                if (slotCount++ >= slotLimit) {
                     continue;
                 }
                 active.merge(entry.enchantment(), entry.level(), Math::max);
@@ -824,9 +832,10 @@ public final class MobsToolForgingCompat {
 
     private static Optional<EnchantmentEntryState> routedEntryState(RoutedSlot slot, Registry<Enchantment> registry, ResourceLocation enchantmentId) {
         int carried = 0;
+        int limit = effectiveSlotLimit(slot);
         for (EnchantmentEntry entry : orderedEntries(slot.stack(), registry)) {
             boolean canCarry = slotCanCarry(slot, entry.enchantment());
-            boolean active = canCarry && carried < slot.rule().limit();
+            boolean active = canCarry && carried < limit;
             if (canCarry) {
                 carried++;
             }
@@ -948,7 +957,12 @@ public final class MobsToolForgingCompat {
             List<ResourceLocation> materials = new ArrayList<>();
             Object construction = stack.get(access.toolConstructionComponent());
             if (construction != null) {
-                addLocation(materials, access.headMaterial().invoke(construction));
+                boolean addedAssemblyParts = addAssemblyPartMaterialIds(materials, access, stack);
+                if (!addedAssemblyParts) {
+                    addOptionalLocation(materials, access.headBaseMaterial(), construction);
+                    addLocation(materials, access.headMaterial().invoke(construction));
+                    addOptionalLocation(materials, access.guardMaterial(), construction);
+                }
                 addLocation(materials, access.handleMaterial().invoke(construction));
                 addOptionalLocation(materials, access.bindingMaterial().invoke(construction));
                 addOptionalLocation(materials, access.wrapMaterial().invoke(construction));
@@ -959,6 +973,7 @@ public final class MobsToolForgingCompat {
 
             Object part = stack.get(access.toolPartComponent());
             if (part != null) {
+                addOptionalLocation(materials, access.partCoatingBaseMaterial(), part);
                 addLocation(materials, access.partMaterial().invoke(part));
                 return List.copyOf(materials);
             }
@@ -968,6 +983,23 @@ public final class MobsToolForgingCompat {
             logRuntimeWarning(exception);
             return List.of();
         }
+    }
+
+    private static boolean addAssemblyPartMaterialIds(List<ResourceLocation> materials, Reflection access, ItemStack stack) throws ReflectiveOperationException {
+        Object assembly = stack.get(access.toolAssemblyPartsComponent());
+        if (assembly == null) {
+            return false;
+        }
+        boolean added = false;
+        for (ItemStack partStack : copyAssemblyStacks(access, assembly)) {
+            Object part = partStack.get(access.toolPartComponent());
+            if (part != null) {
+                addOptionalLocation(materials, access.partCoatingBaseMaterial(), part);
+                addLocation(materials, access.partMaterial().invoke(part));
+                added = true;
+            }
+        }
+        return added;
     }
 
     private static Optional<ResourceLocation> handleMaterialId(ItemStack stack) {
@@ -996,6 +1028,12 @@ public final class MobsToolForgingCompat {
         }
 
         addLocation(materials, value);
+    }
+
+    private static void addOptionalLocation(List<ResourceLocation> materials, Method method, Object target) throws ReflectiveOperationException {
+        if (method != null) {
+            addOptionalLocation(materials, method.invoke(target));
+        }
     }
 
     private static List<ResourceLocation> partTargetTags(ItemStack stack) {
@@ -1130,13 +1168,16 @@ public final class MobsToolForgingCompat {
                         assemblyPartsClass.getMethod("copyStacks"),
                         assemblyPartsClass.getMethod("from", List.class),
                         constructionClass.getMethod("headMaterial"),
+                        optionalMethod(constructionClass, "headBaseMaterial"),
                         constructionClass.getMethod("handleMaterial"),
+                        optionalMethod(constructionClass, "guardMaterial"),
                         constructionClass.getMethod("bindingMaterial"),
                         constructionClass.getMethod("wrapMaterial"),
                         constructionClass.getMethod("focusMaterial"),
                         constructionClass.getMethod("treatment"),
                         partClass.getMethod("partType"),
                         partClass.getMethod("materialId"),
+                        optionalMethod(partClass, "coatingBaseMaterial"),
                         toolForgeBlockEntityClass,
                         toolForgeBlockEntityClass.getMethod("benchStacks"),
                         toolForgeBlockEntityClass.getMethod("replaceToolmakerAssemblyStack", int.class, ItemStack.class),
@@ -1154,6 +1195,14 @@ public final class MobsToolForgingCompat {
             }
 
             return reflection;
+        }
+    }
+
+    private static Method optionalMethod(Class<?> owner, String name) {
+        try {
+            return owner.getMethod(name);
+        } catch (NoSuchMethodException exception) {
+            return null;
         }
     }
 
@@ -1227,13 +1276,16 @@ public final class MobsToolForgingCompat {
             Method assemblyCopyStacks,
             Method assemblyFromStacks,
             Method headMaterial,
+            Method headBaseMaterial,
             Method handleMaterial,
+            Method guardMaterial,
             Method bindingMaterial,
             Method wrapMaterial,
             Method focusMaterial,
             Method treatment,
             Method partType,
             Method partMaterial,
+            Method partCoatingBaseMaterial,
             Class<?> toolForgeBlockEntityClass,
             Method toolForgeBenchStacks,
             Method replaceToolmakerAssemblyStack,
