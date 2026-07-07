@@ -7,6 +7,14 @@ tag-driven system using essences, enchanted books, and item affinity.
 
 Pre-alpha / internal playtesting. The current branch includes explicit Apotheosis / Apothic Enchanting integration for Minecraft Beyond.
 
+## Project Facts
+
+- Mod id: `betterenchanting`
+- Current version: `0.1.0`
+- Target: Minecraft 1.21.1, NeoForge 21.1.234, Java 21
+- Optional integration: Apothic Enchanting 1.x
+- Common config: `config/betterenchanting-common.toml`
+
 ## Features
 
 - Enhanced enchanting table / Arcane Crucible
