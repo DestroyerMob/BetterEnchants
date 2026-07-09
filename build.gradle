@@ -31,11 +31,19 @@ java {
 
 repositories {
     mavenCentral()
+    maven {
+        name = "BlameJared"
+        url = "https://maven.blamejared.com"
+        content {
+            includeGroup "mezz.jei"
+        }
+    }
 }
 
 dependencies {
     annotationProcessor "net.fabricmc:sponge-mixin:0.15.2+mixin.0.8.7"
     compileOnly "io.github.llamalad7:mixinextras-neoforge:0.5.3"
+    compileOnly "mezz.jei:jei-1.21.1-neoforge:19.27.0.340"
 
     testImplementation platform("org.junit:junit-bom:5.10.2")
     testImplementation "org.junit.jupiter:junit-jupiter"

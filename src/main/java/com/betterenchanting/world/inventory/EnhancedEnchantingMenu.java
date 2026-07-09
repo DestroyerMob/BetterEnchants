@@ -78,6 +78,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     private static final int APOTHIC_STATS_SCALE = 100;
     private static final int APOTHIC_FLAGS_STABLE = 1;
     private static final int APOTHIC_FLAGS_TREASURE = 1 << 1;
+    private static final int PLAYER_LEVEL_COST = 0;
     private static final int MAX_REVEALED_CLUES_PER_OPTION = 6;
     private static final ResourceLocation EMPTY_LAPIS_SLOT = ResourceLocation.withDefaultNamespace("item/empty_slot_lapis_lazuli");
     private static final int APOTHIC_INFUSION_OPTION = 2;
@@ -248,8 +249,6 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             int bookshelfPower = apothicStats
                     .map(ApothicEnchantingCompat.TableStats::bookshelfPower)
                     .orElseGet(() -> EnchantingPowerRules.clampBookshelfPower(EnchantingTablePower.bookshelfPower(level, blockPos)));
-            int defaultBaseRequirement = EnchantingPowerRules.offerRequirementForBookshelfPower(bookshelfPower);
-            int levelCost = EnchantingPowerRules.levelCostForBookshelfPower(EnchantingPowerRules.clampBookshelfPower(bookshelfPower));
             PoolModifierRules.ModifierPlan modifierPlan = modifierPlan();
             this.random.setSeed((long) this.enchantmentSeed.get());
 
@@ -268,7 +267,12 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
                 ItemStack modifier = modifierStack(modifierPlan, option);
 
-                int baseRequirement = defaultBaseRequirement;
+                int baseRequirement = EnchantingPowerRules.offerRequirementForBookshelfPower(
+                        bookshelfPower,
+                        option,
+                        this.enchantmentSeed.get(),
+                        costTarget
+                );
                 if (apothicStats.isPresent()) {
                     baseRequirement = ApothicEnchantingCompat.offerRequirement(apothicStats.get(), option, this.enchantmentSeed.get(), costTarget);
                 }
@@ -281,7 +285,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                         baseRequirement
                 );
                 this.requirements[option] = Math.max(0, requiredLevel);
-                this.costs[option] = levelCost;
+                this.costs[option] = option + 1;
                 if (this.requirements[option] <= 0) {
                     this.costs[option] = 0;
                     this.disabledReasonFlags[option] = DISABLED_NO_OFFER_POWER;
@@ -379,12 +383,11 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             return false;
         }
         int requiredLevel = this.requirements[id];
-        int xpCost = this.costs[id];
+        int displayCost = this.costs[id];
         boolean apothicInfusionOffer = isApothicInfusionOffer(id);
         if (requiredLevel <= 0
-                || xpCost <= 0
-                || (!isEnchantingTarget(target) && !apothicInfusionOffer)
-                || player.experienceLevel < Math.max(requiredLevel, xpCost) && !player.getAbilities().instabuild) {
+                || displayCost <= 0
+                || (!isEnchantingTarget(target) && !apothicInfusionOffer)) {
             return false;
         }
 
@@ -400,7 +403,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                         return;
                     }
 
-                    player.onEnchantmentPerformed(target, xpCost);
+                    player.onEnchantmentPerformed(target, PLAYER_LEVEL_COST);
                     ItemStack infused = infusionMatch.get().result().copy();
                     this.enchantingSlots.setItem(TARGET_SLOT, infused);
 
@@ -416,7 +419,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
                     player.awardStat(Stats.ENCHANT_ITEM);
                     if (player instanceof ServerPlayer serverPlayer) {
-                        CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, infused, xpCost);
+                        CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, infused, PLAYER_LEVEL_COST);
                     }
 
                     this.enchantingSlots.setChanged();
@@ -433,7 +436,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             Optional<OverlevelTarget> overlevelTarget = overlevelTarget(target, modifierPlan, id);
             if (overlevelTarget.isPresent()) {
                 OverlevelTarget targetOverlevel = overlevelTarget.get();
-                player.onEnchantmentPerformed(target, xpCost);
+                player.onEnchantmentPerformed(target, PLAYER_LEVEL_COST);
                 Optional<ItemStack> routedOverlevel = ModularMaterialCompat.overlevelRoutedEnchantment(level.registryAccess(), target, targetOverlevel.enchantment());
                 if (routedOverlevel.isEmpty() && ModularMaterialCompat.hasRoutedParts(target)) {
                     return;
@@ -463,7 +466,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
                 player.awardStat(Stats.ENCHANT_ITEM);
                 if (player instanceof ServerPlayer serverPlayer) {
-                    CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, enchanted, xpCost);
+                    CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, enchanted, PLAYER_LEVEL_COST);
                 }
 
                 this.enchantingSlots.setChanged();
@@ -493,7 +496,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 return;
             }
 
-            player.onEnchantmentPerformed(target, xpCost);
+            player.onEnchantmentPerformed(target, PLAYER_LEVEL_COST);
             Optional<ItemStack> routedEnchanted = ModularMaterialCompat.applyRoutedEnchantments(level.registryAccess(), target, enchantments);
             if (routedEnchanted.isEmpty() && ModularMaterialCompat.hasRoutedParts(target)) {
                 return;
@@ -517,7 +520,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
             player.awardStat(Stats.ENCHANT_ITEM);
             if (player instanceof ServerPlayer serverPlayer) {
-                CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, enchanted, xpCost);
+                CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, enchanted, PLAYER_LEVEL_COST);
             }
 
             this.enchantingSlots.setChanged();

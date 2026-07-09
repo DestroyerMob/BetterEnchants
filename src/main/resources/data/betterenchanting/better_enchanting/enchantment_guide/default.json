@@ -1,0 +1,38 @@
+{
+  "entries": [
+    {
+      "enchantment": "betterenchanting:tree_capitator",
+      "summary_key": "enchantment.betterenchanting.tree_capitator.desc",
+      "notes": [
+        "Power rows are roll power before gold, essence, book, or Apothic quanta changes."
+      ]
+    },
+    {
+      "enchantment": "betterenchanting:vein_miner",
+      "summary_key": "enchantment.betterenchanting.vein_miner.desc",
+      "notes": [
+        "Cycle mining modes with the Vein Miner keybind after applying it."
+      ]
+    },
+    {
+      "enchantment": "betterenchanting:resonance",
+      "summary_key": "enchantment.betterenchanting.resonance.desc"
+    },
+    {
+      "enchantment": "betterenchanting:flash_step",
+      "summary_key": "enchantment.betterenchanting.flash_step.desc"
+    },
+    {
+      "enchantment": "betterenchanting:overcharged",
+      "summary_key": "enchantment.betterenchanting.overcharged.desc"
+    },
+    {
+      "enchantment": "betterenchanting:fortunes_touch",
+      "summary_key": "enchantment.betterenchanting.fortunes_touch.desc"
+    },
+    {
+      "enchantment": "betterenchanting:seismic_cushion",
+      "summary_key": "enchantment.betterenchanting.seismic_cushion.desc"
+    }
+  ]
+}

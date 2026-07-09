@@ -1,5 +1,6 @@
 package com.betterenchanting.client;
 
+import com.betterenchanting.data.EnchantmentGuideEntries;
 import com.betterenchanting.data.EnchantmentLimitRules;
 import com.betterenchanting.data.EssenceDefinitions;
 import com.betterenchanting.data.PartEnchantmentRoutes;
@@ -35,6 +36,7 @@ public final class ClientModEvents {
 
     private static void registerReloadListeners(RegisterClientReloadListenersEvent event) {
         event.registerReloadListener(new EssenceDefinitions.ReloadListener());
+        event.registerReloadListener(new EnchantmentGuideEntries.ReloadListener());
         event.registerReloadListener(new EnchantmentLimitRules.ReloadListener());
         event.registerReloadListener(new PartEnchantmentRoutes.ReloadListener());
         event.registerReloadListener(new EnchantmentTargetTags.ReloadListener());

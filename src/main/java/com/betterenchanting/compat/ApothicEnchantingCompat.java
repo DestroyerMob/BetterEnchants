@@ -159,6 +159,27 @@ public final class ApothicEnchantingCompat {
         }
     }
 
+    public static Optional<PowerRange> powerRange(Holder<Enchantment> enchantment, int level) {
+        if (!isAvailable()) {
+            return Optional.empty();
+        }
+        try {
+            Object info = getEnchInfo.invoke(null, enchantment);
+            int maxLevel = intValue(getMaxLevel.invoke(info));
+            if (level < enchantment.value().getMinLevel() || level > maxLevel) {
+                return Optional.empty();
+            }
+            return Optional.of(new PowerRange(
+                    intValue(getMinPower.invoke(info, level)),
+                    intValue(getMaxPower.invoke(info, level))
+            ));
+        } catch (InvocationTargetException error) {
+            return Optional.empty();
+        } catch (ReflectiveOperationException | RuntimeException error) {
+            return Optional.empty();
+        }
+    }
+
     public static int adjustedWeight(Holder<Enchantment> enchantment, TableStats stats) {
         int baseWeight = Math.max(1, enchantment.value().getWeight());
         if (!isAvailable()) {
@@ -313,6 +334,9 @@ public final class ApothicEnchantingCompat {
         public InfusionMatch {
             result = result.copy();
         }
+    }
+
+    public record PowerRange(int minPower, int maxPower) {
     }
 
     private static int fallbackOfferRequirement(TableStats stats, int option, int enchantmentSeed) {

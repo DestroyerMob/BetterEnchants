@@ -49,6 +49,14 @@ public final class MobsToolForgingCompat {
     private static final String PICKAXE_HEAD = "pickaxe_head";
     private static final String AXE_HEAD = "axe_head";
     private static final String HOE_HEAD = "hoe_head";
+    private static final String HELMET_CHAINMAIL = "helmet_chainmail";
+    private static final String HELMET_PLATE = "helmet_plate";
+    private static final String CHESTPLATE_CHAINMAIL = "chestplate_chainmail";
+    private static final String CHESTPLATE_BODY = "chestplate_body";
+    private static final String LEGGINGS_CHAINMAIL = "leggings_chainmail";
+    private static final String LEGGINGS_PLATE = "leggings_plate";
+    private static final String BOOTS_CHAINMAIL = "boots_chainmail";
+    private static final String BOOTS_PLATE = "boots_plate";
     private static final ResourceLocation OAK = material("oak");
     private static final ResourceLocation BLAZE = material("blaze");
     private static final ResourceLocation BREEZE = material("breeze");
@@ -432,10 +440,10 @@ public final class MobsToolForgingCompat {
         }
 
         if (toolAssemblyParts(access, preview.get()).isEmpty()) {
-            return Optional.of(new StationRoutedEnchantmentPreview(toolStack, Optional.empty(), "This tool has no stored part data"));
+            return Optional.of(new StationRoutedEnchantmentPreview(toolStack, Optional.empty(), "This item has no stored part data"));
         }
         if (PartEnchantmentRoutes.routeFor(preview.get()).isEmpty()) {
-            return Optional.of(new StationRoutedEnchantmentPreview(toolStack, Optional.empty(), "No enchantment route is defined for this tool"));
+            return Optional.of(new StationRoutedEnchantmentPreview(toolStack, Optional.empty(), "No enchantment route is defined for this item"));
         }
         return Optional.of(new StationRoutedEnchantmentPreview(toolStack, Optional.empty(), "No enchantments are stored on these parts"));
     }
@@ -504,8 +512,9 @@ public final class MobsToolForgingCompat {
 
         try {
             Object construction = stack.get(access.toolConstructionComponent());
+            Object armorConstruction = stack.get(access.armorConstructionComponent());
             Object assembly = stack.get(access.toolAssemblyPartsComponent());
-            if (construction == null || assembly == null) {
+            if ((construction == null && armorConstruction == null) || assembly == null) {
                 return Optional.empty();
             }
 
@@ -561,7 +570,7 @@ public final class MobsToolForgingCompat {
 
     private static Optional<ItemStack> finishedToolStack(Reflection access, ItemStack stack) {
         try {
-            return stack.get(access.toolConstructionComponent()) == null
+            return stack.get(access.toolConstructionComponent()) == null && stack.get(access.armorConstructionComponent()) == null
                     ? Optional.empty()
                     : Optional.of(stack.copyWithCount(1));
         } catch (LinkageError | RuntimeException exception) {
@@ -925,9 +934,21 @@ public final class MobsToolForgingCompat {
                 return id instanceof ResourceLocation location ? Optional.of(location) : Optional.empty();
             }
 
+            Object armorConstruction = stack.get(access.armorConstructionComponent());
+            if (armorConstruction != null) {
+                Object id = access.armorChainmailMaterial().invoke(armorConstruction);
+                return id instanceof ResourceLocation location ? Optional.of(location) : Optional.empty();
+            }
+
             Object part = stack.get(access.toolPartComponent());
             if (part != null) {
-                Object id = access.partMaterial().invoke(part);
+                Object id = access.toolPartMaterial().invoke(part);
+                return id instanceof ResourceLocation location ? Optional.of(location) : Optional.empty();
+            }
+
+            Object armorPart = stack.get(access.armorPartComponent());
+            if (armorPart != null) {
+                Object id = access.armorPartMaterial().invoke(armorPart);
                 return id instanceof ResourceLocation location ? Optional.of(location) : Optional.empty();
             }
 
@@ -971,10 +992,28 @@ public final class MobsToolForgingCompat {
                 return List.copyOf(materials);
             }
 
+            Object armorConstruction = stack.get(access.armorConstructionComponent());
+            if (armorConstruction != null) {
+                boolean addedAssemblyParts = addAssemblyPartMaterialIds(materials, access, stack);
+                if (!addedAssemblyParts) {
+                    addLocation(materials, access.armorChainmailMaterial().invoke(armorConstruction));
+                    addOptionalLocation(materials, access.armorOverlayBaseMaterial(), armorConstruction);
+                    addOptionalLocation(materials, access.armorOverlayMaterial().invoke(armorConstruction));
+                }
+                return List.copyOf(materials);
+            }
+
             Object part = stack.get(access.toolPartComponent());
             if (part != null) {
-                addOptionalLocation(materials, access.partCoatingBaseMaterial(), part);
-                addLocation(materials, access.partMaterial().invoke(part));
+                addOptionalLocation(materials, access.toolPartCoatingBaseMaterial(), part);
+                addLocation(materials, access.toolPartMaterial().invoke(part));
+                return List.copyOf(materials);
+            }
+
+            Object armorPart = stack.get(access.armorPartComponent());
+            if (armorPart != null) {
+                addOptionalLocation(materials, access.armorPartCoatingBaseMaterial(), armorPart);
+                addLocation(materials, access.armorPartMaterial().invoke(armorPart));
                 return List.copyOf(materials);
             }
 
@@ -994,8 +1033,16 @@ public final class MobsToolForgingCompat {
         for (ItemStack partStack : copyAssemblyStacks(access, assembly)) {
             Object part = partStack.get(access.toolPartComponent());
             if (part != null) {
-                addOptionalLocation(materials, access.partCoatingBaseMaterial(), part);
-                addLocation(materials, access.partMaterial().invoke(part));
+                addOptionalLocation(materials, access.toolPartCoatingBaseMaterial(), part);
+                addLocation(materials, access.toolPartMaterial().invoke(part));
+                added = true;
+                continue;
+            }
+
+            Object armorPart = partStack.get(access.armorPartComponent());
+            if (armorPart != null) {
+                addOptionalLocation(materials, access.armorPartCoatingBaseMaterial(), armorPart);
+                addLocation(materials, access.armorPartMaterial().invoke(armorPart));
                 added = true;
             }
         }
@@ -1048,6 +1095,10 @@ public final class MobsToolForgingCompat {
             case AXE_HEAD -> List.of("targets/durability", "targets/tools", "targets/tools/harvesters", "targets/tools/axes", "targets/weapons", "targets/weapons/melee");
             case SHOVEL_HEAD -> List.of("targets/durability", "targets/tools", "targets/tools/harvesters", "targets/tools/shovels");
             case HOE_HEAD -> List.of("targets/durability", "targets/tools", "targets/tools/harvesters", "targets/tools/hoes");
+            case HELMET_CHAINMAIL, HELMET_PLATE -> List.of("targets/durability", "targets/armor", "targets/armor/helmets");
+            case CHESTPLATE_CHAINMAIL, CHESTPLATE_BODY -> List.of("targets/durability", "targets/armor", "targets/armor/body_armor");
+            case LEGGINGS_CHAINMAIL, LEGGINGS_PLATE -> List.of("targets/durability", "targets/armor", "targets/armor/leggings");
+            case BOOTS_CHAINMAIL, BOOTS_PLATE -> List.of("targets/durability", "targets/armor", "targets/armor/boots");
             default -> List.of();
         };
 
@@ -1068,6 +1119,10 @@ public final class MobsToolForgingCompat {
             case AXE_HEAD -> List.of("durability", "tools", "tools/all", "harvestable", "harvesters", "tools/harvesters", "tools/axes", "weapons", "weapons/all", "weapons/melee");
             case SHOVEL_HEAD -> List.of("durability", "tools", "tools/all", "harvestable", "harvesters", "tools/harvesters", "tools/shovels");
             case HOE_HEAD -> List.of("durability", "tools", "tools/all", "harvestable", "harvesters", "tools/harvesters", "tools/hoes");
+            case HELMET_CHAINMAIL, HELMET_PLATE -> List.of("durability", "armor", "armour", "armor/all", "armour/all", "armor/helmets", "armour/helmets");
+            case CHESTPLATE_CHAINMAIL, CHESTPLATE_BODY -> List.of("durability", "armor", "armour", "armor/all", "armour/all", "armor/body_armor", "armour/body_armor", "armor/chestplates");
+            case LEGGINGS_CHAINMAIL, LEGGINGS_PLATE -> List.of("durability", "armor", "armour", "armor/all", "armour/all", "armor/leggings", "armour/leggings");
+            case BOOTS_CHAINMAIL, BOOTS_PLATE -> List.of("durability", "armor", "armour", "armor/all", "armour/all", "armor/boots", "armour/boots");
             default -> List.of();
         };
 
@@ -1088,10 +1143,16 @@ public final class MobsToolForgingCompat {
 
         try {
             Object part = stack.get(access.toolPartComponent());
-            if (part == null) {
+            if (part != null) {
+                Object value = access.toolPartType().invoke(part);
+                return value instanceof String type ? Optional.of(type) : Optional.empty();
+            }
+
+            Object armorPart = stack.get(access.armorPartComponent());
+            if (armorPart == null) {
                 return Optional.empty();
             }
-            Object value = access.partType().invoke(part);
+            Object value = access.armorPartType().invoke(armorPart);
             return value instanceof String type ? Optional.of(type) : Optional.empty();
         } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
             logRuntimeWarning(exception);
@@ -1114,6 +1175,8 @@ public final class MobsToolForgingCompat {
                 Class<?> constructionClass = Class.forName("org.destroyermob.mobstoolforging.world.ToolConstructionData");
                 Class<?> assemblyPartsClass = Class.forName("org.destroyermob.mobstoolforging.world.ToolAssemblyParts");
                 Class<?> partClass = Class.forName("org.destroyermob.mobstoolforging.world.ToolPartData");
+                Class<?> armorConstructionClass = Class.forName("org.destroyermob.mobstoolforging.world.ArmorConstructionData");
+                Class<?> armorPartClass = Class.forName("org.destroyermob.mobstoolforging.world.ArmorPartData");
                 Class<?> toolForgeBlockEntityClass = Class.forName("org.destroyermob.mobstoolforging.world.ToolForgeBlockEntity");
 
                 Field toolConstructionField = modDataComponentsClass.getField("TOOL_CONSTRUCTION");
@@ -1149,6 +1212,28 @@ public final class MobsToolForgingCompat {
                     throw new IllegalStateException("Mobs Tool Forging TOOL_PART did not resolve to a data component type");
                 }
 
+                Field armorConstructionField = modDataComponentsClass.getField("ARMOR_CONSTRUCTION");
+                Object armorConstructionHolder = armorConstructionField.get(null);
+                if (!(armorConstructionHolder instanceof Supplier<?> armorConstructionSupplier)) {
+                    throw new IllegalStateException("Mobs Tool Forging ARMOR_CONSTRUCTION did not resolve to a component holder");
+                }
+
+                Object armorConstructionComponent = armorConstructionSupplier.get();
+                if (!(armorConstructionComponent instanceof DataComponentType<?> armorConstructionComponentType)) {
+                    throw new IllegalStateException("Mobs Tool Forging ARMOR_CONSTRUCTION did not resolve to a data component type");
+                }
+
+                Field armorPartField = modDataComponentsClass.getField("ARMOR_PART");
+                Object armorPartHolder = armorPartField.get(null);
+                if (!(armorPartHolder instanceof Supplier<?> armorPartSupplier)) {
+                    throw new IllegalStateException("Mobs Tool Forging ARMOR_PART did not resolve to a component holder");
+                }
+
+                Object armorPartComponent = armorPartSupplier.get();
+                if (!(armorPartComponent instanceof DataComponentType<?> armorPartComponentType)) {
+                    throw new IllegalStateException("Mobs Tool Forging ARMOR_PART did not resolve to a data component type");
+                }
+
                 Object finishedToolEnchantingValue = null;
                 Method configValueGetter = null;
                 try {
@@ -1165,6 +1250,8 @@ public final class MobsToolForgingCompat {
                         toolConstructionComponentType,
                         toolAssemblyPartsComponentType,
                         toolPartComponentType,
+                        armorConstructionComponentType,
+                        armorPartComponentType,
                         assemblyPartsClass.getMethod("copyStacks"),
                         assemblyPartsClass.getMethod("from", List.class),
                         constructionClass.getMethod("headMaterial"),
@@ -1178,6 +1265,12 @@ public final class MobsToolForgingCompat {
                         partClass.getMethod("partType"),
                         partClass.getMethod("materialId"),
                         optionalMethod(partClass, "coatingBaseMaterial"),
+                        armorConstructionClass.getMethod("chainmailMaterial"),
+                        armorConstructionClass.getMethod("overlayMaterial"),
+                        optionalMethod(armorConstructionClass, "overlayBaseMaterial"),
+                        armorPartClass.getMethod("partType"),
+                        armorPartClass.getMethod("materialId"),
+                        optionalMethod(armorPartClass, "coatingBaseMaterial"),
                         toolForgeBlockEntityClass,
                         toolForgeBlockEntityClass.getMethod("benchStacks"),
                         toolForgeBlockEntityClass.getMethod("replaceToolmakerAssemblyStack", int.class, ItemStack.class),
@@ -1273,6 +1366,8 @@ public final class MobsToolForgingCompat {
             DataComponentType<?> toolConstructionComponent,
             DataComponentType<?> toolAssemblyPartsComponent,
             DataComponentType<?> toolPartComponent,
+            DataComponentType<?> armorConstructionComponent,
+            DataComponentType<?> armorPartComponent,
             Method assemblyCopyStacks,
             Method assemblyFromStacks,
             Method headMaterial,
@@ -1283,9 +1378,15 @@ public final class MobsToolForgingCompat {
             Method wrapMaterial,
             Method focusMaterial,
             Method treatment,
-            Method partType,
-            Method partMaterial,
-            Method partCoatingBaseMaterial,
+            Method toolPartType,
+            Method toolPartMaterial,
+            Method toolPartCoatingBaseMaterial,
+            Method armorChainmailMaterial,
+            Method armorOverlayMaterial,
+            Method armorOverlayBaseMaterial,
+            Method armorPartType,
+            Method armorPartMaterial,
+            Method armorPartCoatingBaseMaterial,
             Class<?> toolForgeBlockEntityClass,
             Method toolForgeBenchStacks,
             Method replaceToolmakerAssemblyStack,

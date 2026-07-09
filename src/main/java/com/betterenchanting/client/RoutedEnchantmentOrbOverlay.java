@@ -893,7 +893,7 @@ public final class RoutedEnchantmentOrbOverlay {
             return status;
         }
         return station.preview().breakdown().filter(breakdown -> !hasRoutedEnchantments(breakdown)).isPresent()
-                ? "No routed enchantments are stored on this tool"
+                ? "No routed enchantments are stored on this item"
                 : "";
     }
 
