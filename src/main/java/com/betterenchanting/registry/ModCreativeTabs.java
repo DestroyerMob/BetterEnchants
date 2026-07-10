@@ -21,6 +21,7 @@ public final class ModCreativeTabs {
                     .displayItems((parameters, output) -> {
                         output.accept(ModItems.ATTUNEMENT_FOCUS.get());
                         output.accept(ModItems.ARCANE_CRUCIBLE.get());
+                        output.accept(ModItems.ATTUNEMENT_PEDESTAL.get());
                         ModItems.ESSENCES.forEach(item -> output.accept(item.get()));
                     })
                     .build());

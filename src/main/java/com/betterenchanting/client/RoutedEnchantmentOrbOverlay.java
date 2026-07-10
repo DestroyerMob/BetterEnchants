@@ -58,6 +58,7 @@ public final class RoutedEnchantmentOrbOverlay {
     private static final double ENCHANTMENT_RING_RADIUS = 0.46D;
     private static final double ENCHANTMENT_RING_RADIUS_STEP = 0.08D;
     private static final double ENCHANTMENT_RING_MAX_RADIUS = 0.72D;
+    private static final double TOOL_ENCHANTMENT_RING_RADIUS = 0.68D;
     private static final double TOOL_LINK_CENTER_GAP = 0.34D;
     private static final double TOOL_LINK_PART_GAP = 0.26D;
     private static final double ORB_ORBIT_SPEED = 0.020D;
@@ -260,7 +261,13 @@ public final class RoutedEnchantmentOrbOverlay {
         Optional<RenderOrb> selected = lastOrbs.stream()
                 .filter(orb -> orb.hit().sameTarget(hit))
                 .findFirst();
-        if (selected.isEmpty() || !canUseOrb(selected.get())) {
+        if (selected.isEmpty()) {
+            return;
+        }
+        if (!canUseOrb(selected.get())) {
+            if (isHoldingAttunementFocus(minecraft)) {
+                event.setCanceled(true);
+            }
             return;
         }
 
@@ -280,7 +287,16 @@ public final class RoutedEnchantmentOrbOverlay {
         return !orb.active() || (orb.overleveled() && !orb.overlevelBonusActive());
     }
 
+    private static boolean isHoldingAttunementFocus(Minecraft minecraft) {
+        return minecraft.player != null
+                && (minecraft.player.getMainHandItem().is(ModItems.ATTUNEMENT_FOCUS.get())
+                || minecraft.player.getOffhandItem().is(ModItems.ATTUNEMENT_FOCUS.get()));
+    }
+
     private static Component orbAction(RenderOrb orb) {
+        if (orb.partIndex() < 0 && !orb.active()) {
+            return Component.literal("Use to prioritize on final tool").withStyle(ChatFormatting.GRAY);
+        }
         if (!orb.active()) {
             return Component.literal("Use to make active").withStyle(ChatFormatting.GRAY);
         }
@@ -438,6 +454,42 @@ public final class RoutedEnchantmentOrbOverlay {
             double toolBob = Math.sin(renderTime * TOOL_FLOAT_SPEED + stationPos.asLong() * 0.001D) * TOOL_FLOAT_AMPLITUDE * reveal;
             Vec3 toolPosition = anchor.add(0.0D, TOOL_HIDDEN_Y_OFFSET * hiddenWeight + toolBob, 0.0D);
             toolClusters.add(new RenderToolCluster(toolPosition, preview.toolStack().copyWithCount(1), revealWeight));
+
+            List<RoutedEnchantmentState> toolEnchantments = breakdown.toolEnchantments().stream()
+                    .sorted(Comparator.comparing(enchantment -> enchantment.enchantmentId().toString()))
+                    .toList();
+            boolean hasFinalConflict = toolEnchantments.stream().anyMatch(enchantment -> !enchantment.active());
+            if (hasFinalConflict) {
+                double toolOrbRadius = TOOL_ENCHANTMENT_RING_RADIUS * reveal;
+                for (int index = 0; index < toolEnchantments.size(); index++) {
+                    RoutedEnchantmentState enchantment = toolEnchantments.get(index);
+                    double orbAngle = enchantmentOrbitAngle(index, toolEnchantments.size());
+                    Vec3 position = toolPosition
+                            .add(right.scale(Math.cos(orbAngle) * toolOrbRadius))
+                            .add(up.scale(Math.sin(orbAngle) * toolOrbRadius));
+                    int displayLevel = enchantment.effectiveLevel() > 0
+                            ? enchantment.effectiveLevel()
+                            : enchantment.level();
+                    OrbHit hit = new OrbHit(position, stationPos, -1, enchantment.enchantmentId());
+                    orbs.add(new RenderOrb(
+                            hit,
+                            toolPosition,
+                            right,
+                            up,
+                            toolOrbRadius,
+                            orbAngle,
+                            orbName(enchantment, displayLevel),
+                            finalToolStateDescription(enchantment),
+                            enchantment.active(),
+                            false,
+                            false,
+                            -1,
+                            "assembled_tool",
+                            revealWeight,
+                            interactive
+                    ));
+                }
+            }
         }
 
         List<RoutedPartBreakdown> parts = breakdown.parts().stream()
@@ -564,6 +616,12 @@ public final class RoutedEnchantmentOrbOverlay {
             return Component.literal("Active on " + slot).withStyle(ChatFormatting.LIGHT_PURPLE);
         }
         return Component.literal("Dormant on " + slot).withStyle(ChatFormatting.GRAY);
+    }
+
+    private static Component finalToolStateDescription(RoutedEnchantmentState enchantment) {
+        return enchantment.active()
+                ? Component.literal("Active on final tool").withStyle(ChatFormatting.LIGHT_PURPLE)
+                : Component.literal("Dormant on final tool (category limit)").withStyle(ChatFormatting.GRAY);
     }
 
     private static Component orbName(RoutedEnchantmentState enchantment, int displayLevel) {

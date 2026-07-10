@@ -17,6 +17,7 @@ public final class CreativeTabEvents {
         }
         if (event.getTabKey() == CreativeModeTabs.FUNCTIONAL_BLOCKS && !EffectiveBalance.takesOverEnchantingTable()) {
             event.accept(ModItems.ARCANE_CRUCIBLE.get());
+            event.accept(ModItems.ATTUNEMENT_PEDESTAL.get());
         }
     }
 }

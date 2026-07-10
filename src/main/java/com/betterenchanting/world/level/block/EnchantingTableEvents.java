@@ -1,7 +1,6 @@
 package com.betterenchanting.world.level.block;
 
 import com.betterenchanting.config.EffectiveBalance;
-import com.betterenchanting.registry.ModBlocks;
 import com.betterenchanting.world.inventory.EnhancedEnchantingMenu;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
@@ -18,7 +17,6 @@ import net.neoforged.neoforge.event.entity.player.PlayerInteractEvent;
 
 public final class EnchantingTableEvents {
     private static final Component ENCHANTING_TABLE_TITLE = Component.translatable("container.betterenchanting.enchanting_table");
-    private static final Component ARCANE_CRUCIBLE_TITLE = Component.translatable("container.betterenchanting.arcane_crucible");
 
     private EnchantingTableEvents() {
     }
@@ -31,10 +29,9 @@ public final class EnchantingTableEvents {
         Level level = event.getLevel();
         BlockPos pos = event.getPos();
         BlockState state = level.getBlockState(pos);
-        boolean isCrucible = state.is(ModBlocks.ARCANE_CRUCIBLE.get());
         boolean isEnhancedTable = state.is(Blocks.ENCHANTING_TABLE)
                 && EffectiveBalance.takesOverEnchantingTable();
-        if ((!isCrucible && !isEnhancedTable) || shouldPreserveSneakItemUse(event.getEntity(), level, pos)) {
+        if (!isEnhancedTable || shouldPreserveSneakItemUse(event.getEntity(), level, pos)) {
             return;
         }
 
@@ -49,7 +46,7 @@ public final class EnchantingTableEvents {
                                     ContainerLevelAccess.create(level, pos),
                                     pos
                             ),
-                            isCrucible ? ARCANE_CRUCIBLE_TITLE : ENCHANTING_TABLE_TITLE
+                            ENCHANTING_TABLE_TITLE
                     ),
                     buffer -> buffer.writeBlockPos(pos)
             );

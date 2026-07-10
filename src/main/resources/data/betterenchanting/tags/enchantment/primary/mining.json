@@ -1,0 +1,18 @@
+{
+  "values": [
+    "betterenchanting:tree_capitator",
+    "betterenchanting:vein_miner",
+    "betterenchanting:fortunes_touch",
+    "betterenchanting:resonance",
+    { "id": "minecraft:efficiency", "required": false },
+    { "id": "minecraft:fortune", "required": false },
+    { "id": "minecraft:silk_touch", "required": false },
+    { "id": "minecraft:luck_of_the_sea", "required": false },
+    { "id": "apothic_enchanting:boon_of_the_earth", "required": false },
+    { "id": "apothic_enchanting:miners_fervor", "required": false },
+    { "id": "apothic_enchanting:natures_blessing", "required": false },
+    { "id": "apothic_enchanting:worker_exploitation", "required": false },
+    { "id": "apothic_enchanting:growth_serum", "required": false },
+    { "id": "apothic_enchanting:chromatic", "required": false }
+  ]
+}

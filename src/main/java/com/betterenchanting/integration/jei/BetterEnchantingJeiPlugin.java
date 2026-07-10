@@ -1,7 +1,6 @@
 package com.betterenchanting.integration.jei;
 
 import com.betterenchanting.BetterEnchanting;
-import com.betterenchanting.registry.ModItems;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -46,7 +45,6 @@ public final class BetterEnchantingJeiPlugin implements IModPlugin {
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
         registration.addRecipeCatalyst(Items.ENCHANTING_TABLE, ENCHANTMENT_INFO);
-        registration.addRecipeCatalyst(ModItems.ARCANE_CRUCIBLE.get(), ENCHANTMENT_INFO);
     }
 
     private static List<EnchantmentInfoRecipe> enchantmentInfoRecipes() {

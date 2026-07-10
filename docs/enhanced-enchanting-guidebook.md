@@ -23,9 +23,11 @@
 The project implements an enhanced enchanting flow as a NeoForge `1.21.1` mod.
 
 - By default, vanilla enchanting tables open the same essence-aware UI, so the essence system is part of the normal enchanting-table workflow.
-- If `enchanting.enhanced_table_takeover` is disabled, vanilla enchanting tables are left alone and the Arcane Crucible block opens the enhanced UI instead.
+- If `enchanting.enhanced_table_takeover` is disabled, vanilla enchanting tables are left alone. The Arcane Crucible remains a distillation station; it is not an alternate enchanting table.
+- The Arcane Crucible has no container screen. Using a valid amethyst medium or catalyst directly on the block stores as much of that held stack as fits. Its synchronized world display floats the medium over the portal, draws catalysts inward as distillation advances, traces continuously filled progress runes around the rim, and floats completed essence above the process. Every displayed stack is ray-pickable: look at its cyan focus halo and use it with an empty hand to retrieve that exact slot, or sneak-use any display to retrieve everything. Recipes load from `data/betterenchanting/better_enchanting/distillation/*.json`.
 - `EnhancedEnchantingMenu` provides slots for one target item, one required essence reagent, and three total modifier slots.
-- The reagent opens the base enchantment pool. The three modifier slots can refine that pool with additional essence affinities or provide special modifiers such as enchanted books, purification, or overlevel catalysts.
+- The reagent opens the base enchantment pool. The three modifier slots can refine that pool with additional essence affinities or provide special modifiers such as enchanted books and purification.
+- The Attunement Pedestal has no container screen. Using an enchanted target, essence, or Nether Star directly on it stores that input and displays it in-world. It upgrades one Focus-selected enchantment by exactly one level and borrows power from an enchanting table within four horizontal and two vertical blocks.
 - `EnchantingRoller` computes deterministic roll previews from the player enchantment seed, selected option, target item, essences, and books.
 - `EssenceDefinitions` loads essence behavior from `data/betterenchanting/better_enchanting/essences/*.json`, falling back to Java defaults.
 - `EnchantmentLimitRules` loads item enchantment limits from `data/betterenchanting/better_enchanting/enchantment_limits/*.json`.
@@ -40,7 +42,7 @@ The project implements an enhanced enchanting flow as a NeoForge `1.21.1` mod.
 
 ### Tag System
 
-Every enchantment should have two affinity tags, such as Fire, Frost, Lightning, Mining, Vitality, Mobility, Physical, Void, and Curse-adjacent cleanup tags. Curse enchantments still need a non-curse affinity so they can appear through ordinary reagents and be removed by purification.
+Every enchantment should have at least two ordinary affinity tags, such as Fire, Frost, Lightning, Mining, Vitality, Mobility, Physical, Void, and Curse-adjacent cleanup tags. Exactly one of those affinities is also marked primary under `data/<namespace>/tags/enchantment/primary/<affinity>.json`; the remaining ordinary affinities are secondary. Primary and secondary affinities are equally valid for essence reagents and modifiers. Only the primary affinity controls the enchantment's display color and per-affinity equipment limit. Curse enchantments still need a non-curse primary affinity so they can appear through ordinary reagents and be removed by purification.
 
 Base items should have target tags, such as armor, weapons, tools, pickaxes, bows, swords, tridents, and similar subtypes. These tags establish the starting compatibility pool.
 
@@ -52,13 +54,21 @@ Required slots:
 - Essence reagent
 - Modifier slots, currently 3 total slots
 
-The reagent slot accepts normal pool-restricting essences. Without a reagent, the table shows no enchantment offers. Modifier slots accept essences, enchanted books, nether stars, and special essence modifiers.
+The reagent slot accepts normal pool-restricting essences. Without a reagent, the table shows no enchantment offers. Modifier slots accept essences, enchanted books, and special essence modifiers. Nether Stars belong in the Attunement Pedestal instead of the enchanting table.
 
 Keep the modifier slots out of the inventory label area. The current placement is a compact vertical column beside the three vanilla offer rows. Do not use a custom widened enchanting-table texture for this; render the vanilla texture and draw the small modifier pocket separately. The side pocket should keep even slot padding: 3px left, 3px right, 3px top, and 3px bottom inside the border. Keep the vanilla title and inventory labels visible.
 
 Modifier contents are treated as an unordered set. Normal tagged essence modifiers refine the reagent pool globally, affecting all three offers instead of being assigned to one physical offer row. Enchanted books remain targeted modifiers in the deterministic modifier plan. Moving the same modifier to a different physical slot should not reveal a different biased offer.
 
-The current implementation uses menu-local inventory state because it modifies the vanilla enchanting table rather than adding a separate block. Longer term, persistent offer caching should be stored through a world/client-safe mechanism that does not require a custom block.
+The five enchanting inputs are stored on the vanilla enchanting-table block entity and saved to NBT. Closing the UI leaves them in the table; breaking the table drops them. The client-synchronized inventory also drives the in-world display: the target floats over the table, the reagent floats above it, and the three modifiers orbit the target. With Apothic Enchanting present, restrained emerald, rose, and violet particle arcs visualize Eterna, Quanta, and Arcana; arc length and density scale with the corresponding table stat.
+
+### Attunement Pedestal Upgrades
+
+The enchanting table applies new enchantments; the pedestal raises enchantments the item already has. Use an enchanted item and matching essence directly on the pedestal, then hold the Attunement Focus. The first use on a world-space enchantment orb selects it and turns it gold; using that gold orb again performs the upgrade or reports the missing essence, catalyst, nearby table, or table power in the action bar. Modular tools expose their individual part items and part enchantment orbs, so an upgrade is written back to the exact selected part rather than whichever matching part happens to be found first. The target, essence, and catalyst displays are individually ray-pickable with an empty hand; sneak-use any display to retrieve every stored stack.
+
+Each upgrade is deterministic and raises the selected enchantment by one level. It consumes a number of any matching-affinity essence equal to the resulting level: level I to II costs two, II to III costs three, and so on. Primary affinity remains the display color and limit category; every ordinary affinity on the enchantment is valid for payment. The pedestal charges no XP or lapis.
+
+The pedestal finds the nearest enchanting table within four blocks horizontally and two blocks vertically and uses that table's existing bookshelf or Apothic Eterna power. Required power is three times the resulting level, capped at 30. A maxed multi-level enchantment can be raised once above its normal maximum if the item has no other overleveled enchantment; that final step also consumes one Nether Star. Single-level enchantments and already-overleveled items cannot be raised further.
 
 ### Pool Generation and Options
 
@@ -107,21 +117,22 @@ Essences should be data-driven and support:
 
 Essences should stay single-affinity; hybrid two-tag essences are intentionally not part of the current design.
 
-Current acquisition rules use about a 20% chance by default for direct mob, block, fishing, curing, and injected chest rolls.
+Every essence has a deterministic Arcane Crucible formula using one amethyst shard as the medium. Novice Masons can sell two amethyst shards for four emeralds as a fallback route to the first geode; geodes remain the efficient bulk source. Current bonus-acquisition rules use about a 20% chance by default for direct mob, block, fishing, curing, and injected chest rolls.
 
-- Essence of Fire: Blaze and Magma Cube drops, Nether fortress and bastion chests, and lava fishing hooks.
-- Essence of Frost: Stray and Polar Bear drops, igloo/frozen-style chest routes, and shipwreck chest routes.
-- Essence of Lightning: Charged Creepers killed during storms, plus lightning rod and copper crafting.
-- Essence of Force: Iron Golem and Ravager drops, armorer villager trades, and simple crafting.
-- Essence of Excavation: Ore mining with Fortune, mineshaft and stronghold chests, and simple crafting.
-- Essence of Warding: Iron Golem, Ravager, and Warden drops, plus bastion and ancient city chests.
-- Essence of Vitality: Successful zombie villager curing, cleric villager trades, and golden apple crafting.
-- Essence of Motion: Phantom and Rabbit drops, shipwreck/end city chest routes, and simple crafting.
-- Essence of the Void: Enderman drops, with an extra End-dimension bonus roll, plus End city and ancient city chests.
-- Essence of Fortune: Buried treasure, underwater ruin and elder guardian/ocean monument routes, Luck of the Sea fishing, librarian trades, and crafting.
-- Essence of Purification: Successful zombie villager curing.
+The Attunement Focus also supports geode exploration. Shift-right-click scans the player's current chunk and its eight neighbours across the dimension's complete build height, without force-loading chunks. The search uses section palettes to skip irrelevant sections, emits a chunk-aligned Resonance pulse even on a miss, and highlights natural geodes through their unobtainable budding-amethyst blocks. The Focus has a 15-second cooldown. Tuning-orb interactions consume their click before item use, so tuning never starts the scan or its cooldown.
 
-Essence of Purification is a special modifier defined through essence behavior flags. It applies to all offers, removes enchantments tagged `minecraft:curse` from the remaining active pools, and is consumed if the player enchants from the cleaned pool. Ordinary tagged essence refiners are not consumed; the reagent is consumed when an enchantment completes. Nether stars are consumed when they produce an overlevel offer, and enchanted-book modifiers are consumed when their assigned offer is used.
+- Essence of Fire: blaze powder catalyst; also Blaze/Magma Cube drops, Nether chests, and lava fishing hooks.
+- Essence of Frost: snowball catalyst; also Stray/Polar Bear drops and cold-region or shipwreck chests.
+- Essence of Lightning: copper ingot plus lightning rod catalysts; also Charged Creepers killed during storms.
+- Essence of Force: flint catalyst; also Iron Golem/Ravager drops and armorer trades.
+- Essence of Excavation: lapis lazuli catalyst; also Fortune ore mining and mineshaft/stronghold chests.
+- Essence of Warding: iron ingot catalyst; also Iron Golem, Ravager, and Warden drops plus bastion/ancient-city chests.
+- Essence of Vitality: golden apple catalyst; also successful zombie-villager curing and cleric trades.
+- Essence of Motion: feather catalyst; also Phantom/Rabbit drops and shipwreck/end-city chests.
+- Essence of the Void: ender pearl catalyst; also Enderman drops, an End-dimension bonus, and end-city/ancient-city chests.
+- Essence of Purification: quartz catalyst; also successful zombie-villager curing.
+
+Essence of Purification is a special modifier defined through essence behavior flags. It applies to all offers, removes enchantments tagged `minecraft:curse` from the remaining active pools, and is consumed if the player enchants from the cleaned pool. Ordinary tagged essence refiners are not consumed; the reagent is consumed when an enchantment completes. Enchanted-book modifiers are consumed when their assigned offer is used. Nether Stars are only consumed by the Attunement Pedestal's overlevel step.
 
 ### Enchantment Limits
 
@@ -136,8 +147,11 @@ Default rules:
 - Weapon base maximum: 4 enchantments
 - Tool base maximum: 3 enchantments
 - Gold material bonus: +1 enchantment
+- Per-primary-affinity maximum: 2 enchantments
 
 Type limits apply only when they are lower than the global base. If an item matches multiple types, such as an axe matching both weapon and tool tags, the strictest matching type limit wins. Material bonuses are applied after the base limit, so gold tools default to 4, gold weapons default to 5, and gold armor defaults to 5.
+
+The per-affinity limit counts only each enchantment's `primary/<affinity>` marker. Secondary affinity membership continues to shape table pools through essences and modifiers but consumes no additional category allowance. For example, Auto-Smelt remains available from both Fire and Mining sources, but counts only as Fire; Efficiency and Fortune count as Mining. Legacy datapack enchantments without a primary marker retain the previous conservative behavior and count against all of their Better Enchanting affinity tags until classified.
 
 Current JSON shape:
 
@@ -293,7 +307,7 @@ The `general.preset` option is the normal-player control surface. Available pres
 
 When `general.use_advanced_config_values` is `false`, any preset other than `custom` fully controls balance values and the detailed sections act as the editable `custom` baseline. When it is `true`, the selected preset is ignored for balance and the advanced values below are used instead. This is not a per-field inheritance or overlay system. Cosmetic particle settings for Shocked are always read directly from config.
 
-The effective `enchanting.enhanced_table_takeover` value defaults to `true` in the `balanced`, `overhaul`, and `power_fantasy` presets, so vanilla enchanting tables open the enhanced UI. In `vanilla_plus`, it defaults to `false`; vanilla enchanting tables are left alone and the Arcane Crucible block becomes the enhanced enchanting station instead. The Arcane Crucible shapelessly crafts from one enchanting table and can shapelessly craft back into one enchanting table.
+The effective `enchanting.enhanced_table_takeover` value defaults to `true` in the `balanced`, `overhaul`, and `power_fantasy` presets, so vanilla enchanting tables open the enhanced UI. In `vanilla_plus`, it defaults to `false` and vanilla enchanting tables are left alone. In every preset, the Arcane Crucible distills essence and never opens the enchanting UI. It crafts from a cauldron, five obsidian, and three amethyst shards. The Attunement Pedestal crafts from one amethyst shard, three gold ingots, and three obsidian.
 
 Enhanced enchanting balance lives behind the effective balance layer rather than inline menu constants. Bookshelf power controls roll quality through `min_base_cost`, `max_base_cost`, and `base_cost_per_bookshelf_power`. The old level-cost fields remain in config for compatibility and the offer-tier icon, but enhanced table completion no longer charges XP levels or lapis. In the serious presets, `essence_power_bonus` is 0 so essences control the pool without increasing roll strength. Modifier-specific power nudges live in `book_power_bonus` and `gold_material_power_bonus`, while `essence_power_bonus` remains available for custom configs and power-fantasy tuning. Candidate weighting is tuned through `book_weight_multiplier`, `new_tag_combo_multiplier`, and `max_candidate_weight`.
 
@@ -395,7 +409,7 @@ Better Enchanting target-tagged enchantments are also checked when their gamepla
 
 If an item has more currently valid enchantments than its current enchantment limit allows, the later enchantments in the visible tooltip order are dormant and return level 0. Fusion outputs are already applied by Better Enchanting's enchanting and anvil paths before this check is shown to players, so fused results count as the enchantment actually present on the item. This prevents modular material swaps from keeping a material-only bonus active after the material changes. For example, Verdant Regrowth can remain on a swapped tool visually, but it only repairs durability while the tool currently resolves the wood target tag.
 
-Client tooltips color enchantment names by their dominant affinity/tag display color. Enchanted non-book items also show their current valid enchantment count and effective limit, such as `Enchantments: 5/5 (base 4)`. Enchantments that fit only because of material bonus capacity are italicized while still active, so players can see which enchantment would become dormant if the material changed. Dormant enchantments are struck through and marked with a reason such as `[Wrong tag]` or `[Over limit]`. Enchantments that are dormant because they exceed the current effective enchantment limit are also italicized.
+Client tooltips color enchantment names by their primary affinity's display color. Enchanted non-book items also show their current valid enchantment count and effective limit, such as `Enchantments: 5/5 (base 4)`. Enchantments that fit only because of material bonus capacity are italicized while still active, so players can see which enchantment would become dormant if the material changed. Dormant enchantments are struck through and marked with a reason such as `[Wrong tag]` or `[Over limit]`. Enchantments that are dormant because they exceed the current effective enchantment limit are also italicized.
 
 Testing command: `/itemtags reroll` recomputes the held item's current Better Enchanting virtual material tags and target tags and prints them to chat. It is a debug/admin command and does not store tags on the item.
 
@@ -417,7 +431,7 @@ Verdant Regrowth uses tags for its environmental checks. By default, the growth-
 
 - Growth blocks: `data/<namespace>/tags/block/verdant_regrowth_growth_blocks.json`
 - Verdant biomes: `data/<namespace>/tags/worldgen/biome/verdant_regrowth_biomes.json`
-- Harvest crops: `data/<namespace>/tags/block/harvest_crops.json`
+- Harvest crops: `data/<namespace>/tags/block/harvest_crops.json`. The default tag includes `#minecraft:crops`; mature `CropBlock` implementations and age-bearing bonemealable bushes are also recognized as a compatibility fallback for mods that omit the shared tag.
 
 ### Implemented Custom Enchantments and Effects
 
@@ -438,11 +452,12 @@ Verdant Regrowth uses tags for its environmental checks. By default, the growth-
 - Sticky Grip is a single-level Vitality enchantment for durability-tagged items. The normal drop key and inventory-slot throw key are ignored while it is active, but players can still pick the item up on the cursor and throw it outside the inventory manually.
 - Verdant Regrowth is a 5-level Vitality enchantment for tools and armor that also targets the wood target. Equipped or held enchanted items slowly repair near tagged growth blocks, with optional whole-biome healing available through data packs; sunlight uses the faster configured repair interval. Higher levels increase durability repaired per repair tick, not the repair interval.
 - Vein Miner is a Mining enchantment for harvestable tools. It has 5 levels and breaks up to 16 connected matching blocks per level by default.
-- Tree Capitator is a single-level Mining enchantment for axes. Breaking a valid tree log cuts connected matching logs from that tree, up to the configured limit. It only activates when the connected log group has enough nearby natural, non-persistent leaves, so player-built log piles do not qualify. Sapling-grown trees still qualify because their leaves are generated as natural leaves.
+- Tree Capitator is a 2-level Mining enchantment for axes. Both levels cut connected matching logs from a valid natural tree, up to the configured limit. Level II also resolves the tree's sapling or propagule from its log family and replants the lowest trunk footprint after a successful chop; four base logs are restored as a complete 2x2 sapling group. Replanting only occurs if every required position is replaceable, supported, inside the world border, and editable by the player. The enchantment only activates when the connected log group has enough nearby natural, non-persistent leaves, so player-built log piles do not qualify. Sapling-grown trees still qualify because their leaves are generated as natural leaves.
 - Perfect Strike is a single-level Physical enchantment for swords and axes. When the weapon reaches full attack readiness, a short configurable window opens; landing a direct hit in that window applies the configured damage multiplier after normal critical-hit damage. Each successful Perfect Strike weapon hit applies a small random temporary attack-speed variance for the next cooldown, so the next timing window is slightly less predictable.
 - Fortunes Touch is a Mining enchantment created by combining Fortune and Silk Touch. It consumes both ingredients, acts like Silk Touch for the primary block drop, and can add the ordinary non-Silk drop as a secondary roll.
 - Fortunes Touch inherits the level of the Fortune ingredient used to create it. Its secondary ordinary-drop roll chance is 10% per level: level 1 = 10%, level 2 = 20%, level 3 = 30%, and so on, capped at 100%.
-- Harvest is a 5-level Vitality enchantment for hoes. Right-clicking a mature tagged crop harvests it with the enchanted hoe, drops the crop loot, and resets the crop to its youngest age. Each level expands the square area by two blocks: level 1 = 1x1, level 2 = 3x3, level 3 = 5x5, level 4 = 7x7, and level 5 = 9x9.
+- Resonance is a Mining enchantment for pickaxes. Breaking an ore sends a visible reveal wave through matching nearby ores; each revealed block uses a pulsing cyan/violet outline, soft central glow, and expanding echo rings that remain visible through intervening blocks for the configured duration.
+- Harvest is a 5-level Vitality enchantment for hoes. Right-clicking a mature vanilla or modded crop harvests it with the enchanted hoe, drops the crop loot, and resets the crop to its youngest age. Shared `#minecraft:crops` entries are supported directly, with safe class/property fallbacks for untagged mod crops. Each level expands the square area by two blocks: level 1 = 1x1, level 2 = 3x3, level 3 = 5x5, level 4 = 7x7, and level 5 = 9x9.
 
 ### Enchantment Fusion Recipes
 
@@ -518,7 +533,8 @@ Implementation status:
 
 Current architecture:
 
-- Optional Arcane Crucible block path for compatibility when vanilla enchanting table takeover is disabled
+- Persistent vanilla enchanting-table input inventory with synchronized in-world item rendering
+- Persistent, screenless Arcane Crucible block entity with direct block interaction, synchronized world rendering, and data-driven distillation recipes
 - Custom `MenuType`
 - Custom `AbstractContainerMenu`
 - Custom `AbstractContainerScreen`
@@ -533,8 +549,8 @@ Current architecture:
 
 Target architecture:
 
-- Add persistent state for cached offers without forcing the vanilla enchanting table to own extra block state.
-- Store target item, slotted essences/books, cached pool data, current offers, and reroll state.
+- Extend persistent state from stored inputs to cached offers and reroll state where that materially improves stability.
+- Keep stored inputs synchronized without duplicating inventories in menu-only state.
 - Keep a dedicated pool calculator class.
 - Save persistent state through block entity NBT.
 - Keep all balancing constants easy to tune.

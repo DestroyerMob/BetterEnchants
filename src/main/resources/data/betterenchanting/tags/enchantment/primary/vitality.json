@@ -1,0 +1,14 @@
+{
+  "values": [
+    "betterenchanting:curse_of_fragility",
+    "betterenchanting:harvest",
+    "betterenchanting:verdant_regrowth",
+    "betterenchanting:sticky_grip",
+    { "id": "minecraft:respiration", "required": false },
+    { "id": "minecraft:aqua_affinity", "required": false },
+    { "id": "minecraft:mending", "required": false },
+    { "id": "minecraft:unbreaking", "required": false },
+    { "id": "minecraft:lure", "required": false },
+    { "id": "apothic_enchanting:tempting", "required": false }
+  ]
+}

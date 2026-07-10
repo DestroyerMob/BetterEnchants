@@ -168,8 +168,8 @@ public final class BetterEnchantingConfig {
 
         builder.push("resonance");
         RESONANCE_HIGHLIGHT_DURATION_TICKS = builder
-                .comment("Duration, in ticks, that Resonance outlines matching nearby ores after one is broken.")
-                .defineInRange("highlight_duration_ticks", 160, 1, 1200);
+                .comment("Duration, in ticks, that Resonance keeps matching ore markers visible after one is broken.")
+                .defineInRange("highlight_duration_ticks", 480, 1, 1200);
         RESONANCE_BLOCK_WHITELIST = builder
                 .comment("Block ids or block tags allowed for Resonance, such as minecraft:diamond_ore or #c:ores/diamond. Empty means any block in the common ores tag is allowed.")
                 .defineListAllowEmpty("block_whitelist", List.of(), () -> "", value -> value instanceof String);

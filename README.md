@@ -16,16 +16,19 @@ Pre-alpha / internal playtesting. The core table loop, custom enchantments, data
 
 ## Features
 
-- Vanilla enchanting-table takeover plus a dedicated Arcane Crucible fallback
+- Vanilla enchanting-table takeover with persistent target, reagent, and modifier storage
+- A screenless Arcane Crucible that distills all ten essences with floating ingredients, orbiting catalysts, progress runes, and a visible result
+- A screenless Attunement Pedestal that upgrades a chosen existing enchantment by exactly one level through selectable world-space orbs
+- A reusable Attunement Focus for modular enchantment tuning and full-height, 3×3-chunk geode resonance searches
 - Three deterministic offers sculpted by a required affinity essence, three unordered modifier slots, the target item, bookshelf power, and the player's enchantment seed
-- Essence-based pool restriction/refinement, enchanted-book weighting, purification, and nether-star overlevel catalysts
+- Essence-based pool restriction/refinement, enchanted-book weighting, purification, and pedestal-only Nether Star overleveling
 - Essence consumption in place of lapis/XP-level charges for the enhanced table; bookshelves control roll quality rather than payment
-- Data-driven essence definitions, enchantment limits, item targets, affinity display, tag simplification, loot injection, villager trades, and enchantment fusions
-- Twenty-two custom enchantments spanning combat, mining, mobility, durability, utility, and curses
+- Data-driven essence definitions, primary/secondary affinity roles, enchantment limits, item targets, affinity display, tag simplification, loot injection, villager trades, and enchantment fusions
+- Twenty-two custom enchantments spanning combat, mining, mobility, durability, utility, and curses, including Resonance's animated through-wall ore echoes, Tree Capitator II replanting, and modded-crop Harvest support
 - Balance presets for vanilla-plus, balanced, overhaul, power-fantasy, and custom setups
 - Multiple durability-maintenance paths through Mending, material repair, and passive recovery
 - Configurable anvil, mending, XP, and roll behaviour
-- Silent Gear and Mobs Tool Forging virtual material tags, capacity bonuses, part-aware routing, and dormant-over-limit handling when equipment materials change
+- Silent Gear and Mobs Tool Forging virtual material tags, capacity bonuses, part-aware routing, final-tool conflict-priority orbs, and dormant-over-limit handling when equipment materials change
 - A JEI enchantment information category with compatible items, affinities, limits, summaries, and datapack-provided guide notes
 - Optional Apothic Enchanting support, including Apothic table stats, clues, arcana/quanta weighting, infusion offers, and datapack-driven infusion modifier requirements
 
@@ -63,13 +66,13 @@ Balance notes live in [docs/enchantment-balance-pass.md](docs/enchantment-balanc
 
 Apothic infusion modifier datapack hooks are documented in [docs/apothic-infusion-modifier-rules.md](docs/apothic-infusion-modifier-rules.md).
 
-New enchantments should follow [docs/new-enchantment-checklist.md](docs/new-enchantment-checklist.md), including two affinity tags, an item target, player-facing guide text, and dormant-behaviour checks for incompatible or over-limit stacks.
+New enchantments should follow [docs/new-enchantment-checklist.md](docs/new-enchantment-checklist.md), including ordinary affinity tags with one primary role, an item target, player-facing guide text, and dormant-behaviour checks for incompatible or over-limit stacks.
 
-When Apothic Enchanting is installed, Better Enchanting leaves the vanilla enchanting table to Apothic and uses the Arcane Crucible as the Better Enchanting table surface. The config option `enchanting.enhanced_table_takeover` still controls vanilla-table takeover in non-Apothic setups.
+The config option `enchanting.enhanced_table_takeover` controls whether vanilla enchanting tables open Better Enchanting's integrated interface. The Arcane Crucible always distills essence, while the Attunement Pedestal upgrades enchantments already present on an item or a selected modular part.
 
 ## Minecraft Beyond Integration
 
-Minecraft Beyond supplies the full local-mod test matrix: Apothic Enchanting owns the vanilla table, the Arcane Crucible owns the essence loop, Mobs Tool Forging routes enchantments through modular parts and materials, and MoreWeapons contributes weapon-family targets and part routes. The pack also merges Better Enchanting's global loot modifiers with its other injected loot systems.
+Minecraft Beyond supplies the full local-mod test matrix: Better Enchanting integrates Apothic table stats into the persistent vanilla-table interface, the Arcane Crucible owns deterministic essence distillation, Mobs Tool Forging routes enchantments through modular parts and materials, and MoreWeapons contributes weapon-family targets and part routes. The pack also merges Better Enchanting's global loot modifiers with its other injected loot systems.
 
 ## Known issues
 

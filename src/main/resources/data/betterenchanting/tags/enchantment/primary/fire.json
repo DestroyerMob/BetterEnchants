@@ -1,0 +1,9 @@
+{
+  "values": [
+    "betterenchanting:auto_smelt",
+    "betterenchanting:cinderstep",
+    { "id": "minecraft:fire_aspect", "required": false },
+    { "id": "minecraft:flame", "required": false },
+    { "id": "minecraft:fire_protection", "required": false }
+  ]
+}

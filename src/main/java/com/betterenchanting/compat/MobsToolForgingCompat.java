@@ -6,6 +6,8 @@ import com.betterenchanting.data.EnchantmentLimitRules;
 import com.betterenchanting.data.PartEnchantmentRoutes;
 import com.betterenchanting.data.PartEnchantmentRoutes.SlotRule;
 import com.betterenchanting.registry.ModDataComponents;
+import com.betterenchanting.world.EnchantmentActivationEvents;
+import com.betterenchanting.world.EnchantmentActivationEvents.InactiveReason;
 import com.betterenchanting.world.EnchantmentTargetTags;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -216,6 +218,48 @@ public final class MobsToolForgingCompat {
         return Optional.of(result);
     }
 
+    public static Optional<ItemStack> upgradeRoutedEnchantment(
+            RegistryAccess registryAccess,
+            ItemStack target,
+            int partIndex,
+            ResourceLocation enchantmentId,
+            int requestedLevel
+    ) {
+        if (target.isEmpty() || partIndex < 0 || requestedLevel <= 0) {
+            return Optional.empty();
+        }
+
+        ItemStack result = target.copy();
+        Optional<RoutedTool> routed = routedTool(result);
+        if (routed.isEmpty()) {
+            return Optional.empty();
+        }
+        Optional<Holder.Reference<Enchantment>> enchantment = registryAccess
+                .registryOrThrow(Registries.ENCHANTMENT)
+                .getHolder(ResourceKey.create(Registries.ENCHANTMENT, enchantmentId));
+        if (enchantment.isEmpty()) {
+            return Optional.empty();
+        }
+
+        for (RoutedSlot slot : routed.get().slots()) {
+            if (slot.partIndex() != partIndex || !slotCanCarry(slot, enchantment.get())) {
+                continue;
+            }
+            int currentLevel = EnchantmentHelper.getEnchantmentsForCrafting(slot.stack()).getLevel(enchantment.get());
+            if (currentLevel <= 0 || requestedLevel <= currentLevel
+                    || requestedLevel > EnchantmentLevelRules.overlevelMaxLevel(enchantment.get())) {
+                return Optional.empty();
+            }
+            if (!setPartEnchantment(slot.stack(), enchantment.get(), requestedLevel)) {
+                return Optional.empty();
+            }
+            routed.get().writeParts(result);
+            syncRoutedToolEnchantments(registryAccess, result);
+            return Optional.of(result);
+        }
+        return Optional.empty();
+    }
+
     public static boolean reconcileRoutedEnchantments(RegistryAccess registryAccess, ItemStack stack) {
         if (stack.isEmpty()) {
             return false;
@@ -347,7 +391,18 @@ public final class MobsToolForgingCompat {
         if (parts.isEmpty() || !hasStoredEnchantments) {
             return Optional.empty();
         }
-        return Optional.of(new RoutedEnchantmentBreakdown(List.copyOf(parts), visibleEnchantments(registryAccess, stack, routed.get())));
+        ItemEnchantments visibleEnchantments = visibleEnchantments(registryAccess, stack, routed.get());
+        List<RoutedEnchantmentState> toolEnchantments = finalToolEnchantmentStates(
+                registryAccess,
+                stack,
+                registry,
+                visibleEnchantments
+        );
+        return Optional.of(new RoutedEnchantmentBreakdown(
+                List.copyOf(parts),
+                visibleEnchantments,
+                toolEnchantments
+        ));
     }
 
     public static boolean promoteRoutedEnchantment(RegistryAccess registryAccess, ItemStack stack, int partIndex, ResourceLocation enchantmentId) {
@@ -449,7 +504,7 @@ public final class MobsToolForgingCompat {
     }
 
     public static boolean promoteStationRoutedEnchantment(Level level, BlockPos pos, int partIndex, ResourceLocation enchantmentId) {
-        if (level == null || level.isClientSide || partIndex < 0) {
+        if (level == null || level.isClientSide) {
             return false;
         }
 
@@ -465,7 +520,10 @@ public final class MobsToolForgingCompat {
 
         List<ItemStack> stationStacks = stationBenchStacks(access, station);
         ItemStack preview = stationFinishedTool(access, stationStacks).orElse(ItemStack.EMPTY);
-        if (preview.isEmpty() || !promoteRoutedEnchantment(level.registryAccess(), preview, partIndex, enchantmentId)) {
+        boolean promoted = partIndex < 0
+                ? promoteFinalRoutedEnchantment(level.registryAccess(), preview, enchantmentId)
+                : promoteRoutedEnchantment(level.registryAccess(), preview, partIndex, enchantmentId);
+        if (preview.isEmpty() || !promoted) {
             return false;
         }
 
@@ -762,6 +820,79 @@ public final class MobsToolForgingCompat {
         EnchantmentFusionRecipes.apply(registryAccess, visible);
         EnchantmentLevelRules.clampEnchantments(visible);
         return EnchantmentHelper.getEnchantmentsForCrafting(visible);
+    }
+
+    private static List<RoutedEnchantmentState> finalToolEnchantmentStates(
+            RegistryAccess registryAccess,
+            ItemStack target,
+            Registry<Enchantment> registry,
+            ItemEnchantments visibleEnchantments
+    ) {
+        ItemStack evaluated = target.copy();
+        EnchantmentHelper.setEnchantments(evaluated, visibleEnchantments);
+        List<RoutedEnchantmentState> states = new ArrayList<>();
+        for (EnchantmentEntry entry : orderedEntries(evaluated, registry)) {
+            EnchantmentActivationEvents.Status status = EnchantmentActivationEvents.status(
+                    evaluated,
+                    entry.enchantment(),
+                    registryAccess.lookupOrThrow(Registries.ENCHANTMENT)
+            );
+            Optional<String> inactiveReason = status.has(InactiveReason.WRONG_TAG)
+                    ? Optional.of("incompatible")
+                    : status.has(InactiveReason.OVER_LIMIT) ? Optional.of("item_limit") : Optional.empty();
+            boolean active = status.active();
+            states.add(new RoutedEnchantmentState(
+                    entry.enchantment(),
+                    enchantmentId(entry.enchantment()),
+                    entry.level(),
+                    active ? entry.level() : 0,
+                    active,
+                    EnchantmentLevelRules.isOverleveled(entry.enchantment(), entry.level()),
+                    false,
+                    inactiveReason
+            ));
+        }
+        return List.copyOf(states);
+    }
+
+    private static boolean promoteFinalRoutedEnchantment(
+            RegistryAccess registryAccess,
+            ItemStack stack,
+            ResourceLocation enchantmentId
+    ) {
+        Optional<RoutedTool> routed = routedTool(stack);
+        if (routed.isEmpty()) {
+            return false;
+        }
+        Registry<Enchantment> registry = registryAccess.registryOrThrow(Registries.ENCHANTMENT);
+        Optional<Holder.Reference<Enchantment>> enchantment = registry.getHolder(
+                ResourceKey.create(Registries.ENCHANTMENT, enchantmentId)
+        );
+        if (enchantment.isEmpty()) {
+            return false;
+        }
+        ItemEnchantments visible = visibleEnchantments(registryAccess, stack, routed.get());
+        if (visible.getLevel(enchantment.get()) <= 0) {
+            return false;
+        }
+
+        List<ResourceLocation> priority = new ArrayList<>();
+        priority.add(enchantmentId);
+        for (ResourceLocation existing : routedPriority(stack)) {
+            if (!existing.equals(enchantmentId) && !priority.contains(existing)) {
+                priority.add(existing);
+            }
+        }
+        ItemStack orderedVisible = stack.copy();
+        EnchantmentHelper.setEnchantments(orderedVisible, visible);
+        for (EnchantmentEntry entry : orderedEntries(orderedVisible, registry)) {
+            ResourceLocation existing = enchantmentId(entry.enchantment());
+            if (!priority.contains(existing)) {
+                priority.add(existing);
+            }
+        }
+        stack.set(ModDataComponents.ROUTED_ENCHANTMENT_PRIORITY.get(), List.copyOf(priority));
+        return true;
     }
 
     private static Map<Holder<Enchantment>, Integer> activeRoutedEnchantments(Registry<Enchantment> registry, RoutedTool routed) {
@@ -1336,7 +1467,11 @@ public final class MobsToolForgingCompat {
     private record EnchantmentEntryState(EnchantmentEntry entry, boolean active) {
     }
 
-    public record RoutedEnchantmentBreakdown(List<RoutedPartBreakdown> parts, ItemEnchantments visibleEnchantments) {
+    public record RoutedEnchantmentBreakdown(
+            List<RoutedPartBreakdown> parts,
+            ItemEnchantments visibleEnchantments,
+            List<RoutedEnchantmentState> toolEnchantments
+    ) {
     }
 
     public record StationRoutedEnchantmentPreview(ItemStack toolStack, Optional<RoutedEnchantmentBreakdown> breakdown, String status) {

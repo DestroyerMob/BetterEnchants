@@ -1,0 +1,5 @@
+{
+  "medium": { "item": "minecraft:amethyst_shard" },
+  "catalysts": [{ "item": "minecraft:golden_apple" }],
+  "result": { "id": "betterenchanting:vitality_essence", "count": 2 }
+}

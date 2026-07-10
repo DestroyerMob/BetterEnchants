@@ -3,6 +3,8 @@ package com.betterenchanting.world.enchantment;
 import com.betterenchanting.registry.ModEnchantments;
 import java.util.ArrayList;
 import java.util.List;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.item.ItemEntity;
@@ -24,12 +26,14 @@ public final class AutoSmeltEnchantmentEvents {
         }
 
         List<ItemEntity> extraDrops = new ArrayList<>();
+        boolean smeltedAny = false;
         for (ItemEntity drop : event.getDrops()) {
             ItemStack smelted = smelt(event.getLevel(), drop.getItem());
             if (smelted.isEmpty()) {
                 continue;
             }
 
+            smeltedAny = true;
             ItemStack firstStack = smelted.split(Math.min(smelted.getMaxStackSize(), smelted.getCount()));
             drop.setItem(firstStack);
             while (!smelted.isEmpty()) {
@@ -40,6 +44,17 @@ public final class AutoSmeltEnchantmentEvents {
             }
         }
         event.getDrops().addAll(extraDrops);
+        if (smeltedAny) {
+            emitSmeltingParticles(event.getLevel(), event.getPos());
+        }
+    }
+
+    private static void emitSmeltingParticles(ServerLevel level, BlockPos pos) {
+        double x = pos.getX() + 0.5D;
+        double y = pos.getY() + 0.5D;
+        double z = pos.getZ() + 0.5D;
+        level.sendParticles(ParticleTypes.FLAME, x, y, z, 7, 0.28D, 0.28D, 0.28D, 0.018D);
+        level.sendParticles(ParticleTypes.SMOKE, x, y, z, 3, 0.22D, 0.22D, 0.22D, 0.012D);
     }
 
     private static boolean hasAutoSmelt(ServerLevel level, ItemStack stack) {

@@ -1,0 +1,5 @@
+{
+  "medium": { "item": "minecraft:amethyst_shard" },
+  "catalysts": [{ "item": "minecraft:quartz" }],
+  "result": { "id": "betterenchanting:purification_essence", "count": 1 }
+}

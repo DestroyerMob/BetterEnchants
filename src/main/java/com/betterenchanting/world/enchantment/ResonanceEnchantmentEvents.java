@@ -17,7 +17,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.event.level.BlockDropsEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 
@@ -30,7 +29,9 @@ public final class ResonanceEnchantmentEvents {
     }
 
     public static void revealMatchingOres(BlockDropsEvent event) {
-        if (event.isCanceled() || !(event.getBreaker() instanceof ServerPlayer player)) {
+        if (event.isCanceled()
+                || VeinMinerEnchantmentEvents.isVeinMining()
+                || !(event.getBreaker() instanceof ServerPlayer player)) {
             return;
         }
 
@@ -48,12 +49,16 @@ public final class ResonanceEnchantmentEvents {
 
         int radius = Math.max(MIN_RADIUS, Math.min(MAX_RADIUS, resonanceLevel + 1));
         List<BlockPos> positions = findMatchingOres(level, event.getPos(), originState, radius);
-        if (!positions.isEmpty()) {
-            PacketDistributor.sendToPlayer(
-                    player,
-                    new ResonanceHighlightPayload(positions, BetterEnchantingConfig.resonanceHighlightDurationTicks())
-            );
-        }
+        PacketDistributor.sendToPlayer(
+                player,
+                new ResonanceHighlightPayload(
+                        event.getPos(),
+                        BuiltInRegistries.BLOCK.getKey(originState.getBlock()),
+                        radius,
+                        positions,
+                        BetterEnchantingConfig.resonanceHighlightDurationTicks()
+                )
+        );
     }
 
     private static List<BlockPos> findMatchingOres(ServerLevel level, BlockPos origin, BlockState originState, int radius) {
@@ -85,7 +90,7 @@ public final class ResonanceEnchantmentEvents {
     }
 
     private static boolean canReveal(BlockState state) {
-        return !state.isAir() && state.is(Tags.Blocks.ORES) && isAllowedByConfig(state);
+        return !state.isAir() && state.is(ModTags.Blocks.ORES) && isAllowedByConfig(state);
     }
 
     private static boolean isAllowedByConfig(BlockState state) {

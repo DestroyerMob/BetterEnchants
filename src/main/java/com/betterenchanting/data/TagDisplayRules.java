@@ -94,6 +94,13 @@ public final class TagDisplayRules {
 
     public static TextColor dominantAffinityColor(Holder<Enchantment> enchantment) {
         for (DisplayTag tag : enchantmentTags) {
+            if (AffinityRoles.role(enchantment, tag.id()) == AffinityRoles.AffinityRole.PRIMARY) {
+                return tag.label().color();
+            }
+        }
+
+        // Compatibility fallback for datapacks that have not classified their affinity tags yet.
+        for (DisplayTag tag : enchantmentTags) {
             if (enchantment.is(TagKey.create(Registries.ENCHANTMENT, tag.id()))) {
                 return tag.label().color();
             }

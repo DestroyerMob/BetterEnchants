@@ -1,0 +1,5 @@
+{
+  "medium": { "item": "minecraft:amethyst_shard" },
+  "catalysts": [{ "item": "minecraft:flint" }],
+  "result": { "id": "betterenchanting:physical_essence", "count": 2 }
+}

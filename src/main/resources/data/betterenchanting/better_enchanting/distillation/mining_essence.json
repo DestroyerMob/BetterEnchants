@@ -1,0 +1,5 @@
+{
+  "medium": { "item": "minecraft:amethyst_shard" },
+  "catalysts": [{ "item": "minecraft:lapis_lazuli" }],
+  "result": { "id": "betterenchanting:mining_essence", "count": 2 }
+}

@@ -8,12 +8,12 @@ import com.betterenchanting.data.ApothicInfusionModifierRules;
 import com.betterenchanting.data.EnchantmentLevelRules;
 import com.betterenchanting.data.EnchantmentLevelRules.OverlevelTarget;
 import com.betterenchanting.data.EnchantmentLimitRules;
-import com.betterenchanting.registry.ModBlocks;
 import com.betterenchanting.registry.ModMenus;
 import com.betterenchanting.world.EnchantingRoller;
 import com.betterenchanting.world.EnchantmentTargetTags;
 import com.betterenchanting.world.enchantment.FortunesTouchEnchantmentEvents;
 import com.betterenchanting.world.level.block.EnchantingTablePower;
+import com.betterenchanting.world.level.block.EnchantingTableStorage;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -34,6 +34,7 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.Container;
+import net.minecraft.world.ContainerListener;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.entity.player.Player;
@@ -47,6 +48,7 @@ import net.minecraft.world.item.Items;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.EnchantmentInstance;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 
 public class EnhancedEnchantingMenu extends AbstractContainerMenu {
@@ -92,13 +94,8 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             ResourceLocation.fromNamespaceAndPath("apothic_enchanting", "infusion")
     );
 
-    private final Container enchantingSlots = new SimpleContainer(ENCHANTING_SLOT_COUNT) {
-        @Override
-        public void setChanged() {
-            super.setChanged();
-            EnhancedEnchantingMenu.this.slotsChanged(this);
-        }
-    };
+    private final SimpleContainer enchantingSlots;
+    private final ContainerListener enchantingSlotListener = this::slotsChanged;
     private final ContainerLevelAccess access;
     private final net.minecraft.util.RandomSource random = net.minecraft.util.RandomSource.create();
     private final DataSlot enchantmentSeed = DataSlot.standalone();
@@ -131,6 +128,8 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     public EnhancedEnchantingMenu(int containerId, Inventory playerInventory, ContainerLevelAccess access, BlockPos pos) {
         super(ModMenus.ENHANCED_ENCHANTING.get(), containerId);
         this.access = access;
+        this.enchantingSlots = resolveEnchantingInventory(access);
+        this.enchantingSlots.addListener(this.enchantingSlotListener);
 
         this.addSlot(new Slot(this.enchantingSlots, TARGET_SLOT, 15, 47) {
             @Override
@@ -226,6 +225,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         this.addDataSlot(DataSlot.shared(this.apothicStatsData, 1));
         this.addDataSlot(DataSlot.shared(this.apothicStatsData, 2));
         this.addDataSlot(DataSlot.shared(this.apothicStatsData, 3));
+        this.slotsChanged(this.enchantingSlots);
     }
 
     @Override
@@ -533,17 +533,26 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     @Override
     public void removed(Player player) {
         super.removed(player);
-        this.access.execute((level, pos) -> this.clearContainer(player, this.enchantingSlots));
+        this.enchantingSlots.removeListener(this.enchantingSlotListener);
     }
 
     @Override
     public boolean stillValid(Player player) {
         return this.access.evaluate((level, blockPos) -> {
             BlockState state = level.getBlockState(blockPos);
-            boolean validStation = state.is(ModBlocks.ARCANE_CRUCIBLE.get())
-                    || state.is(Blocks.ENCHANTING_TABLE) && EffectiveBalance.takesOverEnchantingTable();
+            boolean validStation = state.is(Blocks.ENCHANTING_TABLE) && EffectiveBalance.takesOverEnchantingTable();
             return validStation && player.canInteractWithBlock(blockPos, 4.0D);
         }, true);
+    }
+
+    private static SimpleContainer resolveEnchantingInventory(ContainerLevelAccess access) {
+        SimpleContainer stored = access.evaluate((level, blockPos) -> {
+            BlockEntity blockEntity = level.getBlockEntity(blockPos);
+            return blockEntity instanceof EnchantingTableStorage storage
+                    ? storage.betterenchanting$getEnchantingInventory()
+                    : null;
+        }, (SimpleContainer) null);
+        return stored == null ? new SimpleContainer(ENCHANTING_SLOT_COUNT) : stored;
     }
 
     @Override

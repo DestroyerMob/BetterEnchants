@@ -1,0 +1,5 @@
+{
+  "medium": { "item": "minecraft:amethyst_shard" },
+  "catalysts": [{ "item": "minecraft:blaze_powder" }],
+  "result": { "id": "betterenchanting:fire_essence", "count": 2 }
+}

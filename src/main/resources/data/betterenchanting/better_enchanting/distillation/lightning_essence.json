@@ -1,0 +1,8 @@
+{
+  "medium": { "item": "minecraft:amethyst_shard" },
+  "catalysts": [
+    { "item": "minecraft:copper_ingot" },
+    { "item": "minecraft:lightning_rod" }
+  ],
+  "result": { "id": "betterenchanting:lightning_essence", "count": 2 }
+}

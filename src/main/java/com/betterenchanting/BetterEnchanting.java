@@ -8,6 +8,7 @@ import com.betterenchanting.data.EnchantmentGuideEntries;
 import com.betterenchanting.data.EnchantmentLimitRules;
 import com.betterenchanting.data.EssenceTradeDefinitions;
 import com.betterenchanting.data.EssenceDefinitions;
+import com.betterenchanting.data.EssenceDistillationRecipes;
 import com.betterenchanting.data.PartEnchantmentRoutes;
 import com.betterenchanting.data.TagDisplayRules;
 import com.betterenchanting.data.TagSimplifier;
@@ -16,6 +17,7 @@ import com.betterenchanting.registry.CreativeTabEvents;
 import com.betterenchanting.registry.ModCreativeTabs;
 import com.betterenchanting.registry.ModDataComponents;
 import com.betterenchanting.registry.ModEffects;
+import com.betterenchanting.registry.ModBlockEntities;
 import com.betterenchanting.registry.ModBlocks;
 import com.betterenchanting.registry.ModGameRules;
 import com.betterenchanting.registry.ModItems;
@@ -63,6 +65,7 @@ public final class BetterEnchanting {
     public BetterEnchanting(IEventBus modBus, ModContainer modContainer) {
         modContainer.registerConfig(ModConfig.Type.COMMON, BetterEnchantingConfig.SPEC);
         ModBlocks.register(modBus);
+        ModBlockEntities.register(modBus);
         ModDataComponents.register(modBus);
         ModEffects.register(modBus);
         ModGameRules.init();
@@ -99,7 +102,9 @@ public final class BetterEnchanting {
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, GelboundEnchantmentEvents::negateFallDamage);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, TreeCapitatorEnchantmentEvents::chopTree);
         NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, VeinMinerEnchantmentEvents::veinMineConnectedBlocks);
-        NeoForge.EVENT_BUS.addListener(ResonanceEnchantmentEvents::revealMatchingOres);
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, ResonanceEnchantmentEvents::revealMatchingOres);
+        NeoForge.EVENT_BUS.addListener(TreeCapitatorEnchantmentEvents::tickPendingChops);
+        NeoForge.EVENT_BUS.addListener(VeinMinerEnchantmentEvents::tickPendingBreaks);
         NeoForge.EVENT_BUS.addListener(EssenceAcquisitionEvents::addMiningEssenceFromFortune);
         NeoForge.EVENT_BUS.addListener(EssenceAcquisitionEvents::addFishingEssences);
         NeoForge.EVENT_BUS.addListener(EssenceAcquisitionEvents::addVillagerTrades);
@@ -122,6 +127,7 @@ public final class BetterEnchanting {
 
     private void addReloadListeners(AddReloadListenerEvent event) {
         event.addListener(new EssenceDefinitions.ReloadListener());
+        event.addListener(new EssenceDistillationRecipes.ReloadListener());
         event.addListener(new EssenceTradeDefinitions.ReloadListener());
         event.addListener(new EnchantmentLimitRules.ReloadListener());
         event.addListener(new EnchantmentFusionRecipes.ReloadListener());

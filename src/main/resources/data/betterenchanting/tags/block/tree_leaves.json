@@ -1,0 +1,9 @@
+{
+  "values": [
+    "#minecraft:leaves",
+    {
+      "id": "#c:leaves",
+      "required": false
+    }
+  ]
+}

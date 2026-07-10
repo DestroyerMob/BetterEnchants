@@ -67,26 +67,32 @@ public final class VacuumEnchantmentEvents {
     }
 
     private static void vacuumDrops(Player player, Collection<ItemEntity> drops) {
+        if (!(player.level() instanceof ServerLevel level)) {
+            return;
+        }
+
         Iterator<ItemEntity> iterator = drops.iterator();
         while (iterator.hasNext()) {
             ItemEntity drop = iterator.next();
-            ItemStack original = drop.getItem();
-            if (original.isEmpty()) {
+            if (drop.getItem().isEmpty()) {
                 iterator.remove();
+                drop.discard();
                 continue;
             }
 
-            ItemStack remainder = original.copy();
-            player.getInventory().add(remainder);
-            if (remainder.isEmpty()) {
-                iterator.remove();
-                drop.discard();
-            } else {
-                drop.setItem(remainder);
+            drop.setTarget(player.getUUID());
+            drop.setNoPickUpDelay();
+            if (!level.addFreshEntity(drop)) {
+                moveToPlayerFeet(player, drop);
+                continue;
+            }
+
+            iterator.remove();
+            drop.playerTouch(player);
+            if (!drop.isRemoved() && !drop.getItem().isEmpty()) {
                 moveToPlayerFeet(player, drop);
             }
         }
-        player.getInventory().setChanged();
     }
 
     private static void moveToPlayerFeet(Player player, ItemEntity drop) {

@@ -153,6 +153,11 @@ public final class EnchantmentLimitRules {
     }
 
     private static Set<ResourceLocation> limitedTagIds(Holder<Enchantment> enchantment) {
+        Set<ResourceLocation> primaryAffinities = AffinityRoles.primaryAffinities(enchantment);
+        if (!primaryAffinities.isEmpty()) {
+            return primaryAffinities;
+        }
+
         return enchantment.tags()
                 .map(TagKey::location)
                 .filter(EnchantmentLimitRules::isLimitedEnchantmentTag)
@@ -165,7 +170,9 @@ public final class EnchantmentLimitRules {
         }
 
         String path = tagId.getPath();
-        return !path.startsWith("targets/") && !path.startsWith("exclusive_set/");
+        return !path.startsWith("targets/")
+                && !path.startsWith("exclusive_set/")
+                && !AffinityRoles.isClassificationTag(tagId);
     }
 
     private static void addEnchantments(Map<Holder<Enchantment>, Integer> enchantments, ItemEnchantments source) {

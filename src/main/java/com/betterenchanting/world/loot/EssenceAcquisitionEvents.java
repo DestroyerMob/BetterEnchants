@@ -4,6 +4,7 @@ import com.betterenchanting.config.EffectiveBalance;
 import com.betterenchanting.data.EssenceTradeDefinitions;
 import com.betterenchanting.data.EssenceTradeDefinitions.EssenceTrade;
 import com.betterenchanting.registry.ModItems;
+import com.betterenchanting.registry.ModTags;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.core.registries.Registries;
@@ -25,7 +26,6 @@ import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.enchantment.Enchantments;
 import net.minecraft.world.item.trading.ItemCost;
 import net.minecraft.world.item.trading.MerchantOffer;
-import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.event.entity.living.LivingConversionEvent;
 import net.neoforged.neoforge.event.entity.living.LivingDropsEvent;
 import net.neoforged.neoforge.event.entity.player.ItemFishedEvent;
@@ -37,7 +37,7 @@ public final class EssenceAcquisitionEvents {
     }
 
     public static void addMiningEssenceFromFortune(BlockDropsEvent event) {
-        if (!(event.getBreaker() instanceof Player) || event.getBlockEntity() != null || !event.getState().is(Tags.Blocks.ORES)) {
+        if (!(event.getBreaker() instanceof Player) || event.getBlockEntity() != null || !event.getState().is(ModTags.Blocks.ORES)) {
             return;
         }
         if (enchantmentLevel(event.getLevel(), event.getTool(), Enchantments.FORTUNE) <= 0 || !roll(event.getLevel().getRandom())) {
@@ -71,7 +71,7 @@ public final class EssenceAcquisitionEvents {
 
     public static void addVillagerTrades(VillagerTradesEvent event) {
         for (EssenceTrade trade : EssenceTradeDefinitions.tradesFor(event.getType())) {
-            addTrade(event, trade.level(), new EssenceForEmeralds(trade));
+            addTrade(event, trade.level(), new ItemForEmeralds(trade));
         }
     }
 
@@ -115,12 +115,12 @@ public final class EssenceAcquisitionEvents {
         return entity;
     }
 
-    private record EssenceForEmeralds(EssenceTrade trade) implements VillagerTrades.ItemListing {
+    private record ItemForEmeralds(EssenceTrade trade) implements VillagerTrades.ItemListing {
         @Override
         public MerchantOffer getOffer(Entity trader, RandomSource random) {
             return new MerchantOffer(
                     new ItemCost(Items.EMERALD, trade.emeraldCost()),
-                    new ItemStack(trade.essence(), trade.count()),
+                    new ItemStack(trade.item(), trade.count()),
                     trade.maxUses(),
                     trade.xp(),
                     trade.priceMultiplier()

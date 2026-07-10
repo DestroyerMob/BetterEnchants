@@ -2,6 +2,7 @@ package com.betterenchanting.world;
 
 import com.betterenchanting.BetterEnchanting;
 import com.betterenchanting.data.EnchantmentLimitRules;
+import com.betterenchanting.registry.ModDataComponents;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -133,7 +134,16 @@ public final class EnchantmentActivationEvents {
         Map<Holder<Enchantment>, Integer> ordered = new LinkedHashMap<>();
         addOrderedEntries(stack.getOrDefault(DataComponents.STORED_ENCHANTMENTS, ItemEnchantments.EMPTY), enchantments, ordered);
         addOrderedEntries(stack.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY), enchantments, ordered);
-        return List.copyOf(ordered.keySet());
+        List<ResourceLocation> routedPriority = stack.get(ModDataComponents.ROUTED_ENCHANTMENT_PRIORITY.get());
+        if (routedPriority == null || routedPriority.isEmpty()) {
+            return List.copyOf(ordered.keySet());
+        }
+
+        return RoutedPriorityOrder.apply(
+                routedPriority,
+                List.copyOf(ordered.keySet()),
+                enchantment -> enchantment.unwrapKey().map(key -> key.location()).orElse(null)
+        );
     }
 
     private static void addOrderedEntries(

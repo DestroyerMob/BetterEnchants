@@ -14,6 +14,10 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.BonemealableBlock;
+import net.minecraft.world.level.block.BushBlock;
+import net.minecraft.world.level.block.CropBlock;
+import net.minecraft.world.level.block.StemBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.block.state.properties.Property;
@@ -48,6 +52,7 @@ public final class HarvestEnchantmentEvents {
         if (!player.getAbilities().instabuild) {
             tool.hurtAndBreak(harvested, level, player, item -> player.onEquippedItemBroken(item, EquipmentSlot.MAINHAND));
         }
+        player.swing(event.getHand(), true);
         event.setCancellationResult(InteractionResult.CONSUME);
         event.setCanceled(true);
     }
@@ -72,12 +77,8 @@ public final class HarvestEnchantmentEvents {
         }
 
         BlockState state = level.getBlockState(pos);
-        if (!state.is(ModTags.Blocks.HARVEST_CROPS)) {
-            return false;
-        }
-
         Optional<IntegerProperty> ageProperty = ageProperty(state);
-        if (ageProperty.isEmpty()) {
+        if (ageProperty.isEmpty() || !isHarvestCrop(state)) {
             return false;
         }
 
@@ -109,6 +110,20 @@ public final class HarvestEnchantmentEvents {
             player.getInventory().setChanged();
         }
         return true;
+    }
+
+    private static boolean isHarvestCrop(BlockState state) {
+        if (state.is(ModTags.Blocks.HARVEST_CROPS)) {
+            return true;
+        }
+
+        Block block = state.getBlock();
+        if (block instanceof CropBlock) {
+            return true;
+        }
+        return !(block instanceof StemBlock)
+                && block instanceof BushBlock
+                && block instanceof BonemealableBlock;
     }
 
     private static Optional<IntegerProperty> ageProperty(BlockState state) {

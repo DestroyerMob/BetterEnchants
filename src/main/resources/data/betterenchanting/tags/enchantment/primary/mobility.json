@@ -1,0 +1,13 @@
+{
+  "values": [
+    "betterenchanting:gelbound",
+    "betterenchanting:seismic_cushion",
+    "betterenchanting:flash_step",
+    { "id": "minecraft:riptide", "required": false },
+    { "id": "minecraft:wind_burst", "required": false },
+    { "id": "minecraft:feather_falling", "required": false },
+    { "id": "minecraft:depth_strider", "required": false },
+    { "id": "minecraft:soul_speed", "required": false },
+    { "id": "minecraft:swift_sneak", "required": false }
+  ]
+}

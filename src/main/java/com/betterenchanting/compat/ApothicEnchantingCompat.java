@@ -128,7 +128,7 @@ public final class ApothicEnchantingCompat {
         }
         try {
             Object info = getEnchInfo.invoke(null, enchantment);
-            int maxLevel = intValue(getMaxLevel.invoke(info));
+            int maxLevel = effectiveConfiguredMaxLevel(enchantment.value().getMaxLevel(), intValue(getMaxLevel.invoke(info)));
             int minLevel = enchantment.value().getMinLevel();
             for (int level = maxLevel; level >= minLevel; level--) {
                 int minPower = intValue(getMinPower.invoke(info, level));
@@ -151,7 +151,10 @@ public final class ApothicEnchantingCompat {
         }
         try {
             Object info = getEnchInfo.invoke(null, enchantment);
-            return OptionalInt.of(intValue(getMaxLevel.invoke(info)));
+            return OptionalInt.of(effectiveConfiguredMaxLevel(
+                    enchantment.value().getMaxLevel(),
+                    intValue(getMaxLevel.invoke(info))
+            ));
         } catch (InvocationTargetException error) {
             return OptionalInt.empty();
         } catch (ReflectiveOperationException | RuntimeException error) {
@@ -165,7 +168,7 @@ public final class ApothicEnchantingCompat {
         }
         try {
             Object info = getEnchInfo.invoke(null, enchantment);
-            int maxLevel = intValue(getMaxLevel.invoke(info));
+            int maxLevel = effectiveConfiguredMaxLevel(enchantment.value().getMaxLevel(), intValue(getMaxLevel.invoke(info)));
             if (level < enchantment.value().getMinLevel() || level > maxLevel) {
                 return Optional.empty();
             }
@@ -191,6 +194,10 @@ public final class ApothicEnchantingCompat {
         } catch (ReflectiveOperationException | RuntimeException error) {
             return baseWeight;
         }
+    }
+
+    static int effectiveConfiguredMaxLevel(int registeredMaxLevel, int configuredMaxLevel) {
+        return Math.max(registeredMaxLevel, configuredMaxLevel);
     }
 
     public static int guaranteedSelectionCount(TableStats stats) {

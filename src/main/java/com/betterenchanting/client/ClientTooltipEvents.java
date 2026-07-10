@@ -7,6 +7,7 @@ import com.betterenchanting.data.EssenceDefinitions;
 import com.betterenchanting.data.TagDisplayRules;
 import com.betterenchanting.data.TagDisplayRules.TagLabel;
 import com.betterenchanting.registry.ModEnchantments;
+import com.betterenchanting.registry.ModItems;
 import com.betterenchanting.world.EnchantmentActivationEvents;
 import com.betterenchanting.world.EnchantmentActivationEvents.InactiveReason;
 import com.betterenchanting.world.EnchantmentActivationEvents.TooltipEntry;
@@ -57,6 +58,17 @@ public final class ClientTooltipEvents {
         }
 
         List<Component> tooltip = event.getToolTip();
+        if (stack.is(ModItems.ARCANE_CRUCIBLE.get())) {
+            tooltip.add(Component.translatable("tooltip.betterenchanting.arcane_crucible.controls")
+                    .withStyle(ChatFormatting.LIGHT_PURPLE));
+            tooltip.add(Component.translatable("tooltip.betterenchanting.machine.retrieve")
+                    .withStyle(ChatFormatting.GRAY));
+        } else if (stack.is(ModItems.ATTUNEMENT_PEDESTAL.get())) {
+            tooltip.add(Component.translatable("tooltip.betterenchanting.attunement_pedestal.controls")
+                    .withStyle(ChatFormatting.LIGHT_PURPLE));
+            tooltip.add(Component.translatable("tooltip.betterenchanting.machine.retrieve")
+                    .withStyle(ChatFormatting.GRAY));
+        }
         HolderLookup.Provider registries = tooltipRegistries(event);
         List<TooltipEntry> enchantmentEntries = registries == null
                 ? List.of()
@@ -266,8 +278,10 @@ public final class ClientTooltipEvents {
 
     private static int findTooltipLine(List<Component> tooltip, TooltipEntry entry, int startIndex) {
         String vanillaText = Enchantment.getFullname(entry.enchantment(), entry.level()).getString();
+        String suppressedText = Enchantment.getFullname(entry.enchantment(), 0).getString();
         for (int index = startIndex; index < tooltip.size(); index++) {
-            if (matchesTooltipLine(tooltip.get(index).getString(), vanillaText)) {
+            String lineText = tooltip.get(index).getString();
+            if (matchesTooltipLine(lineText, vanillaText) || matchesTooltipLine(lineText, suppressedText)) {
                 return index;
             }
         }

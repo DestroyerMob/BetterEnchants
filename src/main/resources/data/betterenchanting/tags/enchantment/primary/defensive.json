@@ -1,0 +1,11 @@
+{
+  "values": [
+    { "id": "minecraft:blast_protection", "required": false },
+    { "id": "minecraft:projectile_protection", "required": false },
+    { "id": "minecraft:thorns", "required": false },
+    { "id": "minecraft:protection", "required": false },
+    { "id": "apothic_enchanting:rebounding", "required": false },
+    { "id": "apothic_enchanting:stable_footing", "required": false },
+    { "id": "apothic_enchanting:life_mending", "required": false }
+  ]
+}

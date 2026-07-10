@@ -1,21 +1,32 @@
 package com.betterenchanting.network;
 
 import com.betterenchanting.client.ResonanceHighlights;
+import com.betterenchanting.client.ChainedMiningAnimationState;
 import com.betterenchanting.compat.MobsToolForgingCompat;
+import com.betterenchanting.compat.MobsToolForgingCompat.RoutedEnchantmentState;
+import com.betterenchanting.registry.ModItems;
+import com.betterenchanting.world.level.block.entity.AttunementPedestalBlockEntity;
+import com.betterenchanting.world.level.block.entity.ArcaneCrucibleBlockEntity;
+import com.betterenchanting.world.level.block.InWorldMachineInteraction;
+import com.betterenchanting.world.inventory.PedestalUpgradeRules.UpgradePlan;
 import com.betterenchanting.world.enchantment.FlashStepEnchantmentEvents;
 import com.betterenchanting.world.enchantment.VeinMinerModeState;
+import java.util.Optional;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.phys.Vec3;
+import net.minecraft.network.chat.Component;
+import net.minecraft.world.item.enchantment.Enchantment;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 public final class ModNetworking {
-    private static final String PROTOCOL_VERSION = "2";
+    private static final String PROTOCOL_VERSION = "8";
 
     private ModNetworking() {
     }
@@ -25,7 +36,145 @@ public final class ModNetworking {
         registrar.playToServer(CycleVeinMinerModePayload.TYPE, CycleVeinMinerModePayload.STREAM_CODEC, ModNetworking::handleCycleVeinMinerMode);
         registrar.playToServer(FlashStepPayload.TYPE, FlashStepPayload.STREAM_CODEC, ModNetworking::handleFlashStep);
         registrar.playToClient(ResonanceHighlightPayload.TYPE, ResonanceHighlightPayload.STREAM_CODEC, ModNetworking::handleResonanceHighlights);
+        registrar.playToClient(GeodeSearchPayload.TYPE, GeodeSearchPayload.STREAM_CODEC, ModNetworking::handleGeodeSearch);
+        registrar.playToClient(ChainedMiningAnimationPayload.TYPE, ChainedMiningAnimationPayload.STREAM_CODEC, ModNetworking::handleChainedMiningAnimation);
         registrar.playToServer(PromoteRoutedEnchantmentPayload.TYPE, PromoteRoutedEnchantmentPayload.STREAM_CODEC, ModNetworking::handlePromoteRoutedEnchantment);
+        registrar.playToServer(SelectPedestalUpgradePayload.TYPE, SelectPedestalUpgradePayload.STREAM_CODEC, ModNetworking::handleSelectPedestalUpgrade);
+        registrar.playToServer(TakeMachineDisplayPayload.TYPE, TakeMachineDisplayPayload.STREAM_CODEC, ModNetworking::handleTakeMachineDisplay);
+    }
+
+    private static void handleTakeMachineDisplay(TakeMachineDisplayPayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)
+                || !player.getMainHandItem().isEmpty()
+                || player.distanceToSqr(Vec3.atCenterOf(payload.machinePos())) > 64.0D) {
+            return;
+        }
+        int takenStacks;
+        ItemStack taken = ItemStack.EMPTY;
+        if (player.level().getBlockEntity(payload.machinePos()) instanceof ArcaneCrucibleBlockEntity crucible) {
+            if (payload.takeAll()) {
+                takenStacks = InWorldMachineInteraction.takeAll(
+                        crucible,
+                        player,
+                        ArcaneCrucibleBlockEntity.OUTPUT_SLOT,
+                        ArcaneCrucibleBlockEntity.FIRST_CATALYST_SLOT + 1,
+                        ArcaneCrucibleBlockEntity.FIRST_CATALYST_SLOT,
+                        ArcaneCrucibleBlockEntity.MEDIUM_SLOT
+                );
+            } else if (payload.slot() >= 0 && payload.slot() < ArcaneCrucibleBlockEntity.CONTAINER_SIZE) {
+                taken = InWorldMachineInteraction.take(crucible, payload.slot(), player);
+                takenStacks = taken.isEmpty() ? 0 : 1;
+            } else {
+                return;
+            }
+        } else if (player.level().getBlockEntity(payload.machinePos()) instanceof AttunementPedestalBlockEntity pedestal) {
+            if (payload.takeAll()) {
+                takenStacks = InWorldMachineInteraction.takeAll(
+                        pedestal,
+                        player,
+                        AttunementPedestalBlockEntity.TARGET_SLOT,
+                        AttunementPedestalBlockEntity.CATALYST_SLOT,
+                        AttunementPedestalBlockEntity.ESSENCE_SLOT
+                );
+            } else if (payload.slot() >= 0 && payload.slot() < AttunementPedestalBlockEntity.CONTAINER_SIZE) {
+                taken = InWorldMachineInteraction.take(pedestal, payload.slot(), player);
+                takenStacks = taken.isEmpty() ? 0 : 1;
+            } else {
+                return;
+            }
+        } else {
+            return;
+        }
+        if (takenStacks <= 0) {
+            return;
+        }
+        player.level().playSound(null, payload.machinePos(), SoundEvents.ITEM_PICKUP, SoundSource.BLOCKS, 0.65F, 0.95F);
+        player.displayClientMessage(
+                payload.takeAll()
+                        ? Component.translatable("message.betterenchanting.machine.cleared", takenStacks)
+                        : Component.translatable("message.betterenchanting.machine.took", taken.getHoverName()),
+                true
+        );
+    }
+
+    private static void handleSelectPedestalUpgrade(SelectPedestalUpgradePayload payload, IPayloadContext context) {
+        if (!(context.player() instanceof ServerPlayer player)
+                || player.distanceToSqr(Vec3.atCenterOf(payload.pedestalPos())) > 64.0D
+                || (!player.getMainHandItem().is(ModItems.ATTUNEMENT_FOCUS.get())
+                && !player.getOffhandItem().is(ModItems.ATTUNEMENT_FOCUS.get()))) {
+            return;
+        }
+        if (!(player.level().getBlockEntity(payload.pedestalPos()) instanceof AttunementPedestalBlockEntity pedestal)) {
+            return;
+        }
+        boolean alreadySelected = payload.enchantment().equals(pedestal.selectedEnchantment())
+                && payload.partIndex() == pedestal.selectedPartIndex();
+        if (alreadySelected) {
+            UpgradePlan plan = pedestal.upgradePlan();
+            if (pedestal.tryUpgrade(player)) {
+                player.displayClientMessage(
+                        Component.translatable(
+                                "message.betterenchanting.pedestal.upgraded",
+                                Enchantment.getFullname(plan.enchantment(), plan.nextLevel())
+                        ),
+                        true
+                );
+            } else {
+                player.displayClientMessage(upgradeFailureMessage(plan, player), true);
+                player.playNotifySound(SoundEvents.NOTE_BLOCK_BASS.value(), SoundSource.PLAYERS, 0.65F, 0.75F);
+            }
+            return;
+        }
+        if (!pedestal.selectEnchantment(payload.partIndex(), payload.enchantment())) {
+            return;
+        }
+        player.level().playSound(
+                null,
+                payload.pedestalPos(),
+                SoundEvents.AMETHYST_BLOCK_CHIME,
+                SoundSource.BLOCKS,
+                1.0F,
+                1.3F
+        );
+        UpgradePlan selectedPlan = pedestal.upgradePlan();
+        if (selectedPlan.enchantment() != null) {
+            player.displayClientMessage(
+                    Component.translatable(
+                            "message.betterenchanting.pedestal.selected",
+                            Enchantment.getFullname(selectedPlan.enchantment(), selectedPlan.currentLevel())
+                    ),
+                    true
+            );
+        }
+    }
+
+    private static Component upgradeFailureMessage(UpgradePlan plan, ServerPlayer player) {
+        if (!plan.validSelection() || plan.maximumReached()) {
+            return Component.translatable("gui.betterenchanting.pedestal.maximum");
+        }
+        if (!plan.linkedTable()) {
+            return Component.translatable("gui.betterenchanting.pedestal.no_table");
+        }
+        if (!plan.enoughPower()) {
+            return Component.translatable(
+                    "message.betterenchanting.pedestal.power_needed",
+                    plan.availablePower(),
+                    plan.requiredPower()
+            );
+        }
+        if (!plan.matchingEssence()) {
+            return Component.translatable("gui.betterenchanting.pedestal.wrong_essence");
+        }
+        if (!plan.enoughEssence()) {
+            return Component.translatable("gui.betterenchanting.pedestal.need_essence", plan.essenceCost());
+        }
+        if (plan.catalystRequired() && !plan.hasCatalyst()) {
+            return Component.translatable("gui.betterenchanting.pedestal.need_star");
+        }
+        if (!player.hasInfiniteMaterials() && player.experienceLevel < plan.experienceCost()) {
+            return Component.translatable("gui.betterenchanting.pedestal.need_experience", plan.experienceCost());
+        }
+        return Component.translatable("gui.betterenchanting.pedestal.unavailable");
     }
 
     private static void handleCycleVeinMinerMode(CycleVeinMinerModePayload payload, IPayloadContext context) {
@@ -42,6 +191,14 @@ public final class ModNetworking {
 
     private static void handleResonanceHighlights(ResonanceHighlightPayload payload, IPayloadContext context) {
         context.enqueueWork(() -> ResonanceHighlights.add(payload));
+    }
+
+    private static void handleGeodeSearch(GeodeSearchPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> ResonanceHighlights.add(payload));
+    }
+
+    private static void handleChainedMiningAnimation(ChainedMiningAnimationPayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> ChainedMiningAnimationState.update(payload));
     }
 
     private static void handlePromoteRoutedEnchantment(PromoteRoutedEnchantmentPayload payload, IPayloadContext context) {
@@ -111,26 +268,31 @@ public final class ModNetworking {
     }
 
     private static boolean isStationEnchantmentActive(ServerPlayer player, PromoteRoutedEnchantmentPayload payload) {
-        return MobsToolForgingCompat.stationRoutedEnchantmentPreview(player.level(), payload.stationPos())
-                .flatMap(preview -> preview.breakdown())
-                .flatMap(breakdown -> breakdown.parts().stream()
-                        .filter(part -> part.partIndex() == payload.partIndex())
-                        .flatMap(part -> part.enchantments().stream())
-                        .filter(enchantment -> enchantment.enchantmentId().equals(payload.enchantment()))
-                        .findFirst())
-                .map(enchantment -> enchantment.active())
+        return stationEnchantmentState(player, payload)
+                .map(RoutedEnchantmentState::active)
                 .orElse(false);
     }
 
     private static boolean isStationOverlevelBonusFocused(ServerPlayer player, PromoteRoutedEnchantmentPayload payload) {
+        return stationEnchantmentState(player, payload)
+                .map(RoutedEnchantmentState::overlevelBonusActive)
+                .orElse(false);
+    }
+
+    private static Optional<RoutedEnchantmentState> stationEnchantmentState(
+            ServerPlayer player,
+            PromoteRoutedEnchantmentPayload payload
+    ) {
         return MobsToolForgingCompat.stationRoutedEnchantmentPreview(player.level(), payload.stationPos())
                 .flatMap(preview -> preview.breakdown())
-                .flatMap(breakdown -> breakdown.parts().stream()
+                .flatMap(breakdown -> payload.partIndex() < 0
+                        ? breakdown.toolEnchantments().stream()
+                        .filter(enchantment -> enchantment.enchantmentId().equals(payload.enchantment()))
+                        .findFirst()
+                        : breakdown.parts().stream()
                         .filter(part -> part.partIndex() == payload.partIndex())
                         .flatMap(part -> part.enchantments().stream())
                         .filter(enchantment -> enchantment.enchantmentId().equals(payload.enchantment()))
-                        .findFirst())
-                .map(enchantment -> enchantment.overlevelBonusActive())
-                .orElse(false);
+                        .findFirst());
     }
 }

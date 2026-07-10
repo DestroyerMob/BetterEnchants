@@ -1,0 +1,27 @@
+{
+  "values": [
+    "betterenchanting:curse_of_rebound",
+    "betterenchanting:beheading",
+    "betterenchanting:headshot",
+    "betterenchanting:perfect_strike",
+    { "id": "minecraft:sharpness", "required": false },
+    { "id": "minecraft:smite", "required": false },
+    { "id": "minecraft:bane_of_arthropods", "required": false },
+    { "id": "minecraft:knockback", "required": false },
+    { "id": "minecraft:sweeping_edge", "required": false },
+    { "id": "minecraft:power", "required": false },
+    { "id": "minecraft:punch", "required": false },
+    { "id": "minecraft:impaling", "required": false },
+    { "id": "minecraft:piercing", "required": false },
+    { "id": "minecraft:density", "required": false },
+    { "id": "minecraft:breach", "required": false },
+    { "id": "minecraft:looting", "required": false },
+    { "id": "apothic_enchanting:chainsaw", "required": false },
+    { "id": "apothic_enchanting:knowledge_of_the_ages", "required": false },
+    { "id": "apothic_enchanting:scavenger", "required": false },
+    { "id": "apothic_enchanting:shield_bash", "required": false },
+    { "id": "apothic_enchanting:berserkers_fury", "required": false },
+    { "id": "apothic_enchanting:reflective_defenses", "required": false },
+    { "id": "apothic_enchanting:endless_quiver", "required": false }
+  ]
+}

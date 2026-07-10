@@ -35,16 +35,19 @@ public final class EssenceTradeDefinitions {
 
     private static EssenceTrade parseTrade(JsonObject object) {
         ResourceLocation professionId = parseId(GsonHelper.getAsString(object, "profession"), "minecraft");
-        ResourceLocation itemId = parseId(GsonHelper.getAsString(object, "essence"), BetterEnchanting.MOD_ID);
+        String itemValue = object.has("item")
+                ? GsonHelper.getAsString(object, "item")
+                : GsonHelper.getAsString(object, "essence");
+        ResourceLocation itemId = parseId(itemValue, BetterEnchanting.MOD_ID);
         if (BuiltInRegistries.VILLAGER_PROFESSION.getOptional(professionId).isEmpty()) {
             throw new IllegalArgumentException("Unknown villager profession: " + professionId);
         }
-        Item essence = BuiltInRegistries.ITEM.getOptional(itemId)
-                .orElseThrow(() -> new IllegalArgumentException("Unknown essence item: " + itemId));
+        Item item = BuiltInRegistries.ITEM.getOptional(itemId)
+                .orElseThrow(() -> new IllegalArgumentException("Unknown villager trade item: " + itemId));
 
         return new EssenceTrade(
                 professionId,
-                essence,
+                item,
                 GsonHelper.getAsInt(object, "level", 1),
                 GsonHelper.getAsInt(object, "emerald_cost", 1),
                 GsonHelper.getAsInt(object, "count", 1),
@@ -90,7 +93,7 @@ public final class EssenceTradeDefinitions {
 
     public record EssenceTrade(
             ResourceLocation profession,
-            Item essence,
+            Item item,
             int level,
             int emeraldCost,
             int count,

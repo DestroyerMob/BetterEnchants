@@ -7,6 +7,9 @@
   "plugin": "com.betterenchanting.mixin.BetterEnchantingMixinPlugin",
   "mixins": [
     "AnvilMenuMixin",
+    "ApothicEnchantmentInfoMixin",
+    "EnchantingTableBlockEntityMixin",
+    "EnchantingTableBlockMixin",
     "EnchantmentHelperMixin",
     "GrindstoneMenuMixin",
     "ItemCombinerMenuAccessor",
@@ -17,7 +20,9 @@
   ],
   "client": [
     "client.AnvilScreenMixin",
+    "client.EnchantTableRendererMixin",
     "client.HumanoidArmorLayerMixin",
+    "client.ItemInHandRendererMixin",
     "client.ItemRendererMixin",
     "client.LivingEntityRendererMixin"
   ],

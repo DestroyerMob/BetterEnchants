@@ -1,11 +1,16 @@
 {
-  "type": "minecraft:crafting_shapeless",
-  "category": "misc",
-  "ingredients": [
-    {
-      "item": "minecraft:enchanting_table"
-    }
+  "type": "minecraft:crafting_shaped",
+  "category": "decorations",
+  "pattern": [
+    "AAA",
+    "OCO",
+    "OOO"
   ],
+  "key": {
+    "A": { "item": "minecraft:amethyst_shard" },
+    "O": { "item": "minecraft:obsidian" },
+    "C": { "item": "minecraft:cauldron" }
+  },
   "result": {
     "count": 1,
     "id": "betterenchanting:arcane_crucible"

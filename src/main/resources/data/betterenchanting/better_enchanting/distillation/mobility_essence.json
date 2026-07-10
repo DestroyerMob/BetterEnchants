@@ -1,0 +1,5 @@
+{
+  "medium": { "item": "minecraft:amethyst_shard" },
+  "catalysts": [{ "item": "minecraft:feather" }],
+  "result": { "id": "betterenchanting:mobility_essence", "count": 2 }
+}

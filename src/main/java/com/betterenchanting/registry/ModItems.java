@@ -2,6 +2,7 @@ package com.betterenchanting.registry;
 
 import com.betterenchanting.BetterEnchanting;
 import com.betterenchanting.world.item.EssenceItem;
+import com.betterenchanting.world.item.AttunementFocusItem;
 import java.util.List;
 import java.util.function.Supplier;
 import net.minecraft.world.item.BlockItem;
@@ -24,13 +25,17 @@ public final class ModItems {
     public static final Supplier<EssenceItem> MOBILITY_ESSENCE = essence("mobility_essence", Rarity.COMMON);
     public static final Supplier<EssenceItem> VOID_ESSENCE = essence("void_essence", Rarity.UNCOMMON);
     public static final Supplier<EssenceItem> PURIFICATION_ESSENCE = essence("purification_essence", Rarity.UNCOMMON);
-    public static final DeferredItem<Item> ATTUNEMENT_FOCUS = ITEMS.registerSimpleItem(
+    public static final DeferredItem<AttunementFocusItem> ATTUNEMENT_FOCUS = ITEMS.register(
             "attunement_focus",
-            new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON)
+            () -> new AttunementFocusItem(new Item.Properties().stacksTo(1).rarity(Rarity.UNCOMMON))
     );
     public static final DeferredItem<BlockItem> ARCANE_CRUCIBLE = ITEMS.registerSimpleBlockItem(
             "arcane_crucible",
             ModBlocks.ARCANE_CRUCIBLE
+    );
+    public static final DeferredItem<BlockItem> ATTUNEMENT_PEDESTAL = ITEMS.registerSimpleBlockItem(
+            "attunement_pedestal",
+            ModBlocks.ATTUNEMENT_PEDESTAL
     );
 
     public static final List<Supplier<? extends Item>> ESSENCES = List.of(
@@ -54,6 +59,6 @@ public final class ModItems {
     }
 
     private static Supplier<EssenceItem> essence(String id, Rarity rarity) {
-        return ITEMS.register(id, () -> new EssenceItem(new Item.Properties().stacksTo(16).rarity(rarity)));
+        return ITEMS.register(id, () -> new EssenceItem(new Item.Properties().stacksTo(64).rarity(rarity)));
     }
 }

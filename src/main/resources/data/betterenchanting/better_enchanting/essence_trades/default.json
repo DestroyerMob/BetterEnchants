@@ -1,6 +1,16 @@
 {
   "trades": [
     {
+      "profession": "minecraft:mason",
+      "level": 1,
+      "item": "minecraft:amethyst_shard",
+      "emerald_cost": 4,
+      "count": 2,
+      "max_uses": 8,
+      "xp": 2,
+      "price_multiplier": 0.05
+    },
+    {
       "profession": "minecraft:armorer",
       "level": 2,
       "essence": "betterenchanting:physical_essence",

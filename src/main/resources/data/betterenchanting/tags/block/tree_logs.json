@@ -1,0 +1,9 @@
+{
+  "values": [
+    "#minecraft:logs",
+    {
+      "id": "#c:logs",
+      "required": false
+    }
+  ]
+}
