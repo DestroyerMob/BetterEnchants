@@ -15,8 +15,10 @@ import com.betterenchanting.world.EnchantmentTargetTags;
 import com.betterenchanting.world.enchantment.FortunesTouchEnchantmentEvents;
 import com.betterenchanting.world.level.block.EnchantingTablePower;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import net.minecraft.Util;
 import net.minecraft.advancements.CriteriaTriggers;
 import net.minecraft.core.BlockPos;
@@ -49,7 +51,9 @@ import net.minecraft.world.level.block.state.BlockState;
 
 public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     public static final int TARGET_SLOT = 0;
-    public static final int LAPIS_SLOT = 1;
+    public static final int REAGENT_SLOT = 1;
+    @Deprecated(forRemoval = false)
+    public static final int LAPIS_SLOT = REAGENT_SLOT;
     public static final int FIRST_MODIFIER_SLOT = 2;
     public static final int MODIFIER_SLOT_COUNT = 3;
     public static final int ENCHANTING_SLOT_COUNT = 5;
@@ -64,6 +68,8 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     public static final int DISABLED_FUSION_LIMIT = 1 << 8;
     public static final int DISABLED_APOTHIC_INFUSION_UNMET = 1 << 9;
     public static final int DISABLED_APOTHIC_INFUSION_MODIFIER = 1 << 10;
+    public static final int DISABLED_NO_REAGENT = 1 << 11;
+    public static final int DISABLED_DUPLICATE_OFFERS = 1 << 12;
 
     private static final int PLAYER_INVENTORY_START = ENCHANTING_SLOT_COUNT;
     private static final int PLAYER_INVENTORY_END = PLAYER_INVENTORY_START + 27;
@@ -78,9 +84,8 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     private static final int APOTHIC_STATS_SCALE = 100;
     private static final int APOTHIC_FLAGS_STABLE = 1;
     private static final int APOTHIC_FLAGS_TREASURE = 1 << 1;
-    private static final int PLAYER_LEVEL_COST = 0;
     private static final int MAX_REVEALED_CLUES_PER_OPTION = 6;
-    private static final ResourceLocation EMPTY_LAPIS_SLOT = ResourceLocation.withDefaultNamespace("item/empty_slot_lapis_lazuli");
+    private static final ResourceLocation EMPTY_REAGENT_SLOT = ResourceLocation.withDefaultNamespace("item/empty_slot_lapis_lazuli");
     private static final int APOTHIC_INFUSION_OPTION = 2;
     private static final ResourceKey<Enchantment> APOTHIC_INFUSION = ResourceKey.create(
             Registries.ENCHANTMENT,
@@ -138,15 +143,15 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 return isEnchantingTarget(stack) || isPotentialApothicInfusionInput(stack);
             }
         });
-        this.addSlot(new Slot(this.enchantingSlots, LAPIS_SLOT, 35, 47) {
+        this.addSlot(new Slot(this.enchantingSlots, REAGENT_SLOT, 35, 47) {
             @Override
             public boolean mayPlace(ItemStack stack) {
-                return stack.is(Items.LAPIS_LAZULI);
+                return PoolModifierRules.isReagent(stack);
             }
 
             @Override
             public Pair<ResourceLocation, ResourceLocation> getNoItemIcon() {
-                return Pair.of(InventoryMenu.BLOCK_ATLAS, EMPTY_LAPIS_SLOT);
+                return Pair.of(InventoryMenu.BLOCK_ATLAS, EMPTY_REAGENT_SLOT);
             }
         });
 
@@ -234,6 +239,11 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             clearPreviews();
             return;
         }
+        ItemStack reagent = inventory.getItem(REAGENT_SLOT);
+        if (!PoolModifierRules.isReagent(reagent)) {
+            clearPreviews(DISABLED_NO_REAGENT);
+            return;
+        }
 
         this.access.execute((level, blockPos) -> {
             boolean infusionInput = ApothicEnchantingCompat.hasInfusionItemMatch(level, target);
@@ -250,6 +260,8 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                     .map(ApothicEnchantingCompat.TableStats::bookshelfPower)
                     .orElseGet(() -> EnchantingPowerRules.clampBookshelfPower(EnchantingTablePower.bookshelfPower(level, blockPos)));
             PoolModifierRules.ModifierPlan modifierPlan = modifierPlan();
+            Optional<OverlevelTarget> plannedOverlevel = overlevelTarget(target, reagent, modifierPlan);
+            Set<Holder<Enchantment>> excludedOfferEnchantments = reservedSpecialEnchantments(plannedOverlevel);
             this.random.setSeed((long) this.enchantmentSeed.get());
 
             for (int option = 0; option < 3; option++) {
@@ -322,8 +334,8 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
                 List<ItemStack> essences = optionEssenceStacks(modifierPlan, option);
                 List<ItemStack> books = optionBookStacks(modifierPlan, option);
-                EnchantingRoller.InputProfile profile = EnchantingRoller.profile(target, essences, books);
-                Optional<OverlevelTarget> overlevelTarget = overlevelTarget(target, modifierPlan, option);
+                EnchantingRoller.InputProfile profile = EnchantingRoller.profile(target, reagent, essences, books);
+                Optional<OverlevelTarget> overlevelTarget = option == APOTHIC_INFUSION_OPTION ? plannedOverlevel : Optional.empty();
                 if (overlevelTarget.isPresent()) {
                     OverlevelTarget targetOverlevel = overlevelTarget.get();
                     this.poolSizes[option] = 1;
@@ -334,7 +346,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                     continue;
                 }
 
-                int rollPower = EnchantingPowerRules.rollPower(this.requirements[option], costTarget, modifier);
+                int rollPower = EnchantingPowerRules.rollPower(this.requirements[option], costTarget, reagent, modifier);
                 rollPower = ApothicEnchantingCompat.adjustRollPower(apothicStats, option, this.enchantmentSeed.get(), rollPower);
                 EnchantingRoller.RollPreview preview = EnchantingRoller.preview(
                         level.registryAccess(),
@@ -342,9 +354,11 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                         rollPower,
                         option,
                         this.enchantmentSeed.get(),
+                        reagent,
                         essences,
                         books,
-                        apothicStats
+                        apothicStats,
+                        excludedOfferEnchantments
                 );
                 this.poolSizes[option] = preview.poolSize();
                 this.activeTagCounts[option] = preview.profile().essenceTags().size();
@@ -359,6 +373,9 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                     EnchantmentInstance clue = clues.remove(this.random.nextInt(clues.size()));
                     int clueBudget = apothicStats.map(ApothicEnchantingCompat.TableStats::clues).orElse(1);
                     this.setRevealedClues(option, ids, clue, clues, clueBudget);
+                    preview.enchantments().stream()
+                            .map(enchantment -> enchantment.enchantment)
+                            .forEach(excludedOfferEnchantments::add);
                 }
             }
 
@@ -377,9 +394,8 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         }
 
         ItemStack target = this.enchantingSlots.getItem(TARGET_SLOT);
-        ItemStack lapis = this.enchantingSlots.getItem(LAPIS_SLOT);
-        int lapisCost = EffectiveBalance.enchantingLapisCost();
-        if (lapisCost > 0 && (lapis.isEmpty() || lapis.getCount() < lapisCost) && !player.hasInfiniteMaterials()) {
+        ItemStack reagent = this.enchantingSlots.getItem(REAGENT_SLOT);
+        if (!PoolModifierRules.isReagent(reagent)) {
             return false;
         }
         int requiredLevel = this.requirements[id];
@@ -395,6 +411,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             ItemStack costTarget = costTarget(target);
             Optional<ApothicEnchantingCompat.TableStats> apothicStats = ApothicEnchantingCompat.gatherTableStats(level, blockPos, costTarget);
             PoolModifierRules.ModifierPlan modifierPlan = modifierPlan();
+            int levelsSpent = 0;
             if (id == APOTHIC_INFUSION_OPTION && apothicStats.isPresent()) {
                 Optional<ApothicEnchantingCompat.InfusionMatch> infusionMatch = ApothicEnchantingCompat.findInfusion(level, target, apothicStats.get());
                 if (infusionMatch.isPresent()) {
@@ -403,23 +420,18 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                         return;
                     }
 
-                    player.onEnchantmentPerformed(target, PLAYER_LEVEL_COST);
+                    player.onEnchantmentPerformed(target, levelsSpent);
                     ItemStack infused = infusionMatch.get().result().copy();
                     this.enchantingSlots.setItem(TARGET_SLOT, infused);
 
-                    if (!player.hasInfiniteMaterials() && lapisCost > 0) {
-                        lapis.consume(lapisCost, player);
-                        if (lapis.isEmpty()) {
-                            this.enchantingSlots.setItem(LAPIS_SLOT, ItemStack.EMPTY);
-                        }
-                    }
                     if (!player.hasInfiniteMaterials()) {
+                        consumeReagent(player);
                         ApothicInfusionModifierRules.consume(this.enchantingSlots, modifierMatch, player);
                     }
 
                     player.awardStat(Stats.ENCHANT_ITEM);
                     if (player instanceof ServerPlayer serverPlayer) {
-                        CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, infused, PLAYER_LEVEL_COST);
+                        CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, infused, levelsSpent);
                     }
 
                     this.enchantingSlots.setChanged();
@@ -433,10 +445,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 }
             }
 
-            Optional<OverlevelTarget> overlevelTarget = overlevelTarget(target, modifierPlan, id);
+            Optional<OverlevelTarget> overlevelTarget = id == APOTHIC_INFUSION_OPTION ? overlevelTarget(target, reagent, modifierPlan) : Optional.empty();
             if (overlevelTarget.isPresent()) {
                 OverlevelTarget targetOverlevel = overlevelTarget.get();
-                player.onEnchantmentPerformed(target, PLAYER_LEVEL_COST);
+                player.onEnchantmentPerformed(target, levelsSpent);
                 Optional<ItemStack> routedOverlevel = ModularMaterialCompat.overlevelRoutedEnchantment(level.registryAccess(), target, targetOverlevel.enchantment());
                 if (routedOverlevel.isEmpty() && ModularMaterialCompat.hasRoutedParts(target)) {
                     return;
@@ -455,18 +467,13 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 net.neoforged.neoforge.common.CommonHooks.onPlayerEnchantItem(player, enchanted, overlevelEnchantments);
 
                 if (!player.hasInfiniteMaterials()) {
-                    if (lapisCost > 0) {
-                        lapis.consume(lapisCost, player);
-                        if (lapis.isEmpty()) {
-                            this.enchantingSlots.setItem(LAPIS_SLOT, ItemStack.EMPTY);
-                        }
-                    }
-                    PoolModifierRules.consumeForOption(this.enchantingSlots, modifierPlan, id, player, true);
+                    consumeReagent(player);
+                    PoolModifierRules.consumeOverlevelCatalyst(this.enchantingSlots, modifierPlan, player);
                 }
 
                 player.awardStat(Stats.ENCHANT_ITEM);
                 if (player instanceof ServerPlayer serverPlayer) {
-                    CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, enchanted, PLAYER_LEVEL_COST);
+                    CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, enchanted, levelsSpent);
                 }
 
                 this.enchantingSlots.setChanged();
@@ -476,18 +483,15 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 return;
             }
 
-            int rollPower = EnchantingPowerRules.rollPower(this.requirements[id], costTarget, modifierStack(modifierPlan, id));
-            rollPower = ApothicEnchantingCompat.adjustRollPower(apothicStats, id, this.enchantmentSeed.get(), rollPower);
-            List<EnchantmentInstance> enchantments = EnchantingRoller.preview(
+            List<EnchantmentInstance> enchantments = previewForOption(
                     level.registryAccess(),
                     target,
-                    rollPower,
-                    id,
-                    this.enchantmentSeed.get(),
-                    optionEssenceStacks(modifierPlan, id),
-                    optionBookStacks(modifierPlan, id),
-                    apothicStats
-            ).enchantments();
+                    costTarget,
+                    reagent,
+                    modifierPlan,
+                    apothicStats,
+                    id
+            ).map(EnchantingRoller.RollPreview::enchantments).orElse(List.of());
 
             if (enchantments.isEmpty()) {
                 return;
@@ -496,7 +500,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                 return;
             }
 
-            player.onEnchantmentPerformed(target, PLAYER_LEVEL_COST);
+            player.onEnchantmentPerformed(target, levelsSpent);
             Optional<ItemStack> routedEnchanted = ModularMaterialCompat.applyRoutedEnchantments(level.registryAccess(), target, enchantments);
             if (routedEnchanted.isEmpty() && ModularMaterialCompat.hasRoutedParts(target)) {
                 return;
@@ -509,18 +513,13 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             net.neoforged.neoforge.common.CommonHooks.onPlayerEnchantItem(player, enchanted, enchantments);
 
             if (!player.hasInfiniteMaterials()) {
-                if (lapisCost > 0) {
-                    lapis.consume(lapisCost, player);
-                    if (lapis.isEmpty()) {
-                        this.enchantingSlots.setItem(LAPIS_SLOT, ItemStack.EMPTY);
-                    }
-                }
+                consumeReagent(player);
                 PoolModifierRules.consumeForOption(this.enchantingSlots, modifierPlan, id, player, false);
             }
 
             player.awardStat(Stats.ENCHANT_ITEM);
             if (player instanceof ServerPlayer serverPlayer) {
-                CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, enchanted, PLAYER_LEVEL_COST);
+                CriteriaTriggers.ENCHANTED_ITEM.trigger(serverPlayer, enchanted, levelsSpent);
             }
 
             this.enchantingSlots.setChanged();
@@ -561,8 +560,8 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             if (!this.moveItemStackTo(stack, PLAYER_INVENTORY_START, HOTBAR_END, true)) {
                 return ItemStack.EMPTY;
             }
-        } else if (stack.is(Items.LAPIS_LAZULI)) {
-            if (!this.moveItemStackTo(stack, LAPIS_SLOT, LAPIS_SLOT + 1, false)) {
+        } else if (PoolModifierRules.isReagent(stack) && !this.slots.get(REAGENT_SLOT).hasItem()) {
+            if (!this.moveItemStackTo(stack, REAGENT_SLOT, REAGENT_SLOT + 1, false)) {
                 return ItemStack.EMPTY;
             }
         } else if (PoolModifierRules.isPoolModifier(stack)) {
@@ -596,12 +595,20 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     }
 
     public int getLapisCount() {
-        ItemStack lapis = this.enchantingSlots.getItem(LAPIS_SLOT);
-        return lapis.isEmpty() ? 0 : lapis.getCount();
+        return getReagentCount();
     }
 
     public int getLapisCost() {
-        return EffectiveBalance.enchantingLapisCost();
+        return getReagentCost();
+    }
+
+    public int getReagentCount() {
+        ItemStack reagent = this.enchantingSlots.getItem(REAGENT_SLOT);
+        return reagent.isEmpty() ? 0 : reagent.getCount();
+    }
+
+    public int getReagentCost() {
+        return 1;
     }
 
     public int getEnchantmentSeed() {
@@ -684,10 +691,12 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     public OptionDetails getOptionDetails(int option) {
         PoolModifierRules.ModifierPlan plan = modifierPlan();
         ItemStack target = this.enchantingSlots.getItem(TARGET_SLOT);
+        ItemStack reagent = this.enchantingSlots.getItem(REAGENT_SLOT);
         List<ItemStack> essences = optionEssenceStacks(plan, option);
         List<ItemStack> books = optionBookStacks(plan, option);
         return new OptionDetails(
-                EnchantingRoller.profile(target, essences, books),
+                EnchantingRoller.profile(target, reagent, essences, books),
+                reagent.copy(),
                 modifierStack(plan, option).copy(),
                 PoolModifierRules.blockingModifierStack(plan, option).copy(),
                 PoolModifierRules.globalModifierStacks(plan).stream().map(ItemStack::copy).toList(),
@@ -722,18 +731,85 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         return PoolModifierRules.optionBooks(plan, option);
     }
 
+    private Optional<EnchantingRoller.RollPreview> previewForOption(
+            RegistryAccess registryAccess,
+            ItemStack target,
+            ItemStack costTarget,
+            ItemStack reagent,
+            PoolModifierRules.ModifierPlan modifierPlan,
+            Optional<ApothicEnchantingCompat.TableStats> apothicStats,
+            int requestedOption
+    ) {
+        Optional<OverlevelTarget> plannedOverlevel = overlevelTarget(target, reagent, modifierPlan);
+        Set<Holder<Enchantment>> excludedEnchantments = reservedSpecialEnchantments(plannedOverlevel);
+        for (int option = 0; option <= requestedOption; option++) {
+            if (this.requirements[option] <= 0
+                    || this.costs[option] <= 0
+                    || PoolModifierRules.blocksOffer(modifierPlan, option)
+                    || (option == APOTHIC_INFUSION_OPTION && plannedOverlevel.isPresent())) {
+                if (option == requestedOption) {
+                    return Optional.empty();
+                }
+                continue;
+            }
+
+            ItemStack modifier = modifierStack(modifierPlan, option);
+            int rollPower = EnchantingPowerRules.rollPower(this.requirements[option], costTarget, reagent, modifier);
+            rollPower = ApothicEnchantingCompat.adjustRollPower(apothicStats, option, this.enchantmentSeed.get(), rollPower);
+            EnchantingRoller.RollPreview preview = EnchantingRoller.preview(
+                    registryAccess,
+                    target,
+                    rollPower,
+                    option,
+                    this.enchantmentSeed.get(),
+                    reagent,
+                    optionEssenceStacks(modifierPlan, option),
+                    optionBookStacks(modifierPlan, option),
+                    apothicStats,
+                    excludedEnchantments
+            );
+            if (option == requestedOption) {
+                return Optional.of(preview);
+            }
+            if (!preview.enchantments().isEmpty() && canApplyWithFusion(registryAccess, target, preview.enchantments())) {
+                preview.enchantments().stream()
+                        .map(enchantment -> enchantment.enchantment)
+                        .forEach(excludedEnchantments::add);
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static Set<Holder<Enchantment>> reservedSpecialEnchantments(Optional<OverlevelTarget> plannedOverlevel) {
+        Set<Holder<Enchantment>> reserved = new LinkedHashSet<>();
+        plannedOverlevel.map(OverlevelTarget::enchantment).ifPresent(reserved::add);
+        return reserved;
+    }
+
+    private void consumeReagent(Player player) {
+        ItemStack reagent = this.enchantingSlots.getItem(REAGENT_SLOT);
+        if (!reagent.isEmpty()) {
+            reagent.consume(1, player);
+            if (reagent.isEmpty()) {
+                this.enchantingSlots.setItem(REAGENT_SLOT, ItemStack.EMPTY);
+            }
+        }
+    }
+
     private static int disabledReasonFlags(EnchantingRoller.RollPreview preview) {
         if (!preview.enchantments().isEmpty()) {
             return 0;
         }
         return switch (preview.emptyReason()) {
             case NONE -> DISABLED_NO_COMPATIBLE_ENCHANTMENTS;
+            case NO_REAGENT -> DISABLED_NO_REAGENT;
             case NO_ROLL_POWER -> DISABLED_NO_ROLL_POWER;
             case NO_COMPATIBLE_ENCHANTMENTS -> DISABLED_NO_COMPATIBLE_ENCHANTMENTS;
             case RESTRICTED_POOL_EMPTY -> DISABLED_RESTRICTED_POOL_EMPTY;
             case REMOVED_TAGS_EMPTY -> DISABLED_REMOVED_TAGS_EMPTY;
             case ENCHANTMENT_LIMIT -> DISABLED_ENCHANTMENT_LIMIT;
             case WEIGHT_SELECTION_FAILED -> DISABLED_WEIGHT_SELECTION_FAILED;
+            case DUPLICATE_OFFERS_EXHAUSTED -> DISABLED_DUPLICATE_OFFERS;
         };
     }
 
@@ -750,18 +826,11 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         return EnchantmentLimitRules.isWithinLimits(simulatedResult);
     }
 
-    private static Optional<OverlevelTarget> overlevelTarget(ItemStack target, PoolModifierRules.ModifierPlan plan, int option) {
+    private static Optional<OverlevelTarget> overlevelTarget(ItemStack target, ItemStack reagent, PoolModifierRules.ModifierPlan plan) {
         if (!PoolModifierRules.hasOverlevelCatalyst(plan)) {
             return Optional.empty();
         }
-
-        for (ItemStack essence : PoolModifierRules.optionEssences(plan, option)) {
-            Optional<OverlevelTarget> overlevelTarget = EnchantmentLevelRules.overlevelTarget(target, essence);
-            if (overlevelTarget.isPresent()) {
-                return overlevelTarget;
-            }
-        }
-        return Optional.empty();
+        return EnchantmentLevelRules.overlevelTarget(target, reagent);
     }
 
     private static boolean isEnchantingTarget(ItemStack stack) {
@@ -870,6 +939,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     }
 
     private void clearPreviews() {
+        clearPreviews(0);
+    }
+
+    private void clearPreviews(int disabledReasonFlag) {
         for (int index = 0; index < 3; index++) {
             this.requirements[index] = 0;
             this.costs[index] = 0;
@@ -877,7 +950,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             this.levelClue[index] = -1;
             this.clearRevealedClues(index);
             this.poolSizes[index] = 0;
-            this.disabledReasonFlags[index] = 0;
+            this.disabledReasonFlags[index] = disabledReasonFlag;
             this.overlevelOffers[index] = 0;
             this.apothicInfusionOffers[index] = 0;
         }
@@ -891,6 +964,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
     public record OptionDetails(
             EnchantingRoller.InputProfile profile,
+            ItemStack reagent,
             ItemStack directModifier,
             ItemStack blockingModifier,
             List<ItemStack> globalModifiers,

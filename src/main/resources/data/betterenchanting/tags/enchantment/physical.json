@@ -67,6 +67,62 @@
     {
       "id": "apothic_enchanting:shield_bash",
       "required": false
+    },
+    "betterenchanting:frostbite",
+    "betterenchanting:shocking",
+    "betterenchanting:tree_capitator",
+    "betterenchanting:vein_miner",
+    {
+      "id": "minecraft:blast_protection",
+      "required": false
+    },
+    {
+      "id": "minecraft:fire_aspect",
+      "required": false
+    },
+    {
+      "id": "minecraft:flame",
+      "required": false
+    },
+    {
+      "id": "minecraft:efficiency",
+      "required": false
+    },
+    {
+      "id": "minecraft:infinity",
+      "required": false
+    },
+    {
+      "id": "minecraft:looting",
+      "required": false
+    },
+    {
+      "id": "minecraft:multishot",
+      "required": false
+    },
+    {
+      "id": "minecraft:projectile_protection",
+      "required": false
+    },
+    {
+      "id": "minecraft:thorns",
+      "required": false
+    },
+    {
+      "id": "minecraft:wind_burst",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:berserkers_fury",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:reflective_defenses",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:endless_quiver",
+      "required": false
     }
   ]
 }

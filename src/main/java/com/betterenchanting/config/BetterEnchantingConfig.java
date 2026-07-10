@@ -138,7 +138,7 @@ public final class BetterEnchantingConfig {
                 .comment("Legacy setting retained for config compatibility. Enhanced enchanting offers no longer consume player XP levels.")
                 .defineInRange("bookshelf_power_per_level_cost", 5, 1, 1_000_000);
         ENCHANTING_LAPIS_COST = builder
-                .comment("Lapis lazuli consumed by each enhanced enchanting offer.")
+                .comment("Legacy setting. Enhanced enchanting now consumes one essence reagent from the reagent slot instead of lapis.")
                 .defineInRange("lapis_cost", 1, 0, 64);
         ENCHANTING_ESSENCE_POWER_BONUS = builder
                 .comment("Extra roll power added when an option is controlled by a normal essence. Intended balanced defaults use 0 so essences control the pool without increasing roll strength.")

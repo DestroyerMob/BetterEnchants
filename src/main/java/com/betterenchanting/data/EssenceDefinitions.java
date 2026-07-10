@@ -61,7 +61,7 @@ public final class EssenceDefinitions {
         add(map, "vitality_essence", 1.0, true, "vitality");
         add(map, "mobility_essence", 1.0, true, "mobility");
         add(map, "void_essence", 1.0, true, "void");
-        addSpecial(map, "purification_essence", 1.0, false, List.of(EnchantmentTags.CURSE.location()), true, true, "purification");
+        addSpecial(map, "purification_essence", 1.0, false, List.of(EnchantmentTags.CURSE.location()), true, false, true, "purification");
         return Map.copyOf(map);
     }
 
@@ -72,7 +72,7 @@ public final class EssenceDefinitions {
             boolean restrictsPool,
             String... tagPaths
     ) {
-        addSpecial(map, itemPath, multiplier, restrictsPool, List.of(), false, false, tagPaths);
+        addSpecial(map, itemPath, multiplier, restrictsPool, List.of(), false, false, false, tagPaths);
     }
 
     private static void addSpecial(
@@ -83,6 +83,7 @@ public final class EssenceDefinitions {
             List<ResourceLocation> removedTags,
             boolean appliesToAllOffers,
             boolean blocksOffer,
+            boolean consumesAsModifier,
             String... tagPaths
     ) {
         ResourceLocation item = BetterEnchanting.id(itemPath);
@@ -97,7 +98,8 @@ public final class EssenceDefinitions {
                 multiplier,
                 restrictsPool,
                 appliesToAllOffers,
-                blocksOffer
+                blocksOffer,
+                consumesAsModifier
         ));
     }
 
@@ -135,6 +137,7 @@ public final class EssenceDefinitions {
             boolean restrictsPool = GsonHelper.getAsBoolean(object, "restricts_pool", true);
             boolean appliesToAllOffers = GsonHelper.getAsBoolean(object, "applies_to_all_offers", false);
             boolean blocksOffer = GsonHelper.getAsBoolean(object, "blocks_offer", false);
+            boolean consumesAsModifier = GsonHelper.getAsBoolean(object, "consumes_as_modifier", false);
             return new EssenceDefinition(
                     item,
                     List.copyOf(tags),
@@ -142,7 +145,8 @@ public final class EssenceDefinitions {
                     weightMultiplier,
                     restrictsPool,
                     appliesToAllOffers,
-                    blocksOffer
+                    blocksOffer,
+                    consumesAsModifier
             );
         }
 

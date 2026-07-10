@@ -56,6 +56,25 @@
     {
       "id": "apothic_enchanting:stable_footing",
       "required": false
+    },
+    "betterenchanting:gelbound",
+    "betterenchanting:seismic_cushion",
+    "betterenchanting:sticky_grip",
+    {
+      "id": "minecraft:binding_curse",
+      "required": false
+    },
+    {
+      "id": "minecraft:mending",
+      "required": false
+    },
+    {
+      "id": "minecraft:unbreaking",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:life_mending",
+      "required": false
     }
   ]
 }

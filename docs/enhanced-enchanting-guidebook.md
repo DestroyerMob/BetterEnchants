@@ -24,8 +24,8 @@ The project implements an enhanced enchanting flow as a NeoForge `1.21.1` mod.
 
 - By default, vanilla enchanting tables open the same essence-aware UI, so the essence system is part of the normal enchanting-table workflow.
 - If `enchanting.enhanced_table_takeover` is disabled, vanilla enchanting tables are left alone and the Arcane Crucible block opens the enhanced UI instead.
-- `EnhancedEnchantingMenu` provides slots for one target item, lapis, and three total pool modifiers that can be essences or enchanted books.
-- The three modifier slots hold up to three pool modifiers. Physical slot position does not choose which offer a modifier affects.
+- `EnhancedEnchantingMenu` provides slots for one target item, one required essence reagent, and three total modifier slots.
+- The reagent opens the base enchantment pool. The three modifier slots can refine that pool with additional essence affinities or provide special modifiers such as enchanted books, purification, or overlevel catalysts.
 - `EnchantingRoller` computes deterministic roll previews from the player enchantment seed, selected option, target item, essences, and books.
 - `EssenceDefinitions` loads essence behavior from `data/betterenchanting/better_enchanting/essences/*.json`, falling back to Java defaults.
 - `EnchantmentLimitRules` loads item enchantment limits from `data/betterenchanting/better_enchanting/enchantment_limits/*.json`.
@@ -40,7 +40,7 @@ The project implements an enhanced enchanting flow as a NeoForge `1.21.1` mod.
 
 ### Tag System
 
-Every enchantment should have one or more affinity tags, such as Fire, Frost, Lightning, Mining, Vitality, Mobility, Physical, Void, Treasure, and Curse.
+Every enchantment should have two affinity tags, such as Fire, Frost, Lightning, Mining, Vitality, Mobility, Physical, Void, and Curse-adjacent cleanup tags. Curse enchantments still need a non-curse affinity so they can appear through ordinary reagents and be removed by purification.
 
 Base items should have target tags, such as armor, weapons, tools, pickaxes, bows, swords, tridents, and similar subtypes. These tags establish the starting compatibility pool.
 
@@ -49,14 +49,14 @@ Base items should have target tags, such as armor, weapons, tools, pickaxes, bow
 Required slots:
 
 - Main item
-- Lapis
-- Pool modifiers, currently 3 total slots
+- Essence reagent
+- Modifier slots, currently 3 total slots
 
-Each pool modifier slot accepts either an essence or an enchanted book. Do not split this into separate essence and book slot banks unless the design explicitly changes.
+The reagent slot accepts normal pool-restricting essences. Without a reagent, the table shows no enchantment offers. Modifier slots accept essences, enchanted books, nether stars, and special essence modifiers.
 
 Keep the modifier slots out of the inventory label area. The current placement is a compact vertical column beside the three vanilla offer rows. Do not use a custom widened enchanting-table texture for this; render the vanilla texture and draw the small modifier pocket separately. The side pocket should keep even slot padding: 3px left, 3px right, 3px top, and 3px bottom inside the border. Keep the vanilla title and inventory labels visible.
 
-Modifier contents are treated as an unordered set. The menu builds a deterministic modifier plan from the player enchantment seed and the modifier identities, then rolls those modifiers into the three offer slots. Moving the same essence or enchanted book to a different physical modifier slot should not reveal a different biased offer. Empty planned offer slots roll from the normal item/bookshelf pool.
+Modifier contents are treated as an unordered set. Normal tagged essence modifiers refine the reagent pool globally, affecting all three offers instead of being assigned to one physical offer row. Enchanted books remain targeted modifiers in the deterministic modifier plan. Moving the same modifier to a different physical slot should not reveal a different biased offer.
 
 The current implementation uses menu-local inventory state because it modifies the vanilla enchanting table rather than adding a separate block. Longer term, persistent offer caching should be stored through a world/client-safe mechanism that does not require a custom block.
 
@@ -65,21 +65,22 @@ The current implementation uses menu-local inventory state because it modifies t
 Pool generation should combine:
 
 - Target item compatibility and target tags
-- The planned direct modifier assigned to that offer, if any
-- Any global modifier effects that apply to all offers
+- The reagent affinity tags
+- Any refining essence tags or global special modifier effects
+- The planned direct book modifier assigned to that offer, if any
 - Modifier essence affinity tags, pool restriction behavior, or book-provided enchantment boosts
-- Bookshelf power as the main quality and cost driver
+- Bookshelf power as the main roll-quality driver
 - The mod's relaxed compatibility rules
 
-The current implementation shows three independent options. Each option is deterministic from the player enchantment seed and option index, but pool sculpting comes from the seeded modifier plan, not from the physical modifier slot position.
+The current implementation shows three deterministic options. Options are generated together, and later options exclude enchantments already offered by earlier options so the table does not present duplicate rolls.
 
-The Crucible no longer presents vanilla-style tiered power levels. All three offers use the same base XP level cost, derived from bookshelf power:
+The Crucible no longer presents vanilla-style tiered XP costs. All three offers use the same base roll power, derived from bookshelf power:
 
-- 0 bookshelves gives a very low base cost and low roll power.
-- 15 bookshelves gives the maximum base cost and maximum roll power.
+- 0 bookshelves gives very low roll power.
+- 15 bookshelves gives the maximum configured roll power.
 - Essences control which enchantments can roll. Enchanted books and item material can provide small roll-power boosts, but bookshelves remain the main controllable power source.
 
-This means players choose between low-power cheap experimentation and high-power expensive rolls, while still getting three independent spins at the chosen power.
+This means players choose between low-power experimentation and high-power rolls, while the reagent provides the actual enchanting cost.
 
 Multi-enchant rolls should prefer synergistic combinations that represent more of the slotted essence tags. The current implementation already applies a new-tag combo multiplier after the first selection.
 
@@ -102,7 +103,7 @@ Essences should be data-driven and support:
 - A weight multiplier
 - Whether the essence restricts the pool or only boosts matching options
 - Whether the essence applies to all offers
-- Whether the essence blocks one planned offer slot
+- Whether the essence has special modifier behavior such as curse removal or modifier consumption
 
 Essences should stay single-affinity; hybrid two-tag essences are intentionally not part of the current design.
 
@@ -120,7 +121,7 @@ Current acquisition rules use about a 20% chance by default for direct mob, bloc
 - Essence of Fortune: Buried treasure, underwater ruin and elder guardian/ocean monument routes, Luck of the Sea fishing, librarian trades, and crafting.
 - Essence of Purification: Successful zombie villager curing.
 
-Essence of Purification is a special modifier defined through essence behavior flags. It applies to all offers, removes enchantments tagged `minecraft:curse` from the remaining active pools, and blocks one planned offer slot. If the player enchants from a cleaned remaining roll, the purification essence is consumed along with the chosen roll's own direct modifier.
+Essence of Purification is a special modifier defined through essence behavior flags. It applies to all offers, removes enchantments tagged `minecraft:curse` from the remaining active pools, and is consumed if the player enchants from the cleaned pool. Ordinary tagged essence refiners are not consumed; the reagent is consumed when an enchantment completes. Nether stars are consumed when they produce an overlevel offer, and enchanted-book modifiers are consumed when their assigned offer is used.
 
 ### Enchantment Limits
 
@@ -187,7 +188,7 @@ base_cost_per_bookshelf_power = 2
 min_level_cost = 1
 max_level_cost = 3
 bookshelf_power_per_level_cost = 5
-lapis_cost = 1
+lapis_cost = 1 # legacy config; enhanced table completion now consumes one essence reagent
 essence_power_bonus = 0
 book_power_bonus = 2
 gold_material_power_bonus = 1
@@ -294,7 +295,7 @@ When `general.use_advanced_config_values` is `false`, any preset other than `cus
 
 The effective `enchanting.enhanced_table_takeover` value defaults to `true` in the `balanced`, `overhaul`, and `power_fantasy` presets, so vanilla enchanting tables open the enhanced UI. In `vanilla_plus`, it defaults to `false`; vanilla enchanting tables are left alone and the Arcane Crucible block becomes the enhanced enchanting station instead. The Arcane Crucible shapelessly crafts from one enchanting table and can shapelessly craft back into one enchanting table.
 
-Enhanced enchanting balance lives behind the effective balance layer rather than inline menu constants. Bookshelf power controls offer level requirements and roll quality through `min_base_cost`, `max_base_cost`, and `base_cost_per_bookshelf_power`; those values do not have to match the levels consumed. The actual charged XP levels use `min_level_cost`, `max_level_cost`, and `bookshelf_power_per_level_cost`, which default to 0-5 power costing 1 level, 6-10 costing 2 levels, and 11-15 costing 3 levels. In the serious presets, `essence_power_bonus` is 0 so essences control the pool without increasing roll strength. Modifier-specific power nudges live in `book_power_bonus` and `gold_material_power_bonus`, while `essence_power_bonus` remains available for custom configs and power-fantasy tuning. Candidate weighting is tuned through `book_weight_multiplier`, `new_tag_combo_multiplier`, and `max_candidate_weight`.
+Enhanced enchanting balance lives behind the effective balance layer rather than inline menu constants. Bookshelf power controls roll quality through `min_base_cost`, `max_base_cost`, and `base_cost_per_bookshelf_power`. The old level-cost fields remain in config for compatibility and the offer-tier icon, but enhanced table completion no longer charges XP levels or lapis. In the serious presets, `essence_power_bonus` is 0 so essences control the pool without increasing roll strength. Modifier-specific power nudges live in `book_power_bonus` and `gold_material_power_bonus`, while `essence_power_bonus` remains available for custom configs and power-fantasy tuning. Candidate weighting is tuned through `book_weight_multiplier`, `new_tag_combo_multiplier`, and `max_candidate_weight`.
 
 Custom enchantment behavior that affects player-facing balance also lives in config. Vein Miner size, Tree Capitator log and natural-leaf checks, Perfect Strike timing, damage, and cooldown variance, Shocked damage multiplier and particles, Shocking duration, Frostbite frost buildup and freeze duration, Cinderstep speed boost and duration, Curse of Rebound reflection ratio, Curse of Fragility durability damage multiplier, Seismic Cushion explosion size, Verdant Regrowth repair amount, timing, and scan radius, Mending repair math, Fortunes Touch secondary drop chance, and the core enhanced-enchanting roll formula can all be tuned without recompiling the mod.
 
@@ -477,7 +478,7 @@ Desired behavior:
 
 - Offers should not reroll for free by removing and re-adding the same inputs.
 - A visible **Resculpt** or **Reroll Offers** action should refresh offers within the current sculpted pool.
-- Reroll should cost XP and possibly lapis or a small consumable.
+- Reroll should cost a small consumable or reagent-style resource.
 - Cost may scale with option power, consecutive rerolls, or the number of active modifiers.
 - Slot changes may provide live preview, but stable offer caching should prevent abuse.
 

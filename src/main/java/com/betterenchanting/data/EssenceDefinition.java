@@ -10,6 +10,7 @@ public record EssenceDefinition(
         double weightMultiplier,
         boolean restrictsPool,
         boolean appliesToAllOffers,
-        boolean blocksOffer
+        boolean blocksOffer,
+        boolean consumesAsModifier
 ) {
 }

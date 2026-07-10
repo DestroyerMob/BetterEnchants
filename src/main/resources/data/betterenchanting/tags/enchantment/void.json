@@ -2,8 +2,60 @@
   "values": [
     "betterenchanting:vacuum",
     "betterenchanting:resonance",
-    { "id": "minecraft:vanishing_curse", "required": false },
-    { "id": "minecraft:binding_curse", "required": false },
-    { "id": "minecraft:multishot", "required": false }
+    {
+      "id": "minecraft:vanishing_curse",
+      "required": false
+    },
+    {
+      "id": "minecraft:binding_curse",
+      "required": false
+    },
+    {
+      "id": "minecraft:multishot",
+      "required": false
+    },
+    "betterenchanting:curse_of_fragility",
+    "betterenchanting:curse_of_rebound",
+    "betterenchanting:flash_step",
+    {
+      "id": "minecraft:breach",
+      "required": false
+    },
+    {
+      "id": "minecraft:channeling",
+      "required": false
+    },
+    {
+      "id": "minecraft:infinity",
+      "required": false
+    },
+    {
+      "id": "minecraft:piercing",
+      "required": false
+    },
+    {
+      "id": "minecraft:power",
+      "required": false
+    },
+    {
+      "id": "minecraft:sharpness",
+      "required": false
+    },
+    {
+      "id": "minecraft:smite",
+      "required": false
+    },
+    {
+      "id": "minecraft:soul_speed",
+      "required": false
+    },
+    {
+      "id": "minecraft:swift_sneak",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:endless_quiver",
+      "required": false
+    }
   ]
 }

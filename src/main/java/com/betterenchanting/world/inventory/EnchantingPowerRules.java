@@ -71,10 +71,16 @@ public final class EnchantingPowerRules {
     }
 
     public static int rollPower(int offerCost, ItemStack target, ItemStack modifier) {
+        return rollPower(offerCost, target, ItemStack.EMPTY, modifier);
+    }
+
+    static int rollPower(int offerCost, ItemStack target, ItemStack reagent, ItemStack modifier) {
         int power = offerCost;
-        if (PoolModifierRules.isEssenceModifier(modifier) && !PoolModifierRules.blocksOffer(modifier)) {
+        if (PoolModifierRules.isEssenceModifier(reagent)
+                || PoolModifierRules.isEssenceModifier(modifier) && !PoolModifierRules.blocksOffer(modifier)) {
             power += EffectiveBalance.essencePowerBonus();
-        } else if (PoolModifierRules.isEnchantedBook(modifier)) {
+        }
+        if (PoolModifierRules.isEnchantedBook(modifier)) {
             power += EffectiveBalance.bookPowerBonus();
         }
         if (target.is(ModTags.Items.MATERIAL_GOLD) || ModularMaterialCompat.hasMaterialItemTag(target, ModTags.Items.MATERIAL_GOLD)) {

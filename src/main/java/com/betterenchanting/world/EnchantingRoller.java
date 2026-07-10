@@ -68,9 +68,40 @@ public final class EnchantingRoller {
             List<ItemStack> books,
             Optional<ApothicEnchantingCompat.TableStats> apothicStats
     ) {
+        return preview(registryAccess, target, cost, option, seed, essences, books, apothicStats, Set.of());
+    }
+
+    public static RollPreview preview(
+            RegistryAccess registryAccess,
+            ItemStack target,
+            int cost,
+            int option,
+            int seed,
+            List<ItemStack> essences,
+            List<ItemStack> books,
+            Optional<ApothicEnchantingCompat.TableStats> apothicStats,
+            Set<Holder<Enchantment>> excludedEnchantments
+    ) {
         RandomSource random = RandomSource.create();
         random.setSeed((long) seed + option);
-        return select(random, registryAccess, target, cost, essences, books, apothicStats);
+        return select(random, registryAccess, target, cost, profile(target, essences, books), apothicStats, excludedEnchantments);
+    }
+
+    public static RollPreview preview(
+            RegistryAccess registryAccess,
+            ItemStack target,
+            int cost,
+            int option,
+            int seed,
+            ItemStack reagent,
+            List<ItemStack> refiningEssences,
+            List<ItemStack> books,
+            Optional<ApothicEnchantingCompat.TableStats> apothicStats,
+            Set<Holder<Enchantment>> excludedEnchantments
+    ) {
+        RandomSource random = RandomSource.create();
+        random.setSeed((long) seed + option);
+        return select(random, registryAccess, target, cost, profile(target, reagent, refiningEssences, books), apothicStats, excludedEnchantments);
     }
 
     public static RollPreview select(
@@ -93,11 +124,25 @@ public final class EnchantingRoller {
             List<ItemStack> books,
             Optional<ApothicEnchantingCompat.TableStats> apothicStats
     ) {
-        InputProfile profile = profile(target, essences, books);
+        return select(random, registryAccess, target, cost, profile(target, essences, books), apothicStats, Set.of());
+    }
+
+    private static RollPreview select(
+            RandomSource random,
+            RegistryAccess registryAccess,
+            ItemStack target,
+            int cost,
+            InputProfile profile,
+            Optional<ApothicEnchantingCompat.TableStats> apothicStats,
+            Set<Holder<Enchantment>> excludedEnchantments
+    ) {
         Set<Holder<Enchantment>> existingEnchantments = existingEnchantments(target);
         int maxEnchantments = EnchantmentLimitRules.maxEnchantments(target);
         int selectionLimit = selectionLimit(maxEnchantments);
         int level = apothicStats.isPresent() ? cost : adjustedLevel(random, target, cost);
+        if (profile.reagentTags().isEmpty()) {
+            return new RollPreview(List.of(), 0, profile, EmptyReason.NO_REAGENT);
+        }
         if (level <= 0) {
             return new RollPreview(List.of(), 0, profile, EmptyReason.NO_ROLL_POWER);
         }
@@ -105,9 +150,12 @@ public final class EnchantingRoller {
         List<WeightedCandidate> candidates = buildCandidates(registryAccess, target, level, profile, apothicStats);
         int poolSize = candidates.size();
         List<EnchantmentInstance> selected = new ArrayList<>();
+        candidates.removeIf(candidate -> excludedEnchantments.contains(candidate.instance().enchantment));
         filterOverLimitCandidates(registryAccess, candidates, target, existingEnchantments, Set.of());
         if (candidates.isEmpty()) {
-            return new RollPreview(List.of(), poolSize, profile, emptyReason(profile, poolSize));
+            return new RollPreview(List.of(), poolSize, profile, excludedEnchantments.isEmpty() || poolSize <= 0
+                    ? emptyReason(profile, poolSize)
+                    : EmptyReason.DUPLICATE_OFFERS_EXHAUSTED);
         }
 
         Set<ResourceLocation> representedEssenceTags = new LinkedHashSet<>();
@@ -148,30 +196,47 @@ public final class EnchantingRoller {
     }
 
     public static InputProfile profile(ItemStack target, List<ItemStack> essences, List<ItemStack> books) {
-        Set<ResourceLocation> essenceTags = new LinkedHashSet<>();
+        ItemStack reagent = essences.isEmpty() ? ItemStack.EMPTY : essences.get(0);
+        List<ItemStack> refiningEssences = essences.isEmpty() ? List.of() : essences.subList(1, essences.size());
+        return profile(target, reagent, refiningEssences, books);
+    }
+
+    public static InputProfile profile(ItemStack target, ItemStack reagent, List<ItemStack> refiningEssences, List<ItemStack> books) {
+        Set<ResourceLocation> reagentTags = new LinkedHashSet<>();
+        Set<ResourceLocation> refinementTags = new LinkedHashSet<>();
+        Set<ResourceLocation> activeTags = new LinkedHashSet<>();
         Set<ResourceLocation> removedTags = new LinkedHashSet<>();
-        boolean restricted = false;
         double essenceMultiplier = 1.0D;
 
-        for (ItemStack essence : essences) {
+        Optional<EssenceDefinition> reagentDefinition = EssenceDefinitions.get(reagent);
+        if (reagentDefinition.filter(EssenceDefinition::restrictsPool).isPresent()) {
+            reagentTags.addAll(reagentDefinition.get().tags());
+            activeTags.addAll(reagentDefinition.get().tags());
+            removedTags.addAll(reagentDefinition.get().removedTags());
+            essenceMultiplier = Math.max(essenceMultiplier, reagentDefinition.get().weightMultiplier());
+        }
+
+        for (ItemStack essence : refiningEssences) {
             Optional<EssenceDefinition> definition = EssenceDefinitions.get(essence);
             if (definition.isEmpty()) {
                 continue;
             }
             if (definition.get().restrictsPool()) {
-                essenceTags.addAll(definition.get().tags());
+                refinementTags.addAll(definition.get().tags());
+                activeTags.addAll(definition.get().tags());
             }
             removedTags.addAll(definition.get().removedTags());
-            restricted |= definition.get().restrictsPool();
             essenceMultiplier = Math.max(essenceMultiplier, definition.get().weightMultiplier());
         }
 
         Map<Holder<Enchantment>, BookBoost> bookBoosts = collectBookBoosts(books);
         return new InputProfile(
-                List.copyOf(essenceTags),
+                List.copyOf(reagentTags),
+                List.copyOf(refinementTags),
+                List.copyOf(activeTags),
                 List.copyOf(removedTags),
                 EnchantmentTargetTags.resolve(target),
-                restricted && !essenceTags.isEmpty(),
+                !reagentTags.isEmpty(),
                 essenceMultiplier,
                 Map.copyOf(bookBoosts)
         );
@@ -229,9 +294,10 @@ public final class EnchantingRoller {
                 return;
             }
 
+            Set<ResourceLocation> reagentMatches = matchingTags(holder, profile.reagentTags());
+            Set<ResourceLocation> refinementMatches = matchingTags(holder, profile.refinementTags());
             Set<ResourceLocation> essenceMatches = matchingTags(holder, profile.essenceTags());
             Set<ResourceLocation> targetMatches = matchingTags(holder, profile.targetTags());
-            boolean matchesEssence = !essenceMatches.isEmpty();
             boolean matchesNonCurseEssence = essenceMatches.stream().anyMatch(EnchantingRoller::isNonCurseEssenceTag);
 
             if (!isBookTarget(target) && targetMatches.isEmpty()) {
@@ -240,7 +306,10 @@ public final class EnchantingRoller {
             if (holder.is(EnchantmentTags.CURSE) && !matchesNonCurseEssence && bookBoost == null) {
                 return;
             }
-            if (profile.restricted() && !matchesEssence && bookBoost == null) {
+            if (reagentMatches.isEmpty()) {
+                return;
+            }
+            if (!profile.refinementTags().isEmpty() && refinementMatches.isEmpty()) {
                 return;
             }
             if (!profile.restricted() && !inVanillaPool && bookBoost == null) {
@@ -260,7 +329,7 @@ public final class EnchantingRoller {
             double weight = Math.max(1, apothicStats
                     .map(stats -> ApothicEnchantingCompat.adjustedWeight(holder, stats))
                     .orElse(holder.value().getWeight()));
-            if (matchesEssence) {
+            if (!essenceMatches.isEmpty()) {
                 weight *= profile.essenceWeightMultiplier();
             }
             if (bookBoost != null) {
@@ -492,6 +561,8 @@ public final class EnchantingRoller {
     }
 
     public record InputProfile(
+            List<ResourceLocation> reagentTags,
+            List<ResourceLocation> refinementTags,
             List<ResourceLocation> essenceTags,
             List<ResourceLocation> removedTags,
             List<ResourceLocation> targetTags,
@@ -506,12 +577,14 @@ public final class EnchantingRoller {
 
     public enum EmptyReason {
         NONE,
+        NO_REAGENT,
         NO_ROLL_POWER,
         NO_COMPATIBLE_ENCHANTMENTS,
         RESTRICTED_POOL_EMPTY,
         REMOVED_TAGS_EMPTY,
         ENCHANTMENT_LIMIT,
-        WEIGHT_SELECTION_FAILED
+        WEIGHT_SELECTION_FAILED,
+        DUPLICATE_OFFERS_EXHAUSTED
     }
 
     public record RollPreview(List<EnchantmentInstance> enchantments, int poolSize, InputProfile profile, EmptyReason emptyReason) {

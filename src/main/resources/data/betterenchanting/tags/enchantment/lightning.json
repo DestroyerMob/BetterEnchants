@@ -17,6 +17,10 @@
     {
       "id": "apothic_enchanting:crescendo_of_bolts",
       "required": false
+    },
+    {
+      "id": "minecraft:riptide",
+      "required": false
     }
   ]
 }

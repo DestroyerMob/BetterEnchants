@@ -9,5 +9,5 @@
     "minecraft:curse"
   ],
   "applies_to_all_offers": true,
-  "blocks_offer": true
+  "consumes_as_modifier": true
 }

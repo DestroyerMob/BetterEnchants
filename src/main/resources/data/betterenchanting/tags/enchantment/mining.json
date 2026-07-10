@@ -34,6 +34,22 @@
     {
       "id": "apothic_enchanting:worker_exploitation",
       "required": false
+    },
+    "betterenchanting:auto_smelt",
+    "betterenchanting:harvest",
+    "betterenchanting:resonance",
+    "betterenchanting:verdant_regrowth",
+    {
+      "id": "minecraft:luck_of_the_sea",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:growth_serum",
+      "required": false
+    },
+    {
+      "id": "apothic_enchanting:chromatic",
+      "required": false
     }
   ]
 }
