@@ -842,6 +842,18 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         return EnchantmentLevelRules.overlevelTarget(target, reagent);
     }
 
+    public static boolean acceptsTarget(ItemStack stack) {
+        return isEnchantingTarget(stack) || isPotentialApothicInfusionInput(stack);
+    }
+
+    public static boolean acceptsReagent(ItemStack stack) {
+        return PoolModifierRules.isReagent(stack);
+    }
+
+    public static boolean acceptsModifier(ItemStack stack) {
+        return PoolModifierRules.isPoolModifier(stack);
+    }
+
     private static boolean isEnchantingTarget(ItemStack stack) {
         return !stack.isEmpty()
                 && !ModularMaterialCompat.blocksDirectPartEnchanting(stack)
@@ -969,6 +981,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         }
         this.setApothicStats(Optional.empty());
         this.broadcastChanges();
+    }
+
+    public void releasePreviewListener() {
+        this.enchantingSlots.removeListener(this.enchantingSlotListener);
     }
 
     public record OptionDetails(

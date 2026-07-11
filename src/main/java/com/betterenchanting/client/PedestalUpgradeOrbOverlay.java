@@ -144,7 +144,6 @@ public final class PedestalUpgradeOrbOverlay {
                 ? Component.translatable(
                         "gui.betterenchanting.pedestal.orb.requirements",
                         orb.plan().essenceCost(),
-                        orb.plan().experienceCost(),
                         orb.plan().availablePower(),
                         orb.plan().requiredPower()
                 ).withStyle(ChatFormatting.DARK_GRAY)
@@ -276,16 +275,11 @@ public final class PedestalUpgradeOrbOverlay {
         if (plan.catalystRequired() && !plan.hasCatalyst()) {
             return Component.translatable("gui.betterenchanting.pedestal.need_star").withStyle(ChatFormatting.GOLD);
         }
-        if (!minecraft.player.hasInfiniteMaterials() && minecraft.player.experienceLevel < plan.experienceCost()) {
-            return Component.translatable("gui.betterenchanting.pedestal.need_experience", plan.experienceCost())
-                    .withStyle(ChatFormatting.RED);
-        }
         return Component.translatable("gui.betterenchanting.pedestal.unavailable").withStyle(ChatFormatting.RED);
     }
 
     private static boolean canUpgrade(Orb orb, Minecraft minecraft) {
-        return orb.plan().canUpgrade() && (minecraft.player.hasInfiniteMaterials()
-                || minecraft.player.experienceLevel >= orb.plan().experienceCost());
+        return orb.plan().canUpgrade();
     }
 
     private static List<AttunementPedestalBlockEntity> nearbyPedestals(Minecraft minecraft) {

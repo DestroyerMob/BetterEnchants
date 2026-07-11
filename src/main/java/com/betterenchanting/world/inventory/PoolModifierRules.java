@@ -26,7 +26,7 @@ final class PoolModifierRules {
     }
 
     static boolean isPoolModifier(ItemStack stack) {
-        return isEssenceModifier(stack) || isEnchantedBook(stack);
+        return isEssenceModifier(stack) || isEnchantedBook(stack) || isOverlevelCatalyst(stack);
     }
 
     static boolean isEssenceModifier(ItemStack stack) {

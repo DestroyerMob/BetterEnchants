@@ -1,6 +1,5 @@
 package com.betterenchanting.config;
 
-import com.betterenchanting.config.BetterEnchantingConfig.AnvilLevelMergeMode;
 import com.betterenchanting.config.BetterEnchantingConfig.BalancePreset;
 import com.betterenchanting.config.BetterEnchantingConfig.ExperienceCurve;
 
@@ -8,7 +7,6 @@ public final class EffectiveBalance {
     private static final BalanceValues VANILLA_PLUS = new BalanceValues(
             false,
             30,
-            AnvilLevelMergeMode.VANILLA,
             15,
             1,
             30,
@@ -55,7 +53,6 @@ public final class EffectiveBalance {
     private static final BalanceValues BALANCED = new BalanceValues(
             true,
             30,
-            AnvilLevelMergeMode.ADDITIVE,
             15,
             1,
             30,
@@ -102,7 +99,6 @@ public final class EffectiveBalance {
     private static final BalanceValues OVERHAUL = new BalanceValues(
             true,
             40,
-            AnvilLevelMergeMode.ADDITIVE,
             15,
             1,
             30,
@@ -149,7 +145,6 @@ public final class EffectiveBalance {
     private static final BalanceValues POWER_FANTASY = new BalanceValues(
             true,
             100,
-            AnvilLevelMergeMode.ADDITIVE,
             20,
             1,
             20,
@@ -208,13 +203,6 @@ public final class EffectiveBalance {
     public static int anvilMaxCost() {
         BalanceValues values = presetValues();
         return values == null ? BetterEnchantingConfig.anvilMaxCost() : values.anvilMaxCost();
-    }
-
-    public static boolean usesAdditiveAnvilLevelMerging() {
-        BalanceValues values = presetValues();
-        return values == null
-                ? BetterEnchantingConfig.usesAdditiveAnvilLevelMerging()
-                : values.anvilLevelMergeMode() == AnvilLevelMergeMode.ADDITIVE;
     }
 
     public static boolean takesOverEnchantingTable() {

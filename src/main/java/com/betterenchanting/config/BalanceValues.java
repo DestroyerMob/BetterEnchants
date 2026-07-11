@@ -3,7 +3,6 @@ package com.betterenchanting.config;
 record BalanceValues(
         boolean enhancedTableTakeover,
         int anvilMaxCost,
-        BetterEnchantingConfig.AnvilLevelMergeMode anvilLevelMergeMode,
         int maxBookshelfPower,
         int minEnchantingBaseCost,
         int maxEnchantingBaseCost,

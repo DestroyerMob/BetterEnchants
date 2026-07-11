@@ -9,8 +9,8 @@ public final class BetterEnchantingConfig {
     private static final ModConfigSpec.EnumValue<BalancePreset> BALANCE_PRESET;
     private static final ModConfigSpec.BooleanValue USE_ADVANCED_CONFIG_VALUES;
     private static final ModConfigSpec.IntValue ANVIL_MAX_COST;
-    private static final ModConfigSpec.EnumValue<AnvilLevelMergeMode> ANVIL_LEVEL_MERGE_MODE;
     private static final ModConfigSpec.BooleanValue ENHANCED_TABLE_TAKEOVER;
+    private static final ModConfigSpec.BooleanValue INTERACTIVE_ENCHANTING;
     private static final ModConfigSpec.BooleanValue OVERRIDE_VANILLA_ENCHANTMENT_LIMITS;
     private static final ModConfigSpec.BooleanValue ALWAYS_SHOW_ROUTED_ENCHANTMENT_OVERLAY;
     private static final ModConfigSpec.IntValue ENCHANTING_MAX_BOOKSHELF_POWER;
@@ -102,15 +102,15 @@ public final class BetterEnchantingConfig {
         ANVIL_MAX_COST = builder
                 .comment("Maximum XP level cost shown and charged by anvils. This also removes vanilla's Too Expensive cutoff.")
                 .defineInRange("max_cost", 30, 1, 1_000_000);
-        ANVIL_LEVEL_MERGE_MODE = builder
-                .comment("VANILLA uses vanilla's same-level-ranks-up rule. ADDITIVE adds matching enchantment levels together.")
-                .defineEnum("enchantment_level_merge", AnvilLevelMergeMode.ADDITIVE);
         builder.pop();
 
         builder.push("enchanting");
         ENHANCED_TABLE_TAKEOVER = builder
                 .comment("When true, vanilla enchanting tables open Better Enchanting's enhanced UI. Disable this to leave vanilla/other mods' enchanting table behavior alone and use the Arcane Crucible block instead.")
                 .define("enhanced_table_takeover", true);
+        INTERACTIVE_ENCHANTING = builder
+                .comment("When true, enhanced enchanting tables support a complete in-world workflow with direct item insertion and clue-aware offer orbs. Sneak-use the table with an empty hand to open the GUI as a fallback.")
+                .define("interactive_mode", false);
         OVERRIDE_VANILLA_ENCHANTMENT_LIMITS = builder
                 .comment("When true, Better Enchanting applies its raised vanilla enchantment max levels and item enchantment capacity rules. When false, Better Enchanting's table and anvil paths clamp vanilla enchantments to their vanilla max levels and do not enforce Better Enchanting's per-item capacity limits.")
                 .define("override_vanilla_enchantment_limits", true);
@@ -414,12 +414,12 @@ public final class BetterEnchantingConfig {
         return ANVIL_MAX_COST.get();
     }
 
-    public static boolean usesAdditiveAnvilLevelMerging() {
-        return ANVIL_LEVEL_MERGE_MODE.get() == AnvilLevelMergeMode.ADDITIVE;
-    }
-
     public static boolean takesOverEnchantingTable() {
         return ENHANCED_TABLE_TAKEOVER.get();
+    }
+
+    public static boolean usesInteractiveEnchanting() {
+        return INTERACTIVE_ENCHANTING.get();
     }
 
     public static boolean overridesVanillaEnchantmentLimits() {
@@ -721,16 +721,6 @@ public final class BetterEnchantingConfig {
     public enum ExperienceCurve {
         EXPONENTIAL,
         LINEAR;
-
-        @Override
-        public String toString() {
-            return name().toLowerCase(Locale.ROOT);
-        }
-    }
-
-    public enum AnvilLevelMergeMode {
-        VANILLA,
-        ADDITIVE;
 
         @Override
         public String toString() {

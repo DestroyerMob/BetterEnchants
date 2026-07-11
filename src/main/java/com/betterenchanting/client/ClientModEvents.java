@@ -33,6 +33,9 @@ public final class ClientModEvents {
         NeoForge.EVENT_BUS.addListener(MachineDisplayInteraction::render);
         NeoForge.EVENT_BUS.addListener(MachineDisplayInteraction::renderGui);
         NeoForge.EVENT_BUS.addListener(MachineDisplayInteraction::handleInteraction);
+        NeoForge.EVENT_BUS.addListener(InteractiveEnchantingOverlay::render);
+        NeoForge.EVENT_BUS.addListener(InteractiveEnchantingOverlay::renderGui);
+        NeoForge.EVENT_BUS.addListener(InteractiveEnchantingOverlay::handleInteraction);
         NeoForge.EVENT_BUS.addListener(PedestalUpgradeOrbOverlay::render);
         NeoForge.EVENT_BUS.addListener(PedestalUpgradeOrbOverlay::renderGui);
         NeoForge.EVENT_BUS.addListener(PedestalUpgradeOrbOverlay::handleInteraction);

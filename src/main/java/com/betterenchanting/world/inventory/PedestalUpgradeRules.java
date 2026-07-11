@@ -54,7 +54,6 @@ public final class PedestalUpgradeRules {
         boolean normalUpgrade = currentLevel < maximumLevel;
         int nextLevel = normalUpgrade || overlevel ? currentLevel + 1 : currentLevel;
         int essenceCost = normalUpgrade || overlevel ? nextLevel : 0;
-        int experienceCost = normalUpgrade || overlevel ? nextLevel * 2 : 0;
         boolean matchingEssence = matchesEssence(enchantment, essence);
         boolean enoughEssence = matchingEssence && essence.getCount() >= essenceCost;
         boolean catalystRequired = overlevel;
@@ -73,7 +72,6 @@ public final class PedestalUpgradeRules {
                 nextLevel,
                 maximumLevel,
                 essenceCost,
-                experienceCost,
                 requiredPower,
                 availablePower,
                 validSelection,
@@ -137,7 +135,7 @@ public final class PedestalUpgradeRules {
                 .orElse(false);
     }
 
-    private static Optional<BlockPos> nearestEnchantingTable(Level level, BlockPos pedestalPos) {
+    public static Optional<BlockPos> nearestEnchantingTable(Level level, BlockPos pedestalPos) {
         BlockPos nearest = null;
         double nearestDistance = Double.MAX_VALUE;
         BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos();
@@ -173,7 +171,6 @@ public final class PedestalUpgradeRules {
             int nextLevel,
             int maximumLevel,
             int essenceCost,
-            int experienceCost,
             int requiredPower,
             int availablePower,
             boolean validSelection,
@@ -191,7 +188,6 @@ public final class PedestalUpgradeRules {
                     id,
                     partIndex,
                     null,
-                    0,
                     0,
                     0,
                     0,

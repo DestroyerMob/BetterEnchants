@@ -35,6 +35,7 @@ public final class AttunementPedestalRenderer implements BlockEntityRenderer<Att
         double time = level.getGameTime() + partialTick;
         AnimationState state = ANIMATIONS.computeIfAbsent(pedestal, unused -> new AnimationState());
         state.advance(pedestal, time);
+        PedestalTableLinkParticles.emit(pedestal);
         List<Display> published = new ArrayList<>();
 
         double readyPulse = 1.0D + state.ready * (0.025D + Math.sin(time * 0.16D) * 0.018D);

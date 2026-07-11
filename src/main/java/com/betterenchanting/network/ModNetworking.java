@@ -2,16 +2,23 @@ package com.betterenchanting.network;
 
 import com.betterenchanting.client.ResonanceHighlights;
 import com.betterenchanting.client.ChainedMiningAnimationState;
+import com.betterenchanting.client.InteractiveEnchantingOverlay;
 import com.betterenchanting.compat.MobsToolForgingCompat;
 import com.betterenchanting.compat.MobsToolForgingCompat.RoutedEnchantmentState;
 import com.betterenchanting.registry.ModItems;
+import com.betterenchanting.config.BetterEnchantingConfig;
+import com.betterenchanting.config.EffectiveBalance;
+import com.betterenchanting.world.inventory.EnhancedEnchantingMenu;
 import com.betterenchanting.world.level.block.entity.AttunementPedestalBlockEntity;
 import com.betterenchanting.world.level.block.entity.ArcaneCrucibleBlockEntity;
+import com.betterenchanting.world.level.block.EnchantingTableStorage;
 import com.betterenchanting.world.level.block.InWorldMachineInteraction;
 import com.betterenchanting.world.inventory.PedestalUpgradeRules.UpgradePlan;
 import com.betterenchanting.world.enchantment.FlashStepEnchantmentEvents;
 import com.betterenchanting.world.enchantment.VeinMinerModeState;
 import java.util.Optional;
+import java.util.ArrayList;
+import java.util.List;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
@@ -21,12 +28,15 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.enchantment.Enchantment;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.inventory.ContainerLevelAccess;
+import net.minecraft.world.level.block.Blocks;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.handling.IPayloadContext;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class ModNetworking {
-    private static final String PROTOCOL_VERSION = "8";
+    private static final String PROTOCOL_VERSION = "9";
 
     private ModNetworking() {
     }
@@ -41,6 +51,81 @@ public final class ModNetworking {
         registrar.playToServer(PromoteRoutedEnchantmentPayload.TYPE, PromoteRoutedEnchantmentPayload.STREAM_CODEC, ModNetworking::handlePromoteRoutedEnchantment);
         registrar.playToServer(SelectPedestalUpgradePayload.TYPE, SelectPedestalUpgradePayload.STREAM_CODEC, ModNetworking::handleSelectPedestalUpgrade);
         registrar.playToServer(TakeMachineDisplayPayload.TYPE, TakeMachineDisplayPayload.STREAM_CODEC, ModNetworking::handleTakeMachineDisplay);
+        registrar.playToServer(RequestInteractiveEnchantingStatePayload.TYPE, RequestInteractiveEnchantingStatePayload.STREAM_CODEC, ModNetworking::handleRequestInteractiveEnchantingState);
+        registrar.playToServer(SelectInteractiveEnchantingOptionPayload.TYPE, SelectInteractiveEnchantingOptionPayload.STREAM_CODEC, ModNetworking::handleSelectInteractiveEnchantingOption);
+        registrar.playToClient(InteractiveEnchantingStatePayload.TYPE, InteractiveEnchantingStatePayload.STREAM_CODEC, ModNetworking::handleInteractiveEnchantingState);
+    }
+
+    private static void handleInteractiveEnchantingState(InteractiveEnchantingStatePayload payload, IPayloadContext context) {
+        context.enqueueWork(() -> InteractiveEnchantingOverlay.acceptState(payload));
+    }
+
+    private static void handleRequestInteractiveEnchantingState(
+            RequestInteractiveEnchantingStatePayload payload,
+            IPayloadContext context
+    ) {
+        if (context.player() instanceof ServerPlayer player) {
+            sendInteractiveEnchantingState(player, payload.tablePos(), -1);
+        }
+    }
+
+    private static void handleSelectInteractiveEnchantingOption(
+            SelectInteractiveEnchantingOptionPayload payload,
+            IPayloadContext context
+    ) {
+        if (context.player() instanceof ServerPlayer player) {
+            sendInteractiveEnchantingState(player, payload.tablePos(), payload.option());
+        }
+    }
+
+    private static void sendInteractiveEnchantingState(ServerPlayer player, net.minecraft.core.BlockPos tablePos,
+                                                        int selectedOption) {
+        if ((selectedOption >= 0 && !BetterEnchantingConfig.usesInteractiveEnchanting())
+                || !EffectiveBalance.takesOverEnchantingTable()
+                || selectedOption < -1 || selectedOption >= 3
+                || player.distanceToSqr(Vec3.atCenterOf(tablePos)) > 64.0D
+                || !player.level().getBlockState(tablePos).is(Blocks.ENCHANTING_TABLE)
+                || !(player.level().getBlockEntity(tablePos) instanceof EnchantingTableStorage)) {
+            return;
+        }
+
+        EnhancedEnchantingMenu menu = new EnhancedEnchantingMenu(
+                -1,
+                player.getInventory(),
+                ContainerLevelAccess.create(player.level(), tablePos),
+                tablePos
+        );
+        try {
+            if (selectedOption >= 0) {
+                menu.clickMenuButton(player, selectedOption);
+            }
+            List<InteractiveEnchantingStatePayload.Option> options = new ArrayList<>(3);
+            for (int option = 0; option < 3; option++) {
+                List<InteractiveEnchantingStatePayload.Clue> clues = new ArrayList<>();
+                for (int clueIndex = 0; clueIndex < menu.getRevealedClueCount(option); clueIndex++) {
+                    clues.add(new InteractiveEnchantingStatePayload.Clue(
+                            menu.getRevealedClueId(option, clueIndex),
+                            menu.getRevealedClueLevel(option, clueIndex)
+                    ));
+                }
+                options.add(new InteractiveEnchantingStatePayload.Option(
+                        menu.requirements[option],
+                        menu.costs[option],
+                        menu.getDisabledReasonFlags(option),
+                        menu.isOverlevelOffer(option),
+                        menu.isApothicInfusionOffer(option),
+                        menu.areAllCluesRevealed(option),
+                        clues
+                ));
+            }
+            PacketDistributor.sendToPlayer(player, new InteractiveEnchantingStatePayload(
+                    tablePos,
+                    menu.getReagentCount(),
+                    options
+            ));
+        } finally {
+            menu.releasePreviewListener();
+        }
     }
 
     private static void handleTakeMachineDisplay(TakeMachineDisplayPayload payload, IPayloadContext context) {
@@ -78,6 +163,29 @@ public final class ModNetworking {
                 );
             } else if (payload.slot() >= 0 && payload.slot() < AttunementPedestalBlockEntity.CONTAINER_SIZE) {
                 taken = InWorldMachineInteraction.take(pedestal, payload.slot(), player);
+                takenStacks = taken.isEmpty() ? 0 : 1;
+            } else {
+                return;
+            }
+        } else if (BetterEnchantingConfig.usesInteractiveEnchanting()
+                && player.level().getBlockState(payload.machinePos()).is(Blocks.ENCHANTING_TABLE)
+                && player.level().getBlockEntity(payload.machinePos()) instanceof EnchantingTableStorage storage) {
+            if (payload.takeAll()) {
+                takenStacks = InWorldMachineInteraction.takeAll(
+                        storage.betterenchanting$getEnchantingInventory(),
+                        player,
+                        EnhancedEnchantingMenu.TARGET_SLOT,
+                        EnhancedEnchantingMenu.FIRST_MODIFIER_SLOT + 2,
+                        EnhancedEnchantingMenu.FIRST_MODIFIER_SLOT + 1,
+                        EnhancedEnchantingMenu.FIRST_MODIFIER_SLOT,
+                        EnhancedEnchantingMenu.REAGENT_SLOT
+                );
+            } else if (payload.slot() >= 0 && payload.slot() < EnhancedEnchantingMenu.ENCHANTING_SLOT_COUNT) {
+                taken = InWorldMachineInteraction.take(
+                        storage.betterenchanting$getEnchantingInventory(),
+                        payload.slot(),
+                        player
+                );
                 takenStacks = taken.isEmpty() ? 0 : 1;
             } else {
                 return;
@@ -170,9 +278,6 @@ public final class ModNetworking {
         }
         if (plan.catalystRequired() && !plan.hasCatalyst()) {
             return Component.translatable("gui.betterenchanting.pedestal.need_star");
-        }
-        if (!player.hasInfiniteMaterials() && player.experienceLevel < plan.experienceCost()) {
-            return Component.translatable("gui.betterenchanting.pedestal.need_experience", plan.experienceCost());
         }
         return Component.translatable("gui.betterenchanting.pedestal.unavailable");
     }

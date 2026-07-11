@@ -60,7 +60,19 @@ Keep the modifier slots out of the inventory label area. The current placement i
 
 Modifier contents are treated as an unordered set. Normal tagged essence modifiers refine the reagent pool globally, affecting all three offers instead of being assigned to one physical offer row. Enchanted books remain targeted modifiers in the deterministic modifier plan. Moving the same modifier to a different physical slot should not reveal a different biased offer.
 
-The five enchanting inputs are stored on the vanilla enchanting-table block entity and saved to NBT. Closing the UI leaves them in the table; breaking the table drops them. The client-synchronized inventory also drives the in-world display: the target floats over the table, the reagent floats above it, and the three modifiers orbit the target. With Apothic Enchanting present, restrained emerald, rose, and violet particle arcs visualize Eterna, Quanta, and Arcana; arc length and density scale with the corresponding table stat.
+The five enchanting inputs are stored on the vanilla enchanting-table block entity and saved to NBT. Closing the UI leaves them in the table; breaking the table drops them. The client-synchronized inventory also drives the in-world display: the target floats over the table, the reagent floats above it, and the three modifiers orbit the target. With Apothic Enchanting present, synchronized emerald, rose, and violet halo strands visualize Eterna, Quanta, and Arcana. The number of particles in each strand scales with the corresponding table stat, and the halo remains absent until the server confirms at least one usable enchantment offer.
+
+### Interactive Enchanting Mode
+
+`enchanting.interactive_mode` enables a complete in-world alternative to the GUI. It defaults to `false` in Better Enchanting itself so installing the mod does not replace the expected interface without consent. MinecraftBeyond enables it in both the active and distributed default config.
+
+- Use a target item or reagent on the table to insert it.
+- Sneak-use an essence, enchanted book, or other accepted modifier to insert it into the next modifier slot.
+- Look at a displayed input and use it with an empty hand to retrieve that slot; sneak-use a display to retrieve every input.
+- Three offer orbs float above the table. Look at one and use it with an empty hand to perform that roll.
+- Sneak-use the table with an empty hand to open the GUI as a maintenance fallback.
+
+Offer state is calculated on the server from the player's real enchantment seed. Each orb uses the primary-affinity color of its first revealed enchantment. Apothic clue count is authoritative: zero clues produce a neutral mystery orb, partial clues list only what the shelves reveal, and a fully revealed roll says so explicitly. Orb color never leaks an enchantment that the current clue budget has hidden.
 
 ### Attunement Pedestal Upgrades
 
@@ -190,7 +202,6 @@ use_advanced_config_values = false
 
 [anvil]
 max_cost = 30
-enchantment_level_merge = "additive"
 
 [enchanting]
 enhanced_table_takeover = true

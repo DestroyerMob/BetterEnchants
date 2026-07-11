@@ -141,8 +141,7 @@ public final class AttunementPedestalBlockEntity extends BaseContainerBlockEntit
             return false;
         }
         UpgradePlan plan = this.currentPlan();
-        if (!plan.canUpgrade() || plan.enchantment() == null
-                || !player.hasInfiniteMaterials() && player.experienceLevel < plan.experienceCost()) {
+        if (!plan.canUpgrade() || plan.enchantment() == null) {
             return false;
         }
 
@@ -152,8 +151,8 @@ public final class AttunementPedestalBlockEntity extends BaseContainerBlockEntit
             return false;
         }
 
-        int levelsSpent = player.hasInfiniteMaterials() ? 0 : plan.experienceCost();
-        player.onEnchantmentPerformed(upgraded, levelsSpent);
+        int levelsSpent = 0;
+        player.onEnchantmentPerformed(upgraded, 0);
         if (!player.hasInfiniteMaterials()) {
             this.items.get(ESSENCE_SLOT).shrink(plan.essenceCost());
             if (plan.catalystRequired()) {

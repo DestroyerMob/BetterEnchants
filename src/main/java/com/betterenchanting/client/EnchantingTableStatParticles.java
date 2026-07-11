@@ -9,14 +9,10 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.DustParticleOptions;
 import net.minecraft.util.Mth;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.EnchantingTableBlockEntity;
 import org.joml.Vector3f;
 
-/**
- * Draws restrained, level-readable particle arcs around visible enchanting tables.
- * Arc length and sample density both track the corresponding Apothic table stat.
- */
+/** Draws Apothic's three table stats as a single synchronized, level-readable halo. */
 public final class EnchantingTableStatParticles {
     private static final DustParticleOptions ETERNA_PARTICLE = dust(0x45E0A1, 0.68F);
     private static final DustParticleOptions QUANTA_PARTICLE = dust(0xF06483, 0.68F);
@@ -29,7 +25,7 @@ public final class EnchantingTableStatParticles {
     private EnchantingTableStatParticles() {
     }
 
-    public static void emit(EnchantingTableBlockEntity table, ItemStack target) {
+    public static void emit(EnchantingTableBlockEntity table, ItemStack target, ItemStack reagent) {
         if (!ApothicEnchantingCompat.isLoaded() || !(table.getLevel() instanceof ClientLevel level)) {
             return;
         }
@@ -40,20 +36,27 @@ public final class EnchantingTableStatParticles {
         }
 
         BlockPos pos = table.getBlockPos();
+        if (target.isEmpty() || reagent.isEmpty()) {
+            return;
+        }
+        InteractiveEnchantingOverlay.ensureState(pos);
+        if (!InteractiveEnchantingOverlay.hasAvailableOffer(pos)) {
+            return;
+        }
+
         long key = pos.asLong();
         int tick = table.time;
         Integer previousEmissionTick = LAST_EMISSION_TICKS.put(key, tick);
         if (previousEmissionTick != null && previousEmissionTick == tick) {
             return;
         }
-        if ((tick & 1) != 0) {
+        if (tick % 4 != 0) {
             return;
         }
 
         CachedStats cached = CACHED_STATS.get(key);
         if (cached == null || tick - cached.sampleTick() >= 10) {
-            ItemStack statsTarget = target.isEmpty() ? new ItemStack(Items.BOOK) : target;
-            TableStats stats = ApothicEnchantingCompat.gatherTableStats(level, pos, statsTarget).orElse(null);
+            TableStats stats = ApothicEnchantingCompat.gatherTableStats(level, pos, target).orElse(null);
             cached = new CachedStats(tick, stats);
             CACHED_STATS.put(key, cached);
         }
@@ -62,53 +65,40 @@ public final class EnchantingTableStatParticles {
         }
 
         TableStats stats = cached.stats();
-        emitArc(level, pos, tick, normalize(stats.eterna(), 50.0F), 0.70D, 1.02D, 0.0D, ETERNA_PARTICLE);
-        emitArc(level, pos, tick, normalize(stats.quanta(), 100.0F), 0.84D, 1.18D, Math.PI * 0.66D, QUANTA_PARTICLE);
-        emitArc(level, pos, tick, normalize(stats.arcana(), 100.0F), 0.98D, 1.34D, Math.PI * 1.33D, ARCANA_PARTICLE);
+        double rotation = tick * 0.055D;
+        emitStrand(level, pos, tick, normalize(stats.eterna(), 50.0F), rotation,
+                0.80D, 1.12D, ETERNA_PARTICLE);
+        emitStrand(level, pos, tick, normalize(stats.quanta(), 100.0F), rotation + Math.PI * 2.0D / 3.0D,
+                stats.stable() ? 0.86D : 0.86D + Math.sin(tick * 0.13D) * 0.025D,
+                1.20D, QUANTA_PARTICLE);
+        emitStrand(level, pos, tick, normalize(stats.arcana(), 100.0F), rotation + Math.PI * 4.0D / 3.0D,
+                0.92D, 1.28D, ARCANA_PARTICLE);
 
-        if (stats.treasure() && tick % 8 == 0) {
-            double angle = tick * 0.075D;
-            spawn(
-                    level,
-                    pos,
-                    TREASURE_PARTICLE,
-                    angle,
-                    1.06D,
-                    1.50D + Mth.sin(tick * 0.12F) * 0.025D,
-                    0.0D
-            );
+        if (stats.treasure() && tick % 10 == 0) {
+            double angle = rotation + Math.PI / 2.0D;
+            spawn(level, pos, TREASURE_PARTICLE, angle, 0.20D,
+                    1.47D + Mth.sin(tick * 0.12F) * 0.025D, 0.0D);
         }
     }
 
-    private static void emitArc(
+    private static void emitStrand(
             ClientLevel level,
             BlockPos pos,
             int tick,
             float normalized,
+            double leadingAngle,
             double radius,
             double height,
-            double rotation,
             DustParticleOptions particle
     ) {
         if (normalized <= 0.005F) {
             return;
         }
 
-        int samples = 3 + Mth.ceil(normalized * 17.0F);
-        int cursor = Math.floorMod(tick / 2, samples);
-        double span = Math.max(0.16D, normalized * Math.PI * 2.0D);
-        double firstAngle = rotation - Math.PI / 2.0D + span * cursor / Math.max(1, samples - 1);
-        spawn(level, pos, particle, firstAngle, radius, height, tick * 0.055D);
-
-        if (samples >= 7) {
-            int opposite = Math.floorMod(cursor + samples / 2, samples);
-            double secondAngle = rotation - Math.PI / 2.0D + span * opposite / Math.max(1, samples - 1);
-            spawn(level, pos, particle, secondAngle, radius, height, tick * 0.055D + 1.4D);
-        }
-
-        if (tick % 6 == 0) {
-            double endpoint = rotation - Math.PI / 2.0D + span;
-            spawn(level, pos, particle, endpoint, radius, height + 0.018D, tick * 0.04D);
+        int particleCount = Mth.ceil(normalized * 8.0F);
+        for (int index = 0; index < particleCount; index++) {
+            double angle = leadingAngle + index * Math.PI * 2.0D / particleCount;
+            spawn(level, pos, particle, angle, radius, height, tick * 0.035D);
         }
     }
 
