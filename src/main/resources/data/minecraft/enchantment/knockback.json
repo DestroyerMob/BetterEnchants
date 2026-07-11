@@ -29,6 +29,6 @@
   "slots": [
     "mainhand"
   ],
-  "supported_items": "#minecraft:enchantable/sword",
+  "supported_items": "#betterenchanting:enchantable/swordlike",
   "weight": 5
 }
