@@ -3,9 +3,12 @@ package com.betterenchanting.integration.jei;
 import com.betterenchanting.BetterEnchanting;
 import com.betterenchanting.compat.ApothicEnchantingCompat;
 import com.betterenchanting.config.EffectiveBalance;
+import com.betterenchanting.data.EssenceDefinition;
+import com.betterenchanting.data.EssenceDefinitions;
 import com.betterenchanting.data.EnchantmentGuideEntries;
 import com.betterenchanting.data.EnchantmentLevelRules;
 import com.betterenchanting.data.TagDisplayRules;
+import com.betterenchanting.registry.ModItems;
 import com.betterenchanting.world.inventory.EnchantingPowerRules;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -33,6 +36,7 @@ public record EnchantmentInfoRecipe(
         Holder<Enchantment> enchantment,
         EnchantmentGuideEntries.Entry guide,
         ItemStack book,
+        int level,
         List<PowerBand> vanillaBands,
         List<PowerBand> apothicBands,
         List<TagDisplayRules.TagLabel> targets,
@@ -51,15 +55,15 @@ public record EnchantmentInfoRecipe(
         affinities = List.copyOf(affinities);
     }
 
-    public static Optional<EnchantmentInfoRecipe> create(Holder<Enchantment> enchantment) {
+    public static List<EnchantmentInfoRecipe> createAll(Holder<Enchantment> enchantment) {
         Optional<ResourceLocation> id = enchantment.unwrapKey().map(ResourceKey::location);
         if (id.isEmpty()) {
-            return Optional.empty();
+            return List.of();
         }
 
         EnchantmentGuideEntries.Entry guide = EnchantmentGuideEntries.get(id.get());
         if (guide.hidden()) {
-            return Optional.empty();
+            return List.of();
         }
 
         int minLevel = Math.max(1, enchantment.value().getMinLevel());
@@ -80,19 +84,32 @@ public record EnchantmentInfoRecipe(
                     .ifPresent(range -> apothicBands.add(new PowerBand(bandLevel, range.minPower(), range.maxPower())));
         }
 
-        return Optional.of(new EnchantmentInfoRecipe(
-                id.get(),
-                enchantment,
-                guide,
-                enchantedBook(enchantment, minLevel),
-                vanillaBands,
-                apothicBands,
-                targetLabels(enchantment),
-                affinityLabels(enchantment),
-                enchantment.is(EnchantmentTags.IN_ENCHANTING_TABLE),
-                enchantment.is(EnchantmentTags.CURSE),
-                enchantment.is(TagKey.create(Registries.ENCHANTMENT, TREASURE_TAG))
-        ));
+        List<TagDisplayRules.TagLabel> targets = targetLabels(enchantment);
+        List<TagDisplayRules.TagLabel> affinities = affinityLabels(enchantment);
+        boolean inEnchantingTable = enchantment.is(EnchantmentTags.IN_ENCHANTING_TABLE);
+        boolean curse = enchantment.is(EnchantmentTags.CURSE);
+        boolean treasure = enchantment.is(TagKey.create(Registries.ENCHANTMENT, TREASURE_TAG));
+        List<EnchantmentInfoRecipe> recipes = new ArrayList<>();
+        for (int level = minLevel; level <= effectiveMaxLevel; level++) {
+            EnchantmentInfoRecipe recipe = new EnchantmentInfoRecipe(
+                    id.get(),
+                    enchantment,
+                    guide,
+                    enchantedBook(enchantment, level),
+                    level,
+                    vanillaBands,
+                    apothicBands,
+                    targets,
+                    affinities,
+                    inEnchantingTable,
+                    curse,
+                    treasure
+            );
+            if (recipe.activePowerBand().isPresent()) {
+                recipes.add(recipe);
+            }
+        }
+        return List.copyOf(recipes);
     }
 
     public String descriptionKey() {
@@ -100,7 +117,7 @@ public record EnchantmentInfoRecipe(
     }
 
     public Component title() {
-        return Component.translatable(descriptionKey());
+        return Enchantment.getFullname(enchantment, level);
     }
 
     public Component summary() {
@@ -126,6 +143,29 @@ public record EnchantmentInfoRecipe(
         return I18n.exists(key) ? I18n.get(key) : id.toString();
     }
 
+    /** The power interval that can actually select this level, after higher levels and the roll-power cap are applied. */
+    public Optional<PowerBand> activePowerBand() {
+        boolean apothic = !apothicBands.isEmpty();
+        List<PowerBand> bands = apothic ? apothicBands : vanillaBands;
+        for (int index = 0; index < bands.size(); index++) {
+            PowerBand band = bands.get(index);
+            if (band.level() != level) {
+                continue;
+            }
+            int maximum = band.maxPower();
+            if (index + 1 < bands.size()) {
+                maximum = Math.min(maximum, bands.get(index + 1).minPower() - 1);
+            }
+            if (apothic) {
+                maximum = Math.min(maximum, ApothicEnchantingCompat.MAX_ROLL_POWER);
+            }
+            return maximum < band.minPower()
+                    ? Optional.empty()
+                    : Optional.of(new PowerBand(level, band.minPower(), maximum));
+        }
+        return Optional.empty();
+    }
+
     public int maxLevel() {
         return Math.max(enchantment.value().getMaxLevel(), EnchantmentLevelRules.maxLevel(enchantment));
     }
@@ -149,6 +189,18 @@ public record EnchantmentInfoRecipe(
             }
         }
         return OptionalInt.empty();
+    }
+
+    /** Essences whose live data-pack tags place this enchantment in their restricted pool. */
+    public List<ItemStack> matchingEssences() {
+        return ModItems.ESSENCES.stream()
+                .map(supplier -> new ItemStack(supplier.get()))
+                .filter(stack -> EssenceDefinitions.get(stack)
+                        .filter(EssenceDefinition::restrictsPool)
+                        .map(definition -> definition.tags().stream().anyMatch(tag ->
+                                enchantment.is(TagKey.create(Registries.ENCHANTMENT, tag))))
+                        .orElse(false))
+                .toList();
     }
 
     private static ItemStack enchantedBook(Holder<Enchantment> enchantment, int level) {

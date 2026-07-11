@@ -20,6 +20,7 @@ import net.minecraft.world.level.LevelReader;
 import net.neoforged.fml.ModList;
 
 public final class ApothicEnchantingCompat {
+    public static final int MAX_ROLL_POWER = 200;
     private static final String MOD_ID = "apothic_enchanting";
     private static final String STATS_CLASS = "dev.shadowsoffire.apothic_enchanting.table.EnchantmentTableStats";
     private static final String HELPER_CLASS = "dev.shadowsoffire.apothic_enchanting.table.ApothEnchantmentHelper";
@@ -119,7 +120,7 @@ public final class ApothicEnchantingCompat {
         RandomSource random = RandomSource.create();
         random.setSeed((long) enchantmentSeed + option);
         float factor = quantaFactor(random, stats.quanta(), stats.stable());
-        return Mth.clamp(Math.round(basePower * factor), 1, 200);
+        return Mth.clamp(Math.round(basePower * factor), 1, MAX_ROLL_POWER);
     }
 
     public static OptionalInt bestLevelForPower(Holder<Enchantment> enchantment, int power) {

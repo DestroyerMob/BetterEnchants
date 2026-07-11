@@ -72,6 +72,7 @@ public final class BetterEnchantingConfig {
     private static final ModConfigSpec.IntValue VERDANT_REGROWTH_SCAN_HORIZONTAL_RADIUS;
     private static final ModConfigSpec.IntValue VERDANT_REGROWTH_SCAN_VERTICAL_RADIUS;
     private static final ModConfigSpec.DoubleValue ESSENCE_ACQUISITION_DIRECT_DROP_CHANCE;
+    private static final ModConfigSpec.DoubleValue ESSENCE_ACQUISITION_MINING_DROP_CHANCE;
     private static final ModConfigSpec.IntValue MENDING_BASE_CHANCE_DENOMINATOR;
     private static final ModConfigSpec.IntValue MENDING_DENOMINATOR_REDUCTION_PER_LEVEL;
     private static final ModConfigSpec.IntValue MENDING_MIN_CHANCE_DENOMINATOR;
@@ -339,8 +340,11 @@ public final class BetterEnchantingConfig {
 
         builder.push("essence_acquisition");
         ESSENCE_ACQUISITION_DIRECT_DROP_CHANCE = builder
-                .comment("Chance for event-driven essence drops such as Fortune mining, charged creepers, lava fishing, Luck of the Sea fishing, and zombie villager curing. Loot-table injected essence chances stay data-pack controlled.")
+                .comment("Chance for event-driven essence drops such as charged creepers, lava fishing, and zombie villager curing. Loot-table injected essence chances stay data-pack controlled.")
                 .defineInRange("direct_drop_chance", 0.2D, 0.0D, 1.0D);
+        ESSENCE_ACQUISITION_MINING_DROP_CHANCE = builder
+                .comment("Chance to obtain Mining Essence when a player mines an ore with Fortune. Kept separate because ore mining happens far more often than the other acquisition events.")
+                .defineInRange("mining_drop_chance", 0.02D, 0.0D, 1.0D);
         builder.pop();
 
         builder.push("mending");
@@ -660,6 +664,10 @@ public final class BetterEnchantingConfig {
 
     public static float essenceDirectDropChance() {
         return ESSENCE_ACQUISITION_DIRECT_DROP_CHANCE.get().floatValue();
+    }
+
+    public static float miningEssenceDropChance() {
+        return ESSENCE_ACQUISITION_MINING_DROP_CHANCE.get().floatValue();
     }
 
     public static int mendingBaseChanceDenominator() {

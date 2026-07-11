@@ -40,7 +40,8 @@ public final class EssenceAcquisitionEvents {
         if (!(event.getBreaker() instanceof Player) || event.getBlockEntity() != null || !event.getState().is(ModTags.Blocks.ORES)) {
             return;
         }
-        if (enchantmentLevel(event.getLevel(), event.getTool(), Enchantments.FORTUNE) <= 0 || !roll(event.getLevel().getRandom())) {
+        if (enchantmentLevel(event.getLevel(), event.getTool(), Enchantments.FORTUNE) <= 0
+                || !roll(event.getLevel().getRandom(), EffectiveBalance.miningEssenceDropChance())) {
             return;
         }
 
@@ -106,7 +107,11 @@ public final class EssenceAcquisitionEvents {
     }
 
     private static boolean roll(RandomSource random) {
-        return random.nextFloat() < EffectiveBalance.essenceDirectDropChance();
+        return roll(random, EffectiveBalance.essenceDirectDropChance());
+    }
+
+    private static boolean roll(RandomSource random, float chance) {
+        return random.nextFloat() < chance;
     }
 
     private static ItemEntity itemEntity(ServerLevel level, double x, double y, double z, Item item) {

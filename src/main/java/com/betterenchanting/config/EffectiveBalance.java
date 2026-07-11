@@ -42,6 +42,7 @@ public final class EffectiveBalance {
             1,
             1,
             0.1D,
+            0.01D,
             0.05D,
             0.25D,
             60,
@@ -88,6 +89,7 @@ public final class EffectiveBalance {
             1,
             1,
             0.2D,
+            0.02D,
             0.1D,
             1.0D,
             50,
@@ -134,6 +136,7 @@ public final class EffectiveBalance {
             1,
             1,
             0.25D,
+            0.03D,
             0.12D,
             1.0D,
             45,
@@ -180,6 +183,7 @@ public final class EffectiveBalance {
             2,
             2,
             0.5D,
+            0.05D,
             0.2D,
             1.0D,
             35,
@@ -473,6 +477,11 @@ public final class EffectiveBalance {
     public static float essenceDirectDropChance() {
         BalanceValues values = presetValues();
         return (float) (values == null ? BetterEnchantingConfig.essenceDirectDropChance() : values.essenceDirectDropChance());
+    }
+
+    public static float miningEssenceDropChance() {
+        BalanceValues values = presetValues();
+        return (float) (values == null ? BetterEnchantingConfig.miningEssenceDropChance() : values.miningEssenceDropChance());
     }
 
     public static int mendingBaseChanceDenominator() {

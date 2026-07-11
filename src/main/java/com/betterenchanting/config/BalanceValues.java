@@ -37,6 +37,7 @@ record BalanceValues(
         int verdantRegrowthScanHorizontalRadius,
         int verdantRegrowthScanVerticalRadius,
         double essenceDirectDropChance,
+        double miningEssenceDropChance,
         double fortunesTouchSecondaryDropChancePerLevel,
         double fortunesTouchSecondaryDropMaxChance,
         int rollerMultiEnchantRollBound,

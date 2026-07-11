@@ -1,6 +1,8 @@
 package com.betterenchanting.integration.jei;
 
 import com.betterenchanting.BetterEnchanting;
+import com.betterenchanting.data.EssenceDistillationRecipes;
+import com.betterenchanting.registry.ModItems;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -26,6 +28,11 @@ public final class BetterEnchantingJeiPlugin implements IModPlugin {
             "enchantment_info",
             EnchantmentInfoRecipe.class
     );
+    public static final RecipeType<EssenceDistillationRecipes.Recipe> ESSENCE_DISTILLATION = RecipeType.create(
+            BetterEnchanting.MOD_ID,
+            "essence_distillation",
+            EssenceDistillationRecipes.Recipe.class
+    );
 
     @Override
     public ResourceLocation getPluginUid() {
@@ -34,17 +41,23 @@ public final class BetterEnchantingJeiPlugin implements IModPlugin {
 
     @Override
     public void registerCategories(IRecipeCategoryRegistration registration) {
-        registration.addRecipeCategories(new EnchantmentInfoCategory(registration.getJeiHelpers().getGuiHelper()));
+        registration.addRecipeCategories(
+                new EnchantmentInfoCategory(registration.getJeiHelpers().getGuiHelper()),
+                new EssenceDistillationCategory(registration.getJeiHelpers().getGuiHelper())
+        );
     }
 
     @Override
     public void registerRecipes(IRecipeRegistration registration) {
         registration.addRecipes(ENCHANTMENT_INFO, enchantmentInfoRecipes());
+        registration.addRecipes(ESSENCE_DISTILLATION, EssenceDistillationRecipes.all());
+        EssenceAcquisitionInfo.register(registration);
     }
 
     @Override
     public void registerRecipeCatalysts(IRecipeCatalystRegistration registration) {
         registration.addRecipeCatalyst(Items.ENCHANTING_TABLE, ENCHANTMENT_INFO);
+        registration.addRecipeCatalyst(ModItems.ARCANE_CRUCIBLE.get(), ESSENCE_DISTILLATION);
     }
 
     private static List<EnchantmentInfoRecipe> enchantmentInfoRecipes() {
@@ -52,10 +65,10 @@ public final class BetterEnchantingJeiPlugin implements IModPlugin {
                 .map(access -> {
                     Registry<Enchantment> enchantments = access.registryOrThrow(Registries.ENCHANTMENT);
                     return enchantments.holders()
-                            .map(EnchantmentInfoRecipe::create)
-                            .filter(Optional::isPresent)
-                            .map(Optional::get)
-                            .sorted(Comparator.comparing(recipe -> recipe.sortName().toLowerCase(Locale.ROOT)))
+                            .flatMap(enchantment -> EnchantmentInfoRecipe.createAll(enchantment).stream())
+                            .sorted(Comparator
+                                    .comparing((EnchantmentInfoRecipe recipe) -> recipe.sortName().toLowerCase(Locale.ROOT))
+                                    .thenComparingInt(EnchantmentInfoRecipe::level))
                             .toList();
                 })
                 .orElse(List.of());
