@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "#minecraft:enchantable/trident",
+    {
+      "id": "#betterenchanting:weapons/knives",
+      "required": false
+    }
+  ]
+}

@@ -99,6 +99,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
     private final ContainerLevelAccess access;
     private final net.minecraft.util.RandomSource random = net.minecraft.util.RandomSource.create();
     private final DataSlot enchantmentSeed = DataSlot.standalone();
+    private final DataSlot bookshelfPower = DataSlot.standalone();
     private final boolean apothicLayout = ApothicEnchantingCompat.isLoaded();
 
     public final int[] requirements = new int[]{0, 0, 0};
@@ -187,6 +188,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         this.addDataSlot(DataSlot.shared(this.costs, 1));
         this.addDataSlot(DataSlot.shared(this.costs, 2));
         this.addDataSlot(this.enchantmentSeed).set(playerInventory.player.getEnchantmentSeed());
+        this.addDataSlot(this.bookshelfPower);
         this.addDataSlot(DataSlot.shared(this.enchantClue, 0));
         this.addDataSlot(DataSlot.shared(this.enchantClue, 1));
         this.addDataSlot(DataSlot.shared(this.enchantClue, 2));
@@ -259,9 +261,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             int bookshelfPower = apothicStats
                     .map(ApothicEnchantingCompat.TableStats::bookshelfPower)
                     .orElseGet(() -> EnchantingPowerRules.clampBookshelfPower(EnchantingTablePower.bookshelfPower(level, blockPos)));
+            this.bookshelfPower.set(bookshelfPower);
             PoolModifierRules.ModifierPlan modifierPlan = modifierPlan();
             Optional<OverlevelTarget> plannedOverlevel = overlevelTarget(target, reagent, modifierPlan);
-            Set<Holder<Enchantment>> excludedOfferEnchantments = reservedSpecialEnchantments(plannedOverlevel);
+            Set<Holder<Enchantment>> reservedEnchantments = reservedSpecialEnchantments(plannedOverlevel);
             this.random.setSeed((long) this.enchantmentSeed.get());
 
             for (int option = 0; option < 3; option++) {
@@ -358,7 +361,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                         essences,
                         books,
                         apothicStats,
-                        excludedOfferEnchantments
+                        reservedEnchantments
                 );
                 this.poolSizes[option] = preview.poolSize();
                 this.activeTagCounts[option] = preview.profile().essenceTags().size();
@@ -373,9 +376,6 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                     EnchantmentInstance clue = clues.remove(this.random.nextInt(clues.size()));
                     int clueBudget = apothicStats.map(ApothicEnchantingCompat.TableStats::clues).orElse(1);
                     this.setRevealedClues(option, ids, clue, clues, clueBudget);
-                    preview.enchantments().stream()
-                            .map(enchantment -> enchantment.enchantment)
-                            .forEach(excludedOfferEnchantments::add);
                 }
             }
 
@@ -624,6 +624,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
         return this.enchantmentSeed.get();
     }
 
+    public int getBookshelfPower() {
+        return this.bookshelfPower.get();
+    }
+
     public int getPoolSize(int option) {
         return option < 0 || option >= this.poolSizes.length ? 0 : this.poolSizes[option];
     }
@@ -750,7 +754,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             int requestedOption
     ) {
         Optional<OverlevelTarget> plannedOverlevel = overlevelTarget(target, reagent, modifierPlan);
-        Set<Holder<Enchantment>> excludedEnchantments = reservedSpecialEnchantments(plannedOverlevel);
+        Set<Holder<Enchantment>> reservedEnchantments = reservedSpecialEnchantments(plannedOverlevel);
         for (int option = 0; option <= requestedOption; option++) {
             if (this.requirements[option] <= 0
                     || this.costs[option] <= 0
@@ -775,15 +779,10 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
                     optionEssenceStacks(modifierPlan, option),
                     optionBookStacks(modifierPlan, option),
                     apothicStats,
-                    excludedEnchantments
+                    reservedEnchantments
             );
             if (option == requestedOption) {
                 return Optional.of(preview);
-            }
-            if (!preview.enchantments().isEmpty() && canApplyWithFusion(registryAccess, target, preview.enchantments())) {
-                preview.enchantments().stream()
-                        .map(enchantment -> enchantment.enchantment)
-                        .forEach(excludedEnchantments::add);
             }
         }
         return Optional.empty();
@@ -980,6 +979,7 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
             this.bookBoostCounts[index] = 0;
         }
         this.setApothicStats(Optional.empty());
+        this.bookshelfPower.set(0);
         this.broadcastChanges();
     }
 

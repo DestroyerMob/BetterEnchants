@@ -1,0 +1,22 @@
+{
+  "anvil_cost": 6,
+  "description": {
+    "translate": "enchantment.betterenchanting.moonlit_reversal"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 60,
+    "per_level_above_first": 0
+  },
+  "max_level": 1,
+  "min_cost": {
+    "base": 18,
+    "per_level_above_first": 0
+  },
+  "primary_items": "#betterenchanting:enchantable/moonlit_reversal",
+  "slots": [
+    "mainhand"
+  ],
+  "supported_items": "#betterenchanting:enchantable/moonlit_reversal",
+  "weight": 2
+}

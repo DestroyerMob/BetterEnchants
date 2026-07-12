@@ -1,5 +1,6 @@
 {
   "values": [
+    "betterenchanting:moonlit_reversal",
     { "id": "minecraft:blast_protection", "required": false },
     { "id": "minecraft:projectile_protection", "required": false },
     { "id": "minecraft:thorns", "required": false },

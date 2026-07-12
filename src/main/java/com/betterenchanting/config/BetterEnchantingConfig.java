@@ -39,6 +39,16 @@ public final class BetterEnchantingConfig {
     private static final ModConfigSpec.DoubleValue PERFECT_STRIKE_DAMAGE_MULTIPLIER;
     private static final ModConfigSpec.DoubleValue PERFECT_STRIKE_MIN_COOLDOWN_VARIANCE;
     private static final ModConfigSpec.DoubleValue PERFECT_STRIKE_MAX_COOLDOWN_VARIANCE;
+    private static final ModConfigSpec.IntValue DRAWN_STEEL_CHARGE_TICKS;
+    private static final ModConfigSpec.DoubleValue DRAWN_STEEL_READY_THRESHOLD;
+    private static final ModConfigSpec.DoubleValue DRAWN_STEEL_DAMAGE_MULTIPLIER;
+    private static final ModConfigSpec.DoubleValue DISTANT_EDGE_MIN_DISTANCE;
+    private static final ModConfigSpec.DoubleValue DISTANT_EDGE_READY_THRESHOLD;
+    private static final ModConfigSpec.DoubleValue DISTANT_EDGE_BASE_DAMAGE_BONUS;
+    private static final ModConfigSpec.DoubleValue DISTANT_EDGE_DAMAGE_BONUS_PER_LEVEL;
+    private static final ModConfigSpec.DoubleValue MOONLIT_REVERSAL_READY_THRESHOLD;
+    private static final ModConfigSpec.DoubleValue MOONLIT_REVERSAL_DAMAGE_MULTIPLIER;
+    private static final ModConfigSpec.DoubleValue MOONLIT_REVERSAL_POSTURE_BONUS;
     private static final ModConfigSpec.DoubleValue SHOCKED_DAMAGE_MULTIPLIER;
     private static final ModConfigSpec.ConfigValue<String> SHOCKED_PARTICLE_TYPE;
     private static final ModConfigSpec.BooleanValue SHOCKED_PARTICLES_ENABLED;
@@ -207,6 +217,45 @@ public final class BetterEnchantingConfig {
         PERFECT_STRIKE_MAX_COOLDOWN_VARIANCE = builder
                 .comment("Maximum temporary attack-speed multiplier applied after a successful Perfect Strike weapon hit. Positive values make the next cooldown faster.")
                 .defineInRange("max_cooldown_variance", 0.12D, -0.9D, 10.0D);
+        builder.pop();
+
+        builder.push("drawn_steel");
+        DRAWN_STEEL_CHARGE_TICKS = builder
+                .comment("Deprecated compatibility value. MoreWeapons now controls the base Iaijutsu charge time with katana.iai_charge_ticks.")
+                .defineInRange("charge_ticks", 40, 1, 72_000);
+        DRAWN_STEEL_READY_THRESHOLD = builder
+                .comment("Attack-strength scale required for a prepared Drawn Steel attack to receive its damage multiplier. Vanilla fully ready is 1.0.")
+                .defineInRange("ready_threshold", 1.0D, 0.0D, 1.0D);
+        DRAWN_STEEL_DAMAGE_MULTIPLIER = builder
+                .comment("Final direct-hit damage multiplier applied by a fully prepared Drawn Steel strike.")
+                .defineInRange("damage_multiplier", 1.25D, 0.0D, 100.0D);
+        builder.pop();
+
+        builder.push("distant_edge");
+        DISTANT_EDGE_MIN_DISTANCE = builder
+                .comment("Minimum eye-to-target-bounds distance, in blocks, required for Distant Edge.")
+                .defineInRange("min_distance", 3.0D, 0.0D, 64.0D);
+        DISTANT_EDGE_READY_THRESHOLD = builder
+                .comment("Attack-strength scale required for Distant Edge. Vanilla fully ready is 1.0.")
+                .defineInRange("ready_threshold", 1.0D, 0.0D, 1.0D);
+        DISTANT_EDGE_BASE_DAMAGE_BONUS = builder
+                .comment("Final damage bonus at Distant Edge level I. The default 0.08 means +8%.")
+                .defineInRange("base_damage_bonus", 0.08D, 0.0D, 100.0D);
+        DISTANT_EDGE_DAMAGE_BONUS_PER_LEVEL = builder
+                .comment("Additional final damage bonus for each Distant Edge level above I.")
+                .defineInRange("damage_bonus_per_level", 0.04D, 0.0D, 100.0D);
+        builder.pop();
+
+        builder.push("moonlit_reversal");
+        MOONLIT_REVERSAL_READY_THRESHOLD = builder
+                .comment("Attack-strength scale required for Moonlit Reversal. Vanilla fully ready is 1.0.")
+                .defineInRange("ready_threshold", 1.0D, 0.0D, 1.0D);
+        MOONLIT_REVERSAL_DAMAGE_MULTIPLIER = builder
+                .comment("Final direct-hit damage multiplier applied to the first eligible attack after a successful Mobs Combat parry.")
+                .defineInRange("damage_multiplier", 1.2D, 0.0D, 100.0D);
+        MOONLIT_REVERSAL_POSTURE_BONUS = builder
+                .comment("Additional flat Mobs Combat posture damage applied by a successful Moonlit Reversal.")
+                .defineInRange("posture_bonus", 6.0D, 0.0D, 10_000.0D);
         builder.pop();
 
         builder.push("shocked");
@@ -532,6 +581,46 @@ public final class BetterEnchantingConfig {
 
     public static double perfectStrikeMaxCooldownVariance() {
         return PERFECT_STRIKE_MAX_COOLDOWN_VARIANCE.get();
+    }
+
+    public static int drawnSteelChargeTicks() {
+        return DRAWN_STEEL_CHARGE_TICKS.get();
+    }
+
+    public static float drawnSteelReadyThreshold() {
+        return DRAWN_STEEL_READY_THRESHOLD.get().floatValue();
+    }
+
+    public static float drawnSteelDamageMultiplier() {
+        return DRAWN_STEEL_DAMAGE_MULTIPLIER.get().floatValue();
+    }
+
+    public static double distantEdgeMinDistance() {
+        return DISTANT_EDGE_MIN_DISTANCE.get();
+    }
+
+    public static float distantEdgeReadyThreshold() {
+        return DISTANT_EDGE_READY_THRESHOLD.get().floatValue();
+    }
+
+    public static float distantEdgeBaseDamageBonus() {
+        return DISTANT_EDGE_BASE_DAMAGE_BONUS.get().floatValue();
+    }
+
+    public static float distantEdgeDamageBonusPerLevel() {
+        return DISTANT_EDGE_DAMAGE_BONUS_PER_LEVEL.get().floatValue();
+    }
+
+    public static float moonlitReversalReadyThreshold() {
+        return MOONLIT_REVERSAL_READY_THRESHOLD.get().floatValue();
+    }
+
+    public static float moonlitReversalDamageMultiplier() {
+        return MOONLIT_REVERSAL_DAMAGE_MULTIPLIER.get().floatValue();
+    }
+
+    public static float moonlitReversalPostureBonus() {
+        return MOONLIT_REVERSAL_POSTURE_BONUS.get().floatValue();
     }
 
     public static float shockedDamageMultiplier() {

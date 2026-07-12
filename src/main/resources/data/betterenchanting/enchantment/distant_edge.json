@@ -1,0 +1,22 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.betterenchanting.distant_edge"
+  },
+  "effects": {},
+  "max_cost": {
+    "base": 55,
+    "per_level_above_first": 8
+  },
+  "max_level": 3,
+  "min_cost": {
+    "base": 14,
+    "per_level_above_first": 8
+  },
+  "primary_items": "#betterenchanting:enchantable/distant_edge",
+  "slots": [
+    "mainhand"
+  ],
+  "supported_items": "#betterenchanting:enchantable/distant_edge",
+  "weight": 2
+}

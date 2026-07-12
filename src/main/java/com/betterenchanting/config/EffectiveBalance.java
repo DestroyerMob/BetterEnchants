@@ -30,6 +30,16 @@ public final class EffectiveBalance {
             1.5D,
             -0.05D,
             0.05D,
+            50,
+            1.0D,
+            1.15D,
+            3.25D,
+            1.0D,
+            0.05D,
+            0.025D,
+            1.0D,
+            1.1D,
+            4.0D,
             1.1D,
             60,
             0.2D,
@@ -76,6 +86,16 @@ public final class EffectiveBalance {
             2.0D,
             -0.12D,
             0.12D,
+            40,
+            1.0D,
+            1.25D,
+            3.0D,
+            1.0D,
+            0.08D,
+            0.04D,
+            1.0D,
+            1.2D,
+            6.0D,
             1.2D,
             100,
             0.25D,
@@ -122,6 +142,16 @@ public final class EffectiveBalance {
             2.0D,
             -0.15D,
             0.15D,
+            35,
+            1.0D,
+            1.3D,
+            3.0D,
+            0.95D,
+            0.1D,
+            0.05D,
+            0.95D,
+            1.25D,
+            8.0D,
             1.25D,
             120,
             0.2D,
@@ -168,6 +198,16 @@ public final class EffectiveBalance {
             2.5D,
             -0.05D,
             0.25D,
+            25,
+            0.9D,
+            1.5D,
+            2.75D,
+            0.9D,
+            0.15D,
+            0.075D,
+            0.9D,
+            1.4D,
+            12.0D,
             1.5D,
             160,
             0.1D,
@@ -327,6 +367,56 @@ public final class EffectiveBalance {
     public static double perfectStrikeMaxCooldownVariance() {
         BalanceValues values = presetValues();
         return values == null ? BetterEnchantingConfig.perfectStrikeMaxCooldownVariance() : values.perfectStrikeMaxCooldownVariance();
+    }
+
+    public static int drawnSteelChargeTicks() {
+        BalanceValues values = presetValues();
+        return values == null ? BetterEnchantingConfig.drawnSteelChargeTicks() : values.drawnSteelChargeTicks();
+    }
+
+    public static float drawnSteelReadyThreshold() {
+        BalanceValues values = presetValues();
+        return (float) (values == null ? BetterEnchantingConfig.drawnSteelReadyThreshold() : values.drawnSteelReadyThreshold());
+    }
+
+    public static float drawnSteelDamageMultiplier() {
+        BalanceValues values = presetValues();
+        return (float) (values == null ? BetterEnchantingConfig.drawnSteelDamageMultiplier() : values.drawnSteelDamageMultiplier());
+    }
+
+    public static double distantEdgeMinDistance() {
+        BalanceValues values = presetValues();
+        return values == null ? BetterEnchantingConfig.distantEdgeMinDistance() : values.distantEdgeMinDistance();
+    }
+
+    public static float distantEdgeReadyThreshold() {
+        BalanceValues values = presetValues();
+        return (float) (values == null ? BetterEnchantingConfig.distantEdgeReadyThreshold() : values.distantEdgeReadyThreshold());
+    }
+
+    public static float distantEdgeBaseDamageBonus() {
+        BalanceValues values = presetValues();
+        return (float) (values == null ? BetterEnchantingConfig.distantEdgeBaseDamageBonus() : values.distantEdgeBaseDamageBonus());
+    }
+
+    public static float distantEdgeDamageBonusPerLevel() {
+        BalanceValues values = presetValues();
+        return (float) (values == null ? BetterEnchantingConfig.distantEdgeDamageBonusPerLevel() : values.distantEdgeDamageBonusPerLevel());
+    }
+
+    public static float moonlitReversalReadyThreshold() {
+        BalanceValues values = presetValues();
+        return (float) (values == null ? BetterEnchantingConfig.moonlitReversalReadyThreshold() : values.moonlitReversalReadyThreshold());
+    }
+
+    public static float moonlitReversalDamageMultiplier() {
+        BalanceValues values = presetValues();
+        return (float) (values == null ? BetterEnchantingConfig.moonlitReversalDamageMultiplier() : values.moonlitReversalDamageMultiplier());
+    }
+
+    public static float moonlitReversalPostureBonus() {
+        BalanceValues values = presetValues();
+        return (float) (values == null ? BetterEnchantingConfig.moonlitReversalPostureBonus() : values.moonlitReversalPostureBonus());
     }
 
     public static float shockedDamageMultiplier() {

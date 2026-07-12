@@ -7,6 +7,7 @@ import com.betterenchanting.network.InteractiveEnchantingStatePayload.Clue;
 import com.betterenchanting.network.InteractiveEnchantingStatePayload.Option;
 import com.betterenchanting.network.RequestInteractiveEnchantingStatePayload;
 import com.betterenchanting.network.SelectInteractiveEnchantingOptionPayload;
+import com.betterenchanting.registry.ModItems;
 import com.betterenchanting.world.inventory.EnhancedEnchantingMenu;
 import com.betterenchanting.world.level.block.EnchantingTableStorage;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -159,26 +160,33 @@ public final class InteractiveEnchantingOverlay {
         Component power = Component.translatable(
                 "gui.betterenchanting.interactive.power",
                 orb.option() + 1,
+                orb.bookshelfPower(),
                 orb.state().requirement()
+        ).withStyle(ChatFormatting.GRAY);
+        Component pool = Component.translatable(
+                "gui.betterenchanting.interactive.pool",
+                orb.state().poolSize(),
+                orb.state().activeAffinityCount()
         ).withStyle(ChatFormatting.GRAY);
         Component action = action(orb);
 
         GuiGraphics graphics = event.getGuiGraphics();
         Font font = minecraft.font;
         int width = Math.max(font.width(name), Math.max(font.width(clues),
-                Math.max(font.width(power), font.width(action)))) + 22;
+                Math.max(font.width(power), Math.max(font.width(pool), font.width(action))))) + 22;
         width = Math.max(144, Math.min(width, minecraft.getWindow().getGuiScaledWidth() - 16));
         int x = Math.max(8, Math.min(minecraft.getWindow().getGuiScaledWidth() - width - 8,
                 minecraft.getWindow().getGuiScaledWidth() / 2 + 14));
-        int y = Math.max(8, Math.min(minecraft.getWindow().getGuiScaledHeight() - 58,
+        int y = Math.max(8, Math.min(minecraft.getWindow().getGuiScaledHeight() - 70,
                 minecraft.getWindow().getGuiScaledHeight() / 2 + 12));
-        graphics.fill(x, y, x + width, y + 52, 0xD0100E17);
-        graphics.renderOutline(x, y, width, 52, orb.color());
-        graphics.fill(x + 6, y + 7, x + 10, y + 45, orb.color());
+        graphics.fill(x, y, x + width, y + 64, 0xD0100E17);
+        graphics.renderOutline(x, y, width, 64, orb.color());
+        graphics.fill(x + 6, y + 7, x + 10, y + 57, orb.color());
         graphics.drawString(font, name, x + 15, y + 5, 0xFFF2EAF7, true);
         graphics.drawString(font, clues, x + 15, y + 17, 0xFFBDB1C7, false);
         graphics.drawString(font, power, x + 15, y + 29, 0xFF918A99, false);
-        graphics.drawString(font, action, x + 15, y + 41,
+        graphics.drawString(font, pool, x + 15, y + 41, 0xFF918A99, false);
+        graphics.drawString(font, action, x + 15, y + 53,
                 orb.available() ? 0xFFB8F29F : 0xFFE18D8D, false);
     }
 
@@ -187,7 +195,7 @@ public final class InteractiveEnchantingOverlay {
             return;
         }
         Minecraft minecraft = Minecraft.getInstance();
-        if (!canDisplay(minecraft) || !minecraft.player.getMainHandItem().isEmpty()) {
+        if (!canDisplay(minecraft)) {
             return;
         }
         Optional<Orb> hit = pick(lastOrbs, minecraft);
@@ -213,7 +221,7 @@ public final class InteractiveEnchantingOverlay {
             Vec3 position = anchor.add(right.scale(offset)).add(0.0D, bob - Math.abs(offset) * 0.08D, 0.0D);
             boolean available = optionState.available(state.reagentCount());
             int color = available ? clueColor(optionState, Minecraft.getInstance()) : DISABLED_COLOR;
-            output.add(new Orb(pos, option, optionState, state.reagentCount(), position, color, available));
+            output.add(new Orb(pos, option, optionState, state.reagentCount(), state.bookshelfPower(), position, color, available));
         }
     }
 
@@ -273,6 +281,30 @@ public final class InteractiveEnchantingOverlay {
         }
         if (orb.reagentCount() <= 0) {
             return Component.translatable("gui.betterenchanting.interactive.need_reagent").withStyle(ChatFormatting.RED);
+        }
+        int flags = orb.state().disabledFlags();
+        if ((flags & EnhancedEnchantingMenu.DISABLED_NO_OFFER_POWER) != 0) {
+            return Component.translatable("gui.betterenchanting.interactive.need_power").withStyle(ChatFormatting.RED);
+        }
+        if ((flags & (EnhancedEnchantingMenu.DISABLED_RESTRICTED_POOL_EMPTY
+                | EnhancedEnchantingMenu.DISABLED_REMOVED_TAGS_EMPTY
+                | EnhancedEnchantingMenu.DISABLED_NO_COMPATIBLE_ENCHANTMENTS
+                | EnhancedEnchantingMenu.DISABLED_WEIGHT_SELECTION_FAILED)) != 0) {
+            return Component.translatable("gui.betterenchanting.interactive.no_match").withStyle(ChatFormatting.RED);
+        }
+        if ((flags & EnhancedEnchantingMenu.DISABLED_DUPLICATE_OFFERS) != 0) {
+            return Component.translatable("gui.betterenchanting.interactive.pool_exhausted").withStyle(ChatFormatting.RED);
+        }
+        if ((flags & (EnhancedEnchantingMenu.DISABLED_ENCHANTMENT_LIMIT
+                | EnhancedEnchantingMenu.DISABLED_FUSION_LIMIT)) != 0) {
+            return Component.translatable("gui.betterenchanting.interactive.item_full").withStyle(ChatFormatting.RED);
+        }
+        if ((flags & EnhancedEnchantingMenu.DISABLED_BLOCKED_BY_MODIFIER) != 0) {
+            return Component.translatable("gui.betterenchanting.interactive.modifier_blocked").withStyle(ChatFormatting.RED);
+        }
+        if ((flags & (EnhancedEnchantingMenu.DISABLED_APOTHIC_INFUSION_UNMET
+                | EnhancedEnchantingMenu.DISABLED_APOTHIC_INFUSION_MODIFIER)) != 0) {
+            return Component.translatable("gui.betterenchanting.interactive.infusion_unmet").withStyle(ChatFormatting.RED);
         }
         return Component.translatable("gui.betterenchanting.interactive.unavailable").withStyle(ChatFormatting.RED);
     }
@@ -340,7 +372,14 @@ public final class InteractiveEnchantingOverlay {
         return BetterEnchantingConfig.usesInteractiveEnchanting()
                 && EffectiveBalance.takesOverEnchantingTable()
                 && minecraft.player != null && minecraft.level != null && minecraft.screen == null
-                && !minecraft.options.hideGui;
+                && !minecraft.options.hideGui
+                && isHoldingAttunementFocus(minecraft);
+    }
+
+    private static boolean isHoldingAttunementFocus(Minecraft minecraft) {
+        return minecraft.player != null
+                && (minecraft.player.getMainHandItem().is(ModItems.ATTUNEMENT_FOCUS.get())
+                || minecraft.player.getOffhandItem().is(ModItems.ATTUNEMENT_FOCUS.get()));
     }
 
     private static Vec3 rightVector(Vec3 anchor, Vec3 camera) {
@@ -383,7 +422,7 @@ public final class InteractiveEnchantingOverlay {
     private record TimedState(InteractiveEnchantingStatePayload payload, long receivedTick) {
     }
 
-    private record Orb(BlockPos tablePos, int option, Option state, int reagentCount, Vec3 position,
+    private record Orb(BlockPos tablePos, int option, Option state, int reagentCount, int bookshelfPower, Vec3 position,
                        int color, boolean available) {
         private boolean sameTarget(Orb other) {
             return this.tablePos.equals(other.tablePos) && this.option == other.option;

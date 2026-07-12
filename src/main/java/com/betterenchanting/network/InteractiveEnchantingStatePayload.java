@@ -8,7 +8,7 @@ import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
-public record InteractiveEnchantingStatePayload(BlockPos tablePos, int reagentCount, List<Option> options)
+public record InteractiveEnchantingStatePayload(BlockPos tablePos, int reagentCount, int bookshelfPower, List<Option> options)
         implements CustomPacketPayload {
     public static final Type<InteractiveEnchantingStatePayload> TYPE =
             new Type<>(BetterEnchanting.id("interactive_enchanting_state"));
@@ -23,10 +23,13 @@ public record InteractiveEnchantingStatePayload(BlockPos tablePos, int reagentCo
     private static void encode(RegistryFriendlyByteBuf buffer, InteractiveEnchantingStatePayload payload) {
         buffer.writeBlockPos(payload.tablePos());
         buffer.writeVarInt(payload.reagentCount());
+        buffer.writeVarInt(payload.bookshelfPower());
         buffer.writeVarInt(payload.options().size());
         for (Option option : payload.options()) {
             buffer.writeVarInt(option.requirement());
             buffer.writeVarInt(option.cost());
+            buffer.writeVarInt(option.poolSize());
+            buffer.writeVarInt(option.activeAffinityCount());
             buffer.writeVarInt(option.disabledFlags());
             buffer.writeBoolean(option.overlevel());
             buffer.writeBoolean(option.infusion());
@@ -42,11 +45,14 @@ public record InteractiveEnchantingStatePayload(BlockPos tablePos, int reagentCo
     private static InteractiveEnchantingStatePayload decode(RegistryFriendlyByteBuf buffer) {
         BlockPos tablePos = buffer.readBlockPos();
         int reagentCount = buffer.readVarInt();
+        int bookshelfPower = buffer.readVarInt();
         int optionCount = buffer.readVarInt();
         List<Option> options = new ArrayList<>(optionCount);
         for (int index = 0; index < optionCount; index++) {
             int requirement = buffer.readVarInt();
             int cost = buffer.readVarInt();
+            int poolSize = buffer.readVarInt();
+            int activeAffinityCount = buffer.readVarInt();
             int disabledFlags = buffer.readVarInt();
             boolean overlevel = buffer.readBoolean();
             boolean infusion = buffer.readBoolean();
@@ -56,10 +62,10 @@ public record InteractiveEnchantingStatePayload(BlockPos tablePos, int reagentCo
             for (int clueIndex = 0; clueIndex < clueCount; clueIndex++) {
                 clues.add(new Clue(buffer.readVarInt(), buffer.readVarInt()));
             }
-            options.add(new Option(requirement, cost, disabledFlags, overlevel, infusion,
+            options.add(new Option(requirement, cost, poolSize, activeAffinityCount, disabledFlags, overlevel, infusion,
                     allCluesRevealed, clues));
         }
-        return new InteractiveEnchantingStatePayload(tablePos, reagentCount, options);
+        return new InteractiveEnchantingStatePayload(tablePos, reagentCount, bookshelfPower, options);
     }
 
     @Override
@@ -67,7 +73,8 @@ public record InteractiveEnchantingStatePayload(BlockPos tablePos, int reagentCo
         return TYPE;
     }
 
-    public record Option(int requirement, int cost, int disabledFlags, boolean overlevel,
+    public record Option(int requirement, int cost, int poolSize, int activeAffinityCount,
+                         int disabledFlags, boolean overlevel,
                          boolean infusion, boolean allCluesRevealed, List<Clue> clues) {
         public Option {
             clues = List.copyOf(clues);

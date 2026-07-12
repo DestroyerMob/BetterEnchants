@@ -1,6 +1,27 @@
 {
   "entries": [
     {
+      "enchantment": "betterenchanting:distant_edge",
+      "summary_key": "enchantment.betterenchanting.distant_edge.desc",
+      "notes": [
+        "The outer-reach check measures from the player's eye to the nearest point of the target's hitbox. Valid strikes emit sharp critical sparks."
+      ]
+    },
+    {
+      "enchantment": "betterenchanting:drawn_steel",
+      "summary_key": "enchantment.betterenchanting.drawn_steel.desc",
+      "notes": [
+        "Requires MoreWeapons. Drawn Steel increases the damage of a fully charged base Iaijutsu strike; it does not unlock or control the stance. Drawn Steel cannot combine with Perfect Strike."
+      ]
+    },
+    {
+      "enchantment": "betterenchanting:moonlit_reversal",
+      "summary_key": "enchantment.betterenchanting.moonlit_reversal.desc",
+      "notes": [
+        "Requires Mobs Combat. The first attack during a server-confirmed parry counter window consumes the reversal; only a fully charged attack receives its health and posture bonuses."
+      ]
+    },
+    {
       "enchantment": "betterenchanting:tree_capitator",
       "summary_key": "enchantment.betterenchanting.tree_capitator.desc",
       "notes": [

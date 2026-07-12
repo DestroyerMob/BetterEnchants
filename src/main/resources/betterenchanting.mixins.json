@@ -19,6 +19,7 @@
     "ServerPlayerMixin"
   ],
   "client": [
+    "client.ApothicEnchantmentDescriptionsMixin",
     "client.AnvilScreenMixin",
     "client.EnchantTableRendererMixin",
     "client.HumanoidArmorLayerMixin",

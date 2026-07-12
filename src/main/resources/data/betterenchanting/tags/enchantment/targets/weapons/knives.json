@@ -1,0 +1,10 @@
+{
+  "replace": false,
+  "values": [
+    "#betterenchanting:targets/weapons/melee",
+    {
+      "id": "minecraft:loyalty",
+      "required": false
+    }
+  ]
+}

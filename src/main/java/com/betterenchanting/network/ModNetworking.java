@@ -36,7 +36,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.neoforged.neoforge.network.PacketDistributor;
 
 public final class ModNetworking {
-    private static final String PROTOCOL_VERSION = "9";
+    private static final String PROTOCOL_VERSION = "11";
 
     private ModNetworking() {
     }
@@ -81,6 +81,7 @@ public final class ModNetworking {
     private static void sendInteractiveEnchantingState(ServerPlayer player, net.minecraft.core.BlockPos tablePos,
                                                         int selectedOption) {
         if ((selectedOption >= 0 && !BetterEnchantingConfig.usesInteractiveEnchanting())
+                || (selectedOption >= 0 && !isHoldingAttunementFocus(player))
                 || !EffectiveBalance.takesOverEnchantingTable()
                 || selectedOption < -1 || selectedOption >= 3
                 || player.distanceToSqr(Vec3.atCenterOf(tablePos)) > 64.0D
@@ -111,6 +112,8 @@ public final class ModNetworking {
                 options.add(new InteractiveEnchantingStatePayload.Option(
                         menu.requirements[option],
                         menu.costs[option],
+                        menu.getPoolSize(option),
+                        menu.getActiveTagCount(option),
                         menu.getDisabledReasonFlags(option),
                         menu.isOverlevelOffer(option),
                         menu.isApothicInfusionOffer(option),
@@ -121,6 +124,7 @@ public final class ModNetworking {
             PacketDistributor.sendToPlayer(player, new InteractiveEnchantingStatePayload(
                     tablePos,
                     menu.getReagentCount(),
+                    menu.getBookshelfPower(),
                     options
             ));
         } finally {
@@ -128,9 +132,13 @@ public final class ModNetworking {
         }
     }
 
+    private static boolean isHoldingAttunementFocus(ServerPlayer player) {
+        return player.getMainHandItem().is(ModItems.ATTUNEMENT_FOCUS.get())
+                || player.getOffhandItem().is(ModItems.ATTUNEMENT_FOCUS.get());
+    }
+
     private static void handleTakeMachineDisplay(TakeMachineDisplayPayload payload, IPayloadContext context) {
         if (!(context.player() instanceof ServerPlayer player)
-                || !player.getMainHandItem().isEmpty()
                 || player.distanceToSqr(Vec3.atCenterOf(payload.machinePos())) > 64.0D) {
             return;
         }

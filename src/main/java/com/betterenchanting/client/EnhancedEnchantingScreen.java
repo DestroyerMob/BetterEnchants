@@ -356,6 +356,10 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                             "tooltip.betterenchanting.option.power_status",
                             requiredLevel
                     ).withStyle(ChatFormatting.GRAY));
+                    tooltip.add(Component.translatable(
+                            "tooltip.betterenchanting.option.bookshelf_power",
+                            this.menu.getBookshelfPower()
+                    ).withStyle(ChatFormatting.GRAY));
                     if (clue.isPresent()) {
                         tooltip.add(Component.translatable(
                                 creative

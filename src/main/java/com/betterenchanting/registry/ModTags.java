@@ -41,6 +41,7 @@ public final class ModTags {
         public static final TagKey<Item> WEAPONS_ALL = item("weapons/all");
         public static final TagKey<Item> WEAPON_MELEE = item("weapons/melee");
         public static final TagKey<Item> WEAPON_RANGED = item("weapons/ranged");
+        public static final TagKey<Item> WEAPON_KATANAS = item("weapons/katanas");
         public static final TagKey<Item> WEAPON_SWORDS = item("weapons/swords");
         public static final TagKey<Item> WEAPON_MACES = item("weapons/maces");
         public static final TagKey<Item> WEAPON_BOWS = item("weapons/bows");
@@ -126,6 +127,7 @@ public final class ModTags {
         public static final TagKey<Enchantment> TARGET_WEAPONS = enchantment("targets/weapons");
         public static final TagKey<Enchantment> TARGET_WEAPON_MELEE = enchantment("targets/weapons/melee");
         public static final TagKey<Enchantment> TARGET_WEAPON_RANGED = enchantment("targets/weapons/ranged");
+        public static final TagKey<Enchantment> TARGET_WEAPON_KATANAS = enchantment("targets/weapons/katanas");
         public static final TagKey<Enchantment> TARGET_WEAPON_SWORDS = enchantment("targets/weapons/swords");
         public static final TagKey<Enchantment> TARGET_WEAPON_MACES = enchantment("targets/weapons/maces");
         public static final TagKey<Enchantment> TARGET_WEAPON_BOWS = enchantment("targets/weapons/bows");

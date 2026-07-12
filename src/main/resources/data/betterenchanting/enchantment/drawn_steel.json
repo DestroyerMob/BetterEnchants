@@ -1,0 +1,23 @@
+{
+  "anvil_cost": 4,
+  "description": {
+    "translate": "enchantment.betterenchanting.drawn_steel"
+  },
+  "effects": {},
+  "exclusive_set": "#betterenchanting:exclusive_set/drawn_steel",
+  "max_cost": {
+    "base": 55,
+    "per_level_above_first": 0
+  },
+  "max_level": 1,
+  "min_cost": {
+    "base": 18,
+    "per_level_above_first": 0
+  },
+  "primary_items": "#betterenchanting:enchantable/drawn_steel",
+  "slots": [
+    "mainhand"
+  ],
+  "supported_items": "#betterenchanting:enchantable/drawn_steel",
+  "weight": 2
+}

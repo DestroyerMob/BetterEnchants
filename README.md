@@ -24,7 +24,7 @@ Pre-alpha / internal playtesting. The core table loop, custom enchantments, data
 - Essence-based pool restriction/refinement, enchanted-book weighting, purification, and pedestal-only Nether Star overleveling
 - Essence consumption in place of lapis/XP-level charges for the enhanced table; bookshelves control roll quality rather than payment
 - Data-driven essence definitions, primary/secondary affinity roles, enchantment limits, item targets, affinity display, tag simplification, loot injection, villager trades, and enchantment fusions
-- Twenty-two custom enchantments spanning combat, mining, mobility, durability, utility, and curses, including Resonance's animated through-wall ore echoes, Tree Capitator II replanting, and modded-crop Harvest support
+- Twenty-five custom enchantments spanning combat, mining, mobility, durability, utility, and curses, including Drawn Steel's prepared katana strikes, Distant Edge spacing, Moonlit Reversal counters, Resonance's animated through-wall ore echoes, Tree Capitator II replanting, and modded-crop Harvest support
 - Balance presets for vanilla-plus, balanced, overhaul, power-fantasy, and custom setups
 - Multiple durability-maintenance paths through Mending, material repair, and passive recovery
 - Configurable anvil, mending, XP, and roll behaviour
