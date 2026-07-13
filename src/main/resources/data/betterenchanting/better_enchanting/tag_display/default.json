@@ -54,6 +54,7 @@
     { "tag": "betterenchanting:targets/durability", "label": "Durability", "color": "#a0a0a0" },
     { "tag": "betterenchanting:targets/armor", "label": "Armor", "color": "#5b8cff" },
     { "tag": "betterenchanting:targets/armor/helmets", "label": "Helmet", "color": "#5b8cff" },
+    { "tag": "betterenchanting:targets/armor/copper_helmets", "label": "Copper Helmet", "color": "#d98652" },
     { "tag": "betterenchanting:targets/armor/body_armor", "label": "Body Armor", "color": "#5b8cff" },
     { "tag": "betterenchanting:targets/armor/leggings", "label": "Leggings", "color": "#5b8cff" },
     { "tag": "betterenchanting:targets/armor/boots", "label": "Boots", "color": "#5b8cff" },
@@ -70,11 +71,13 @@
     { "tag": "betterenchanting:targets/weapons", "label": "Weapon", "color": "#ff6464" },
     { "tag": "betterenchanting:targets/weapons/melee", "label": "Melee", "color": "#ff6464" },
     { "tag": "betterenchanting:targets/weapons/ranged", "label": "Ranged", "color": "#ff6464" },
+    { "tag": "betterenchanting:targets/weapons/knives", "label": "Knife", "color": "#ff6464" },
     { "tag": "betterenchanting:targets/weapons/swords", "label": "Sword", "color": "#ff6464" },
     { "tag": "betterenchanting:targets/weapons/maces", "label": "Mace", "color": "#ff6464" },
     { "tag": "betterenchanting:targets/weapons/bows", "label": "Bow", "color": "#ff6464" },
     { "tag": "betterenchanting:targets/weapons/crossbows", "label": "Crossbow", "color": "#ff6464" },
     { "tag": "betterenchanting:targets/weapons/tridents", "label": "Trident", "color": "#ff6464" },
+    { "tag": "betterenchanting:targets/weapons/copper_ranged", "label": "Copper + Ranged", "color": "#d98652" },
     { "tag": "betterenchanting:targets/wood", "label": "Wood", "color": "#c58a3a" }
   ]
 }

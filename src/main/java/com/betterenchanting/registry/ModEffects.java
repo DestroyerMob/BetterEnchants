@@ -3,6 +3,7 @@ package com.betterenchanting.registry;
 import com.betterenchanting.BetterEnchanting;
 import com.betterenchanting.world.effect.BleedingMobEffect;
 import com.betterenchanting.world.effect.CinderstepMobEffect;
+import com.betterenchanting.world.effect.ConductiveChargeMobEffect;
 import com.betterenchanting.world.effect.FrozenMobEffect;
 import com.betterenchanting.world.effect.ShockedMobEffect;
 import net.minecraft.core.registries.Registries;
@@ -21,6 +22,8 @@ public final class ModEffects {
             EFFECTS.register("frozen", FrozenMobEffect::new);
     public static final DeferredHolder<MobEffect, MobEffect> CINDERSTEP =
             EFFECTS.register("cinderstep", CinderstepMobEffect::new);
+    public static final DeferredHolder<MobEffect, MobEffect> CONDUCTIVE_CHARGE =
+            EFFECTS.register("conductive_charge", ConductiveChargeMobEffect::new);
     public static final DeferredHolder<MobEffect, MobEffect> BLEEDING =
             EFFECTS.register("bleeding", BleedingMobEffect::new);
 

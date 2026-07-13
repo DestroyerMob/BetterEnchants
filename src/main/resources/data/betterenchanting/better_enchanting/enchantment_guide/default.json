@@ -1,6 +1,13 @@
 {
   "entries": [
     {
+      "enchantment": "betterenchanting:backstab",
+      "summary_key": "enchantment.betterenchanting.backstab.desc",
+      "notes": [
+        "Requires Mobs Combat. An undetected knife stealth strike deals 2.0x damage at level I, 2.25x at level II, and 2.5x at level III. The first hit alerts the target, so subsequent hits are ordinary attacks until the player escapes and approaches unseen again."
+      ]
+    },
+    {
       "enchantment": "betterenchanting:distant_edge",
       "summary_key": "enchantment.betterenchanting.distant_edge.desc",
       "notes": [
@@ -46,6 +53,13 @@
     {
       "enchantment": "betterenchanting:overcharged",
       "summary_key": "enchantment.betterenchanting.overcharged.desc"
+    },
+    {
+      "enchantment": "betterenchanting:conductive",
+      "summary_key": "enchantment.betterenchanting.conductive.desc",
+      "notes": [
+        "The stored charge is consumed by the next successful direct melee hit. Removing the helmet, dying, or logging out clears the charge."
+      ]
     },
     {
       "enchantment": "betterenchanting:fortunes_touch",

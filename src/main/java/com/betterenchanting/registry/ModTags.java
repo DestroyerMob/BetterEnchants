@@ -127,12 +127,15 @@ public final class ModTags {
         public static final TagKey<Enchantment> TARGET_WEAPONS = enchantment("targets/weapons");
         public static final TagKey<Enchantment> TARGET_WEAPON_MELEE = enchantment("targets/weapons/melee");
         public static final TagKey<Enchantment> TARGET_WEAPON_RANGED = enchantment("targets/weapons/ranged");
+        public static final TagKey<Enchantment> TARGET_WEAPON_KNIVES = enchantment("targets/weapons/knives");
         public static final TagKey<Enchantment> TARGET_WEAPON_KATANAS = enchantment("targets/weapons/katanas");
         public static final TagKey<Enchantment> TARGET_WEAPON_SWORDS = enchantment("targets/weapons/swords");
         public static final TagKey<Enchantment> TARGET_WEAPON_MACES = enchantment("targets/weapons/maces");
         public static final TagKey<Enchantment> TARGET_WEAPON_BOWS = enchantment("targets/weapons/bows");
         public static final TagKey<Enchantment> TARGET_WEAPON_CROSSBOWS = enchantment("targets/weapons/crossbows");
         public static final TagKey<Enchantment> TARGET_WEAPON_TRIDENTS = enchantment("targets/weapons/tridents");
+        public static final TagKey<Enchantment> TARGET_WEAPON_COPPER_RANGED = enchantment("targets/weapons/copper_ranged");
+        public static final TagKey<Enchantment> TARGET_ARMOR_COPPER_HELMETS = enchantment("targets/armor/copper_helmets");
         public static final TagKey<Enchantment> TARGET_WOOD = enchantment("targets/wood");
 
         private Enchantments() {

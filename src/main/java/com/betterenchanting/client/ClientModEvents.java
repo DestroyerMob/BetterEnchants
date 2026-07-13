@@ -16,6 +16,8 @@ import net.neoforged.neoforge.client.event.RegisterMenuScreensEvent;
 import net.neoforged.neoforge.client.event.EntityRenderersEvent;
 import com.betterenchanting.registry.ModBlockEntities;
 import net.neoforged.neoforge.client.event.RegisterRenderBuffersEvent;
+import net.minecraft.client.model.geom.ModelLayers;
+import net.minecraft.client.renderer.entity.player.PlayerRenderer;
 
 public final class ClientModEvents {
     private ClientModEvents() {
@@ -24,6 +26,7 @@ public final class ClientModEvents {
     public static void register(IEventBus modBus) {
         modBus.addListener(ClientModEvents::registerScreens);
         modBus.addListener(ClientModEvents::registerBlockEntityRenderers);
+        modBus.addListener(ClientModEvents::addEntityLayers);
         modBus.addListener(ClientModEvents::registerReloadListeners);
         modBus.addListener(ClientModEvents::registerRenderBuffers);
         modBus.addListener(ClientInputEvents::registerKeyMappings);
@@ -51,6 +54,18 @@ public final class ClientModEvents {
     private static void registerBlockEntityRenderers(EntityRenderersEvent.RegisterRenderers event) {
         event.registerBlockEntityRenderer(ModBlockEntities.ATTUNEMENT_PEDESTAL.get(), AttunementPedestalRenderer::new);
         event.registerBlockEntityRenderer(ModBlockEntities.ARCANE_CRUCIBLE.get(), ArcaneCrucibleRenderer::new);
+    }
+
+    private static void addEntityLayers(EntityRenderersEvent.AddLayers event) {
+        for (var skin : event.getSkins()) {
+            PlayerRenderer renderer = event.getSkin(skin);
+            if (renderer != null) {
+                renderer.addLayer(new ConductiveChargeLayer(
+                        renderer,
+                        event.getEntityModels().bakeLayer(ModelLayers.PLAYER_OUTER_ARMOR)
+                ));
+            }
+        }
     }
 
     private static void registerReloadListeners(RegisterClientReloadListenersEvent event) {

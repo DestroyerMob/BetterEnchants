@@ -7,6 +7,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.mojang.logging.LogUtils;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -59,9 +60,9 @@ public final class EnchantmentTargetTags {
         }
 
         Set<ResourceLocation> tags = new LinkedHashSet<>();
-        List<ResourceLocation> virtualItemTags = ModularMaterialCompat.materialItemTags(target);
+        Set<ResourceLocation> virtualItemTags = Set.copyOf(ModularMaterialCompat.materialItemTags(target));
         for (TargetTagRule rule : targetTagRules) {
-            if (target.is(rule.itemTag()) || virtualItemTags.contains(rule.itemTag().location())) {
+            if (rule.matches(target, virtualItemTags)) {
                 tags.add(rule.enchantmentTag().location());
             }
         }
@@ -74,10 +75,22 @@ public final class EnchantmentTargetTags {
     }
 
     private static TargetTagRule parseRule(JsonObject object) {
-        ResourceLocation itemTag = parseTagId(GsonHelper.getAsString(object, "item_tag"));
+        List<TagKey<Item>> itemTags = new ArrayList<>();
+        if (object.has("item_tag")) {
+            itemTags.add(itemTag(GsonHelper.getAsString(object, "item_tag")));
+        }
+        if (object.has("item_tags")) {
+            JsonArray tagArray = GsonHelper.getAsJsonArray(object, "item_tags");
+            for (JsonElement tagElement : tagArray) {
+                itemTags.add(itemTag(GsonHelper.convertToString(tagElement, "item tag")));
+            }
+        }
+        if (itemTags.isEmpty()) {
+            throw new IllegalArgumentException("Enchantment target rule needs an item_tag or non-empty item_tags array");
+        }
         ResourceLocation enchantmentTag = parseTagId(GsonHelper.getAsString(object, "enchantment_tag"));
         return new TargetTagRule(
-                TagKey.create(Registries.ITEM, itemTag),
+                List.copyOf(itemTags),
                 TagKey.create(Registries.ENCHANTMENT, enchantmentTag)
         );
     }
@@ -105,20 +118,33 @@ public final class EnchantmentTargetTags {
                 rule("weapons", "targets/weapons"),
                 rule("weapons/melee", "targets/weapons/melee"),
                 rule("weapons/ranged", "targets/weapons/ranged"),
+                rule("weapons/knives", "targets/weapons/knives"),
                 rule("weapons/swords", "targets/weapons/swords"),
                 rule("weapons/maces", "targets/weapons/maces"),
                 rule("weapons/bows", "targets/weapons/bows"),
                 rule("weapons/crossbows", "targets/weapons/crossbows"),
                 rule("weapons/tridents", "targets/weapons/tridents"),
+                rule(List.of("materials/copper", "weapons/ranged"), "targets/weapons/copper_ranged"),
+                rule(List.of("materials/copper", "armor/helmets"), "targets/armor/copper_helmets"),
                 rule("materials/wood", "targets/wood")
         );
     }
 
     private static TargetTagRule rule(String itemTag, String enchantmentTag) {
+        return rule(List.of(itemTag), enchantmentTag);
+    }
+
+    private static TargetTagRule rule(List<String> itemTags, String enchantmentTag) {
         return new TargetTagRule(
-                TagKey.create(Registries.ITEM, BetterEnchanting.id(itemTag)),
+                itemTags.stream()
+                        .map(EnchantmentTargetTags::itemTag)
+                        .toList(),
                 TagKey.create(Registries.ENCHANTMENT, BetterEnchanting.id(enchantmentTag))
         );
+    }
+
+    private static TagKey<Item> itemTag(String value) {
+        return TagKey.create(Registries.ITEM, parseTagId(value));
     }
 
     private static ResourceLocation parseTagId(String value) {
@@ -154,6 +180,10 @@ public final class EnchantmentTargetTags {
         }
     }
 
-    private record TargetTagRule(TagKey<Item> itemTag, TagKey<Enchantment> enchantmentTag) {
+    private record TargetTagRule(List<TagKey<Item>> itemTags, TagKey<Enchantment> enchantmentTag) {
+        boolean matches(ItemStack target, Set<ResourceLocation> virtualItemTags) {
+            return itemTags.stream().allMatch(itemTag ->
+                    target.is(itemTag) || virtualItemTags.contains(itemTag.location()));
+        }
     }
 }

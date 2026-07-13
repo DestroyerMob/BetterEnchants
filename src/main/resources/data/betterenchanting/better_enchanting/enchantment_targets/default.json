@@ -21,11 +21,26 @@
     { "item_tag": "betterenchanting:weapons", "enchantment_tag": "betterenchanting:targets/weapons" },
     { "item_tag": "betterenchanting:weapons/melee", "enchantment_tag": "betterenchanting:targets/weapons/melee" },
     { "item_tag": "betterenchanting:weapons/ranged", "enchantment_tag": "betterenchanting:targets/weapons/ranged" },
+    { "item_tag": "betterenchanting:weapons/knives", "enchantment_tag": "betterenchanting:targets/weapons/knives" },
     { "item_tag": "betterenchanting:weapons/swords", "enchantment_tag": "betterenchanting:targets/weapons/swords" },
     { "item_tag": "betterenchanting:weapons/maces", "enchantment_tag": "betterenchanting:targets/weapons/maces" },
     { "item_tag": "betterenchanting:weapons/bows", "enchantment_tag": "betterenchanting:targets/weapons/bows" },
     { "item_tag": "betterenchanting:weapons/crossbows", "enchantment_tag": "betterenchanting:targets/weapons/crossbows" },
     { "item_tag": "betterenchanting:weapons/tridents", "enchantment_tag": "betterenchanting:targets/weapons/tridents" },
+    {
+      "item_tags": [
+        "betterenchanting:materials/copper",
+        "betterenchanting:weapons/ranged"
+      ],
+      "enchantment_tag": "betterenchanting:targets/weapons/copper_ranged"
+    },
+    {
+      "item_tags": [
+        "betterenchanting:materials/copper",
+        "betterenchanting:armor/helmets"
+      ],
+      "enchantment_tag": "betterenchanting:targets/armor/copper_helmets"
+    },
     { "item_tag": "betterenchanting:materials/wood", "enchantment_tag": "betterenchanting:targets/wood" }
   ]
 }

@@ -415,6 +415,22 @@ Target mapping example:
 }
 ```
 
+Use `item_tag` when one tag is sufficient. Use `item_tags` when an item must match every listed tag (AND semantics):
+
+```json
+{
+  "rules": [
+    {
+      "item_tags": [
+        "betterenchanting:materials/copper",
+        "betterenchanting:weapons/ranged"
+      ],
+      "enchantment_tag": "betterenchanting:targets/weapons/copper_ranged"
+    }
+  ]
+}
+```
+
 Modular material targets are generated dynamically from the same primary material id. A `silentgear:mythril` head/main part adds the enchantment target tags `#betterenchanting:targets/materials/mythril` and `#betterenchanting:targets/materials/silentgear/mythril`; a Mobs Tool Forging `mobstoolforging:gold` head adds `#betterenchanting:targets/materials/gold` and `#betterenchanting:targets/materials/mobstoolforging/gold` when the item is rolled in the enchanting table. The virtual material item tags also pass through `better_enchanting/enchantment_targets/*.json`, so an existing rule such as `#betterenchanting:materials/wood` to `#betterenchanting:targets/wood` works for modular wood heads. Enchantments can be placed in either dynamic material tag even if that material is not present in the current pack; if no matching material exists, nothing matches and no error is raised.
 
 Better Enchanting target-tagged enchantments are also checked when their gameplay level is queried. If an item no longer resolves any target tag that the enchantment belongs to, that enchantment is dormant and returns level 0 for gameplay effects. Enchantments without Better Enchanting target tags fall back to the item's normal supported-enchantment check, so vanilla and modded enchantments also stop working when placed on unsupported items.

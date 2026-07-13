@@ -7,9 +7,11 @@ import net.minecraft.world.item.enchantment.Enchantment;
 
 public final class ModEnchantments {
     public static final ResourceKey<Enchantment> AUTO_SMELT = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("auto_smelt"));
+    public static final ResourceKey<Enchantment> BACKSTAB = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("backstab"));
     public static final ResourceKey<Enchantment> BEHEADING = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("beheading"));
     public static final ResourceKey<Enchantment> BLEED = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("bleed"));
     public static final ResourceKey<Enchantment> CINDERSTEP = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("cinderstep"));
+    public static final ResourceKey<Enchantment> CONDUCTIVE = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("conductive"));
     public static final ResourceKey<Enchantment> CURSE_OF_FRAGILITY = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("curse_of_fragility"));
     public static final ResourceKey<Enchantment> CURSE_OF_REBOUND = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("curse_of_rebound"));
     public static final ResourceKey<Enchantment> DRAWN_STEEL = ResourceKey.create(Registries.ENCHANTMENT, BetterEnchanting.id("drawn_steel"));
