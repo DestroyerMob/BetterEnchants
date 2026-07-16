@@ -110,7 +110,28 @@ public final class EnchantmentLimitRules {
 
     public static boolean canFitAll(ItemStack target, Set<Holder<Enchantment>> enchantments) {
         boolean fitsTotalLimit = !overridesVanillaLimits() || enchantments.size() <= maxEnchantments(target);
-        return fitsTotalLimit && fitsTagLimits(enchantments);
+        return fitsTotalLimit && fitsPrimaryTagLimits(enchantments);
+    }
+
+    /**
+     * Checks category limits without applying an item's total enchantment capacity.
+     * Routed modular tools use this per part while assigning new enchantments; the
+     * assembled tool may intentionally exceed a category limit until it is tuned.
+     */
+    public static boolean fitsPrimaryTagLimits(Iterable<Holder<Enchantment>> enchantments) {
+        if (!overridesVanillaLimits()) {
+            return true;
+        }
+        Map<ResourceLocation, Integer> tagCounts = new HashMap<>();
+        for (Holder<Enchantment> enchantment : enchantments) {
+            for (ResourceLocation tagId : limitedTagIds(enchantment)) {
+                int count = tagCounts.merge(tagId, 1, Integer::sum);
+                if (count > TAG_MAX) {
+                    return false;
+                }
+            }
+        }
+        return true;
     }
 
     public static boolean isOverTagLimit(Holder<Enchantment> target, Iterable<Holder<Enchantment>> orderedEnchantments) {
@@ -137,19 +158,6 @@ public final class EnchantmentLimitRules {
 
     public static boolean overridesVanillaLimits() {
         return EffectiveBalance.overridesVanillaEnchantmentLimits();
-    }
-
-    private static boolean fitsTagLimits(Set<Holder<Enchantment>> enchantments) {
-        Map<ResourceLocation, Integer> tagCounts = new HashMap<>();
-        for (Holder<Enchantment> enchantment : enchantments) {
-            for (ResourceLocation tagId : limitedTagIds(enchantment)) {
-                int count = tagCounts.merge(tagId, 1, Integer::sum);
-                if (count > TAG_MAX) {
-                    return false;
-                }
-            }
-        }
-        return true;
     }
 
     private static Set<ResourceLocation> limitedTagIds(Holder<Enchantment> enchantment) {

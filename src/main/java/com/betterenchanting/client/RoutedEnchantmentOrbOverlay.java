@@ -133,110 +133,56 @@ public final class RoutedEnchantmentOrbOverlay {
         Camera camera = event.getCamera();
         double renderTime = minecraft.level.getGameTime() + event.getPartialTick().getGameTimeDeltaPartialTick(false);
         List<StationPreview> scannedStations = nearbyStations(minecraft);
-        boolean overlayEnabled = canUseRoutingOverlay(minecraft);
-        List<StationRender> stations = revealStations(scannedStations.stream()
+        if (!canUseRoutingOverlay(minecraft)) {
+            clearDisplayState();
+            return;
+        }
+        List<StationPreview> stations = scannedStations.stream()
                 .filter(RoutedEnchantmentOrbOverlay::hasRoutedEnchantments)
-                .toList(), minecraft, camera, renderTime, overlayEnabled);
+                .filter(station -> isWithinInteractionRange(minecraft, camera, station.pos()))
+                .toList();
+        clearDisplayState();
         if (stations.isEmpty()) {
-            if (overlayEnabled && scannedStations.stream().noneMatch(RoutedEnchantmentOrbOverlay::hasRoutedEnchantments)) {
+            if (scannedStations.stream().noneMatch(RoutedEnchantmentOrbOverlay::hasRoutedEnchantments)) {
                 renderNearbyDiagnostics(event.getPoseStack(), camera, scannedStations);
             }
-            clearDisplayState();
             return;
         }
-
-        Vec3 up = new Vec3(0.0D, 1.0D, 0.0D);
-
-        List<RenderOrb> orbs = new ArrayList<>();
-        List<RenderToolCluster> toolClusters = new ArrayList<>();
-        List<RenderPartCluster> partClusters = new ArrayList<>();
-        for (StationRender station : stations) {
-            Optional<RoutedEnchantmentBreakdown> breakdown = station.preview().preview().breakdown();
-            if (breakdown.isEmpty()) {
-                continue;
-            }
-            Vec3 anchor = Vec3.atCenterOf(station.preview().pos()).add(0.0D, 0.92D, 0.0D);
-            Vec3 right = stationRightVector(anchor, camera.getPosition());
-            layoutStation(
-                    station.preview().preview(),
-                    breakdown.get(),
-                    station.preview().pos(),
-                    anchor,
-                    right,
-                    up,
-                    station.revealWeight(),
-                    station.interactive(),
-                    renderTime,
-                    toolClusters,
-                    partClusters,
-                    orbs
-            );
-        }
-        if (orbs.isEmpty()) {
-            if (overlayEnabled) {
-                renderNearbyDiagnostics(event.getPoseStack(), camera, scannedStations);
-            }
-            clearDisplayState();
-            return;
-        }
-
-        updateOrbitStates(orbs, lastHovered.map(PartOrbitKey::from), renderTime);
-        List<OrbHit> hits = orbs.stream()
-                .filter(RenderOrb::interactive)
-                .map(orb -> orbHitAt(orb, renderTime))
-                .toList();
-        Optional<OrbHit> hovered = pick(hits, minecraft);
-        updateOrbitStates(orbs, hovered.map(PartOrbitKey::from), renderTime);
-        hits = orbs.stream()
-                .filter(RenderOrb::interactive)
-                .map(orb -> orbHitAt(orb, renderTime))
-                .toList();
-        lastOrbs = List.copyOf(orbs);
-        lastPartClusters = List.copyOf(partClusters);
-        lastHovered = hovered;
-        renderToolPartLinks(event.getPoseStack(), camera, partClusters, renderTime);
-        renderToolAndPartBillboards(event.getPoseStack(), camera, toolClusters, partClusters);
-        renderOrbBillboards(event.getPoseStack(), camera, orbs, hovered, renderTime);
-        discardStaleVisualStates(renderTime);
-        lastHits = List.copyOf(hits);
+        renderTuningMarkers(event.getPoseStack(), camera, stations, renderTime);
     }
 
     public static void renderGui(RenderGuiEvent.Post event) {
         Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.player == null || minecraft.level == null || minecraft.options.hideGui || minecraft.screen != null) {
+        if (minecraft.player == null
+                || minecraft.level == null
+                || minecraft.options.hideGui
+                || minecraft.screen != null
+                || !isHoldingAttunementFocus(minecraft)) {
             return;
         }
-
-        Optional<RenderOrb> selected = selectedOrb();
+        Optional<StationPreview> selected = selectedStation(minecraft)
+                .filter(station -> station.preview().breakdown().isPresent())
+                .filter(station -> isWithinInteractionRange(
+                        minecraft,
+                        minecraft.gameRenderer.getMainCamera(),
+                        station.pos()
+                ));
         if (selected.isEmpty()) {
             return;
         }
-
-        RenderOrb orb = selected.get();
         GuiGraphics graphics = event.getGuiGraphics();
         Font font = minecraft.font;
         int width = minecraft.getWindow().getGuiScaledWidth();
         int height = minecraft.getWindow().getGuiScaledHeight();
-        Component action = orbAction(orb);
-        int panelWidth = Math.max(font.width(orb.name()), Math.max(font.width(orb.description()), font.width(action))) + 22;
-        panelWidth = Math.min(Math.max(panelWidth, 112), width - 16);
-        int panelHeight = 36;
-        int x = Math.min(width - panelWidth - 8, width / 2 + 14);
-        int y = Math.min(height - panelHeight - 8, height / 2 + 12);
-        x = Math.max(8, x);
-        y = Math.max(8, y);
-        OrbVisualState visual = visualStateFor(orb, minecraft.level.getGameTime(), true);
-        int color = blendColor(visual.color(), HOVER_COLOR, HOVER_COLOR_BLEND * visual.hoverWeight());
-
+        Component action = Component.translatable("gui.betterenchanting.tuning.open");
+        int panelWidth = Math.min(width - 16, Math.max(170, font.width(action) + 24));
+        int panelHeight = 24;
+        int x = (width - panelWidth) / 2;
+        int y = Math.min(height - panelHeight - 12, height / 2 + 26);
         graphics.fill(x, y, x + panelWidth, y + panelHeight, HUD_BACKGROUND);
-        graphics.fill(x, y, x + panelWidth, y + 1, HUD_BORDER);
-        graphics.fill(x, y + panelHeight - 1, x + panelWidth, y + panelHeight, HUD_BORDER);
-        graphics.fill(x, y, x + 1, y + panelHeight, HUD_BORDER);
-        graphics.fill(x + panelWidth - 1, y, x + panelWidth, y + panelHeight, HUD_BORDER);
-        graphics.fill(x + 6, y + 7, x + 10, y + panelHeight - 7, color);
-        graphics.drawString(font, orb.name(), x + 15, y + 5, HUD_TEXT, true);
-        graphics.drawString(font, orb.description(), x + 15, y + 16, color, true);
-        graphics.drawString(font, action, x + 15, y + 26, HUD_MUTED, false);
+        graphics.renderOutline(x, y, panelWidth, panelHeight, HUD_BORDER);
+        graphics.fill(x + 6, y + 5, x + 9, y + panelHeight - 5, ACTIVE_COLOR);
+        graphics.drawCenteredString(font, action, x + panelWidth / 2 + 4, y + 8, HUD_TEXT);
     }
 
     public static void handleInteraction(InputEvent.InteractionKeyMappingTriggered event) {
@@ -248,39 +194,79 @@ public final class RoutedEnchantmentOrbOverlay {
         if (minecraft.player == null || minecraft.level == null || minecraft.screen != null) {
             return;
         }
-        if (!canUseRoutingOverlay(minecraft)) {
+        if (!isHoldingAttunementFocus(minecraft)) {
             return;
         }
+        selectedStation(minecraft)
+                .filter(station -> station.preview().breakdown().isPresent())
+                .filter(station -> isWithinInteractionRange(
+                        minecraft,
+                        minecraft.gameRenderer.getMainCamera(),
+                        station.pos()
+                ))
+                .ifPresent(station -> {
+                    minecraft.setScreen(new RoutedEnchantmentTuningScreen(station.pos()));
+                    event.setCanceled(true);
+                });
+    }
 
-        Optional<OrbHit> hovered = pick(lastHits, minecraft);
-        if (hovered.isEmpty()) {
-            return;
-        }
+    private static void renderTuningMarkers(
+            PoseStack poseStack,
+            Camera camera,
+            List<StationPreview> stations,
+            double renderTime
+    ) {
+        Minecraft minecraft = Minecraft.getInstance();
+        MultiBufferSource.BufferSource buffer = minecraft.renderBuffers().bufferSource();
+        VertexConsumer consumer = buffer.getBuffer(ORB_BILLBOARD);
+        Optional<BlockPos> selected = selectedStation(minecraft).map(StationPreview::pos);
+        List<Vec3> selectedAnchors = new ArrayList<>();
 
-        OrbHit hit = hovered.get();
-        Optional<RenderOrb> selected = lastOrbs.stream()
-                .filter(orb -> orb.hit().sameTarget(hit))
-                .findFirst();
-        if (selected.isEmpty()) {
-            return;
-        }
-        if (!canUseOrb(selected.get())) {
-            if (isHoldingAttunementFocus(minecraft)) {
-                event.setCanceled(true);
+        poseStack.pushPose();
+        for (StationPreview station : stations) {
+            boolean targeted = selected.filter(station.pos()::equals).isPresent();
+            double pulse = (Math.sin(renderTime * 0.18D + station.pos().asLong() * 0.001D) + 1.0D) * 0.5D;
+            Vec3 anchor = Vec3.atCenterOf(station.pos()).add(0.0D, 1.16D, 0.0D);
+            double radius = (targeted ? 0.16D : 0.11D) * (1.0D + pulse * 0.12D);
+            int color = targeted ? HOVER_COLOR : ACTIVE_COLOR;
+            drawBillboardDiamond(
+                    poseStack,
+                    camera,
+                    consumer,
+                    anchor,
+                    radius * 1.65D,
+                    red(color),
+                    green(color),
+                    blue(color),
+                    targeted ? 0.24F : 0.13F
+            );
+            drawBillboardDiamond(
+                    poseStack,
+                    camera,
+                    consumer,
+                    anchor,
+                    radius,
+                    red(color),
+                    green(color),
+                    blue(color),
+                    targeted ? 0.95F : 0.70F
+            );
+            if (targeted) {
+                selectedAnchors.add(anchor);
             }
-            return;
         }
+        poseStack.popPose();
+        buffer.endBatch(ORB_BILLBOARD);
 
-        PacketDistributor.sendToServer(new PromoteRoutedEnchantmentPayload(
-                hit.stationPos(),
-                hit.partIndex(),
-                hit.enchantmentId(),
-                hit.position().x,
-                hit.position().y,
-                hit.position().z
-        ));
-        event.setSwingHand(true);
-        event.setCanceled(true);
+        for (Vec3 anchor : selectedAnchors) {
+            renderText(
+                    poseStack,
+                    camera,
+                    Component.translatable("gui.betterenchanting.tuning.title"),
+                    anchor.add(0.0D, 0.23D, 0.0D),
+                    ACTIVE_COLOR
+            );
+        }
     }
 
     private static boolean canUseOrb(RenderOrb orb) {

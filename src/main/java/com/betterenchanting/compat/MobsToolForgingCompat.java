@@ -736,11 +736,27 @@ public final class MobsToolForgingCompat {
 
         for (RoutedSlot slot : routed.slots()) {
             int limit = effectiveSlotLimit(slot);
-            if (limit > 0 && slotCanCarry(slot, enchantment) && slotEnchantmentCount(slot) < limit) {
+            if (limit > 0
+                    && slotCanCarry(slot, enchantment)
+                    && slotEnchantmentCount(slot) < limit
+                    && slotFitsPrimaryTagLimits(slot, enchantment)) {
                 return setPartEnchantment(slot.stack(), enchantment, level);
             }
         }
         return false;
+    }
+
+    private static boolean slotFitsPrimaryTagLimits(RoutedSlot slot, Holder<Enchantment> addition) {
+        Set<Holder<Enchantment>> enchantments = new LinkedHashSet<>();
+        for (Object2IntMap.Entry<Holder<Enchantment>> entry : EnchantmentHelper
+                .getEnchantmentsForCrafting(slot.stack())
+                .entrySet()) {
+            if (entry.getIntValue() > 0 && slotCanCarry(slot, entry.getKey())) {
+                enchantments.add(entry.getKey());
+            }
+        }
+        enchantments.add(addition);
+        return EnchantmentLimitRules.fitsPrimaryTagLimits(enchantments);
     }
 
     private static boolean setPartEnchantment(ItemStack stack, Holder<Enchantment> enchantment, int level) {

@@ -408,14 +408,12 @@ public final class EnchantingRoller {
             Holder<Enchantment> candidate
     ) {
         if (ModularMaterialCompat.hasRoutedParts(target)) {
-            List<EnchantmentInstance> additions = new ArrayList<>();
+            List<Holder<Enchantment>> additions = new ArrayList<>();
             for (Holder<Enchantment> selected : selectedEnchantments) {
-                additions.add(new EnchantmentInstance(selected, 1));
+                additions.add(selected);
             }
-            additions.add(new EnchantmentInstance(candidate, 1));
-            return ModularMaterialCompat.applyRoutedEnchantments(registryAccess, target, additions)
-                    .map(EnchantmentLimitRules::isWithinLimits)
-                    .orElse(false);
+            additions.add(candidate);
+            return ModularMaterialCompat.canApplyRoutedEnchantments(registryAccess, target, additions);
         }
 
         Set<Holder<Enchantment>> enchantments = new LinkedHashSet<>(existingEnchantments);

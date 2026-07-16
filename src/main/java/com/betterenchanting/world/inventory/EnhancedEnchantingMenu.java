@@ -823,15 +823,16 @@ public class EnhancedEnchantingMenu extends AbstractContainerMenu {
 
     private static boolean canApplyWithFusion(RegistryAccess registryAccess, ItemStack target, List<EnchantmentInstance> enchantments) {
         ItemStack simulatedTarget = target.copy();
+        boolean routed = ModularMaterialCompat.hasRoutedParts(target);
         Optional<ItemStack> routedResult = ModularMaterialCompat.applyRoutedEnchantments(registryAccess, simulatedTarget, enchantments);
-        if (routedResult.isEmpty() && ModularMaterialCompat.hasRoutedParts(target)) {
+        if (routedResult.isEmpty() && routed) {
             return false;
         }
         ItemStack simulatedResult = routedResult.orElseGet(() -> simulatedTarget.getItem().applyEnchantments(simulatedTarget, enchantments));
         FortunesTouchEnchantmentEvents.fuseFortunesTouch(registryAccess, simulatedResult);
         ModularMaterialCompat.reconcileRoutedEnchantments(registryAccess, simulatedResult);
         EnchantmentLevelRules.clampEnchantments(simulatedResult);
-        return EnchantmentLimitRules.isWithinLimits(simulatedResult);
+        return routed || EnchantmentLimitRules.isWithinLimits(simulatedResult);
     }
 
     private static Optional<OverlevelTarget> overlevelTarget(ItemStack target, ItemStack reagent, PoolModifierRules.ModifierPlan plan) {
