@@ -154,7 +154,12 @@ public final class AttunementPedestalBlockEntity extends BaseContainerBlockEntit
         int levelsSpent = 0;
         player.onEnchantmentPerformed(upgraded, 0);
         if (!player.hasInfiniteMaterials()) {
-            this.items.get(ESSENCE_SLOT).shrink(plan.essenceCost());
+            PedestalUpgradeRules.consumeEssence(
+                    this.level,
+                    this.worldPosition,
+                    this.items.get(ESSENCE_SLOT),
+                    plan
+            );
             if (plan.catalystRequired()) {
                 this.items.get(CATALYST_SLOT).shrink(1);
             }

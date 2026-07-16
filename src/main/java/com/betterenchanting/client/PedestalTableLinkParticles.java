@@ -6,16 +6,11 @@ import java.util.HashMap;
 import java.util.Map;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.particles.DustParticleOptions;
+import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.world.phys.Vec3;
-import org.joml.Vector3f;
 
-/** Shows which enchanting table supplies the pedestal, with pulses travelling toward the pedestal. */
+/** Shows which enchanting table supplies the pedestal with a dense stream of enchanting glyphs. */
 public final class PedestalTableLinkParticles {
-    private static final DustParticleOptions LINK_PARTICLE =
-            new DustParticleOptions(new Vector3f(0.58F, 0.38F, 1.0F), 0.62F);
-    private static final DustParticleOptions TRAIL_PARTICLE =
-            new DustParticleOptions(new Vector3f(0.35F, 0.78F, 1.0F), 0.45F);
     private static final Map<Long, Long> LAST_EMISSION_TICKS = new HashMap<>();
     private static ClientLevel cachedLevel;
 
@@ -46,12 +41,21 @@ public final class PedestalTableLinkParticles {
         Vec3 start = Vec3.atCenterOf(tablePos).add(0.0D, 0.82D, 0.0D);
         Vec3 end = Vec3.atCenterOf(pedestalPos).add(0.0D, 0.78D, 0.0D);
         double distance = start.distanceTo(end);
-        double progress = Math.floorMod(tick, 28L) / 27.0D;
-
-        spawn(level, curve(start, end, progress, distance), LINK_PARTICLE);
-        double trailProgress = progress - 0.055D;
-        if (trailProgress >= 0.0D) {
-            spawn(level, curve(start, end, trailProgress, distance), TRAIL_PARTICLE);
+        for (int index = 0; index < 4; index++) {
+            double progress = Math.floorMod(tick * 4L + index * 11L, 52L) / 51.0D;
+            Vec3 position = curve(start, end, progress, distance);
+            Vec3 next = curve(start, end, Math.min(1.0D, progress + 0.055D), distance);
+            Vec3 motion = next.subtract(position).scale(1.35D);
+            double jitter = (index - 1.5D) * 0.012D;
+            level.addParticle(
+                    ParticleTypes.ENCHANT,
+                    position.x + jitter,
+                    position.y,
+                    position.z - jitter,
+                    motion.x,
+                    motion.y,
+                    motion.z
+            );
         }
     }
 
@@ -59,9 +63,5 @@ public final class PedestalTableLinkParticles {
         Vec3 linear = start.lerp(end, progress);
         double arch = Math.sin(progress * Math.PI) * Math.min(0.85D, 0.18D + distance * 0.08D);
         return linear.add(0.0D, arch, 0.0D);
-    }
-
-    private static void spawn(ClientLevel level, Vec3 position, DustParticleOptions particle) {
-        level.addParticle(particle, position.x, position.y, position.z, 0.0D, 0.004D, 0.0D);
     }
 }

@@ -1,7 +1,6 @@
 package com.betterenchanting.client;
 
 import com.betterenchanting.network.TakeMachineDisplayPayload;
-import com.betterenchanting.world.inventory.EnhancedEnchantingMenu;
 import com.betterenchanting.world.level.block.InWorldMachineInteraction;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -9,20 +8,13 @@ import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import java.util.List;
 import java.util.Optional;
-import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.minecraft.world.item.enchantment.ItemEnchantments;
-import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.client.event.InputEvent;
 import net.neoforged.neoforge.client.event.RenderGuiEvent;
@@ -82,28 +74,17 @@ public final class MachineDisplayInteraction {
             return;
         }
         MachineDisplayState.Display display = hovered.get();
-        Component name = display.stack().getHoverName();
-        List<Component> enchantments = enchantingTargetEnchantments(display, minecraft);
+        List<Component> enchantments = FloatingItemTooltip.enchantmentLines(minecraft.level, display.stack());
         Component action = machineAction(minecraft, display);
-        GuiGraphics graphics = event.getGuiGraphics();
-        Font font = minecraft.font;
-        int contentWidth = Math.max(font.width(name), font.width(action));
-        for (Component enchantment : enchantments) {
-            contentWidth = Math.max(contentWidth, font.width(enchantment));
-        }
-        int width = Math.min(contentWidth + 20, minecraft.getWindow().getGuiScaledWidth() - 16);
-        int height = 28 + enchantments.size() * 11;
-        int x = Math.max(8, Math.min(minecraft.getWindow().getGuiScaledWidth() - width - 8,
-                minecraft.getWindow().getGuiScaledWidth() / 2 + 13));
-        int y = Math.max(8, Math.min(minecraft.getWindow().getGuiScaledHeight() - height - 8,
-                minecraft.getWindow().getGuiScaledHeight() / 2 + 12));
-        graphics.fill(x, y, x + width, y + height, 0xC0100E17);
-        graphics.renderOutline(x, y, width, height, 0xAA9FE7FF);
-        graphics.drawString(font, name, x + 8, y + 5, 0xFFF1F8FF, true);
-        for (int index = 0; index < enchantments.size(); index++) {
-            graphics.drawString(font, enchantments.get(index), x + 8, y + 16 + index * 11, 0xFFBDB1C7, false);
-        }
-        graphics.drawString(font, action, x + 8, y + 16 + enchantments.size() * 11, 0xFFAFA7B7, false);
+        FloatingItemTooltip.renderCard(
+                event.getGuiGraphics(),
+                minecraft.font,
+                display.stack(),
+                enchantments,
+                action,
+                minecraft.getWindow().getGuiScaledWidth(),
+                minecraft.getWindow().getGuiScaledHeight()
+        );
     }
 
     public static void handleInteraction(InputEvent.InteractionKeyMappingTriggered event) {
@@ -151,30 +132,6 @@ public final class MachineDisplayInteraction {
             }
         }
         return Optional.ofNullable(best);
-    }
-
-    private static List<Component> enchantingTargetEnchantments(
-            MachineDisplayState.Display display,
-            Minecraft minecraft
-    ) {
-        if (minecraft.level == null
-                || display.slot() != EnhancedEnchantingMenu.TARGET_SLOT
-                || !minecraft.level.getBlockState(display.machinePos()).is(Blocks.ENCHANTING_TABLE)) {
-            return List.of();
-        }
-        ItemEnchantments enchantments = EnchantmentHelper.getEnchantmentsForCrafting(display.stack());
-        if (enchantments.isEmpty()) {
-            return List.of(Component.translatable("gui.betterenchanting.machine.no_enchantments")
-                    .withStyle(ChatFormatting.DARK_GRAY));
-        }
-        return enchantments.entrySet().stream()
-                .map(MachineDisplayInteraction::enchantmentName)
-                .toList();
-    }
-
-    private static Component enchantmentName(Object2IntMap.Entry<net.minecraft.core.Holder<Enchantment>> entry) {
-        return Enchantment.getFullname(entry.getKey(), entry.getIntValue()).copy()
-                .withStyle(style -> style.withColor(ClientTooltipEvents.dominantAffinityColor(entry.getKey())));
     }
 
     private static Component machineAction(Minecraft minecraft, MachineDisplayState.Display display) {

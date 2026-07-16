@@ -11,14 +11,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.tags.TagKey;
 import net.minecraft.tags.EnchantmentTags;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
 import net.minecraft.util.GsonHelper;
 import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.enchantment.Enchantment;
 import org.slf4j.Logger;
 
 public final class EssenceDefinitions {
@@ -44,10 +48,26 @@ public final class EssenceDefinitions {
         return get(stack).map(EssenceDefinition::tags).orElse(List.of());
     }
 
+    public static boolean matches(Holder<Enchantment> enchantment, ItemStack stack) {
+        return get(stack).map(definition -> matches(enchantment, definition)).orElse(false);
+    }
+
+    public static Optional<EssenceDefinition> matching(Holder<Enchantment> enchantment) {
+        return definitions.values().stream()
+                .filter(definition -> matches(enchantment, definition))
+                .sorted((left, right) -> left.item().toString().compareTo(right.item().toString()))
+                .findFirst();
+    }
+
     public static String compactTagName(ResourceLocation tag) {
         String path = tag.getPath();
         int slash = path.lastIndexOf('/');
         return slash >= 0 ? path.substring(slash + 1) : path;
+    }
+
+    private static boolean matches(Holder<Enchantment> enchantment, EssenceDefinition definition) {
+        return definition.tags().stream()
+                .anyMatch(tag -> enchantment.is(TagKey.create(Registries.ENCHANTMENT, tag)));
     }
 
     private static Map<ResourceLocation, EssenceDefinition> defaults() {

@@ -22,17 +22,17 @@ import net.neoforged.neoforge.network.PacketDistributor;
 public final class RoutedEnchantmentTuningScreen extends Screen {
     private static final int PANEL_MAX_WIDTH = 430;
     private static final int PANEL_MAX_HEIGHT = 238;
-    private static final int PANEL_FILL = 0xE014101C;
-    private static final int PANEL_BORDER = 0xFF8D66B5;
-    private static final int SECTION_FILL = 0xB01D1728;
-    private static final int ROW_FILL = 0x90231B30;
-    private static final int ROW_HOVER = 0xC03B2B50;
-    private static final int ROW_SELECTED = 0xD04A2F63;
-    private static final int ACTIVE_COLOR = 0xFFFF5CFF;
-    private static final int DORMANT_COLOR = 0xFF8D94A3;
-    private static final int BONUS_COLOR = 0xFFFFD166;
-    private static final int TEXT_COLOR = 0xFFF4EEFA;
-    private static final int MUTED_COLOR = 0xFFAAA1B5;
+    private static final int PANEL_FILL = AttunementUiTheme.PANEL_FILL;
+    private static final int PANEL_BORDER = AttunementUiTheme.PANEL_BORDER;
+    private static final int SECTION_FILL = AttunementUiTheme.SECTION_FILL;
+    private static final int ROW_FILL = AttunementUiTheme.ROW_FILL;
+    private static final int ROW_HOVER = AttunementUiTheme.ROW_HOVER;
+    private static final int ROW_SELECTED = AttunementUiTheme.ROW_SELECTED;
+    private static final int ACTIVE_COLOR = AttunementUiTheme.ACTIVE_COLOR;
+    private static final int DORMANT_COLOR = AttunementUiTheme.DORMANT_COLOR;
+    private static final int BONUS_COLOR = AttunementUiTheme.BONUS_COLOR;
+    private static final int TEXT_COLOR = AttunementUiTheme.TEXT_COLOR;
+    private static final int MUTED_COLOR = AttunementUiTheme.MUTED_COLOR;
 
     private final BlockPos stationPos;
     private int selectedPartIndex = Integer.MIN_VALUE;

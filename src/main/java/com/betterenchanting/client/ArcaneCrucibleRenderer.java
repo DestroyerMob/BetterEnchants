@@ -7,23 +7,19 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import com.mojang.math.Axis;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.WeakHashMap;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderStateShard;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer;
 import net.minecraft.client.renderer.blockentity.BlockEntityRendererProvider;
-import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
-import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -42,7 +38,7 @@ public final class ArcaneCrucibleRenderer implements BlockEntityRenderer<ArcaneC
                     .setCullState(RenderStateShard.NO_CULL)
                     .createCompositeState(false)
     );
-    private static final Vec3 REACTION_CENTER = new Vec3(0.5D, 1.38D, 0.5D);
+    private static final Vec3 REACTION_CENTER = new Vec3(0.5D, 1.62D, 0.5D);
     private static final int AMETHYST_COLOR = 0xC989FF;
     private static final int ARCANE_BLUE = 0x72D8FF;
     private static final int DEFAULT_ESSENCE_COLOR = 0xB36BFF;
@@ -58,55 +54,45 @@ public final class ArcaneCrucibleRenderer implements BlockEntityRenderer<ArcaneC
             return;
         }
         double time = level.getGameTime() + partialTick;
-        AnimationState state = ANIMATIONS.computeIfAbsent(crucible, unused -> new AnimationState());
-        state.advance(crucible, time);
-        List<Display> published = new ArrayList<>();
-        ItemStack formingResult = EssenceDistillationRecipes.find(
+        ItemStack recipeResult = EssenceDistillationRecipes.find(
                         crucible.getItem(ArcaneCrucibleBlockEntity.MEDIUM_SLOT),
                         crucible.getItem(ArcaneCrucibleBlockEntity.FIRST_CATALYST_SLOT),
                         crucible.getItem(ArcaneCrucibleBlockEntity.FIRST_CATALYST_SLOT + 1)
                 )
                 .map(EssenceDistillationRecipes.Recipe::resultCopy)
                 .orElse(ItemStack.EMPTY);
+        AnimationState state = ANIMATIONS.computeIfAbsent(crucible, unused -> new AnimationState());
+        state.advance(crucible, recipeResult, time);
+        List<Display> published = new ArrayList<>();
+        ItemStack formingResult = state.formingResult();
         int reactionColor = essenceColor(formingResult);
 
-        float attraction = smoothstep(0.03F, 0.88F, state.progress);
-        float condensation = smoothstep(0.62F, 0.96F, state.progress);
-        float ingredientScale = Mth.lerp(condensation, 1.0F, 0.14F);
+        float convergence = smoothstep(0.12F, 0.92F, state.progress);
+        float collision = smoothstep(0.86F, 0.98F, state.progress);
+        float ingredientScale = 1.0F - collision;
+        double orbitAngle = 0.38D + smoothstep(0.02F, 0.92F, state.progress) * 2.20D;
+        double orbitRadius = Mth.lerp(convergence, 0.42D, 0.018D);
+        double orbitHeight = Mth.lerp(smoothstep(0.08F, 0.92F, state.progress), 1.23D, REACTION_CENTER.y);
 
-        Vec3 mediumPosition = new Vec3(
-                0.5D,
-                1.20D + attraction * 0.18D + Math.sin(time * 0.11D) * 0.035D * (1.0D - condensation * 0.8D),
-                0.5D
-        );
-        renderAnimatedStack(crucible, state.items, ArcaneCrucibleBlockEntity.MEDIUM_SLOT, poses, buffers,
-                packedLight, packedOverlay, mediumPosition,
-                wrappedDegrees(time, 0.72D + attraction * 0.38D, 0.0D),
-                0.62F * ingredientScale, 0);
+        Vec3 mediumPosition = orbitPosition(orbitAngle, orbitRadius, orbitHeight);
+        renderIngredient(crucible, state.items, ArcaneCrucibleBlockEntity.MEDIUM_SLOT, poses, buffers,
+                packedOverlay, mediumPosition, 0.42F * ingredientScale, time, 0);
         publishCurrent(crucible, ArcaneCrucibleBlockEntity.MEDIUM_SLOT, mediumPosition, 0.27D, published);
 
-        double radius = Mth.lerp(attraction, 0.49D, 0.085D);
         Vec3[] catalystPositions = new Vec3[ArcaneCrucibleBlockEntity.CATALYST_SLOT_COUNT];
         for (int index = 0; index < ArcaneCrucibleBlockEntity.CATALYST_SLOT_COUNT; index++) {
             int slot = ArcaneCrucibleBlockEntity.FIRST_CATALYST_SLOT + index;
-            double angle = state.catalystAngle + index * Math.PI;
-            Vec3 position = new Vec3(
-                    0.5D + Math.cos(angle) * radius,
-                    1.48D - attraction * 0.10D
-                            + Math.sin(time * (0.12D + attraction * 0.10D) + index * 2.4D)
-                            * 0.045D * (1.0D - condensation * 0.75D),
-                    0.5D + Math.sin(angle) * radius
-            );
+            double angle = orbitAngle + (index + 1) * Mth.TWO_PI / 3.0D;
+            Vec3 position = orbitPosition(angle, orbitRadius, orbitHeight);
             catalystPositions[index] = position;
-            renderAnimatedStack(crucible, state.items, slot, poses, buffers, packedLight, packedOverlay,
-                    position, Math.toDegrees(angle) + 90.0D,
-                    0.43F * ingredientScale, 1 + index);
+            renderIngredient(crucible, state.items, slot, poses, buffers, packedOverlay,
+                    position, 0.34F * ingredientScale, time, 1 + index);
             publishCurrent(crucible, slot, position, 0.24D, published);
         }
 
         if (state.progress > 0.002F) {
             renderReaction(
-                    crucible,
+                    state.items,
                     poses,
                     buffers.getBuffer(REACTION_GLOW),
                     catalystPositions,
@@ -117,80 +103,66 @@ public final class ArcaneCrucibleRenderer implements BlockEntityRenderer<ArcaneC
             );
         }
 
-        float productReveal = smoothstep(0.70F, 0.96F, state.progress);
-        if (!formingResult.isEmpty() && productReveal > 0.002F) {
-            Vec3 formingPosition = new Vec3(
-                    0.5D,
-                    Mth.lerp(productReveal, REACTION_CENTER.y, 1.66D),
-                    0.5D
-            );
-            float pulse = 1.0F + sinTime(time, 0.44D, 0.0D) * 0.045F;
-            renderStack(
+        float essenceReveal = smoothstep(0.88F, 0.99F, state.progress);
+        if (!formingResult.isEmpty() && essenceReveal > 0.001F) {
+            FloatingItemVisuals.render(
                     crucible,
                     formingResult,
                     poses,
                     buffers,
-                    packedLight,
                     packedOverlay,
-                    formingPosition,
-                    wrappedDegrees(time, -1.35D, 0.0D),
-                    Mth.lerp(productReveal, 0.10F, 0.58F) * pulse,
+                    REACTION_CENTER,
+                    0.48F * essenceReveal,
+                    FloatingItemVisuals.slowRotation(time, 35.0D),
                     19
             );
         }
 
-        float outputReveal = state.items.reveal(ArcaneCrucibleBlockEntity.OUTPUT_SLOT);
-        Vec3 outputPosition = new Vec3(
-                0.5D,
-                1.73D + outputReveal * 0.16D + Math.sin(time * 0.075D + 1.5D) * 0.055D,
-                0.5D
+        Vec3 outputPosition = REACTION_CENTER.add(
+                0.0D,
+                state.progress <= 0.001F ? FloatingItemVisuals.bob(time, 1.4D, 0.025D) : 0.0D,
+                0.0D
         );
-        renderAnimatedStack(crucible, state.items, ArcaneCrucibleBlockEntity.OUTPUT_SLOT, poses, buffers,
-                packedLight, packedOverlay, outputPosition,
-                wrappedDegrees(time, 0.55D, 0.0D), 0.72F, 3);
-        publishCurrent(crucible, ArcaneCrucibleBlockEntity.OUTPUT_SLOT, outputPosition, 0.31D, published);
+        if (state.progress <= 0.001F) {
+            FloatingItemVisuals.render(
+                    crucible,
+                    crucible.getItem(ArcaneCrucibleBlockEntity.OUTPUT_SLOT),
+                    poses,
+                    buffers,
+                    packedOverlay,
+                    outputPosition,
+                    0.48F,
+                    FloatingItemVisuals.slowRotation(time, 35.0D),
+                    3
+            );
+            publishCurrent(crucible, ArcaneCrucibleBlockEntity.OUTPUT_SLOT, outputPosition, 0.31D, published);
+        }
 
         MachineDisplayState.publish(level, crucible.getBlockPos(), published);
     }
 
-    private static void renderAnimatedStack(ArcaneCrucibleBlockEntity crucible, MachineItemAnimation animation,
-                                            int slot, PoseStack poses, MultiBufferSource buffers,
-                                            int packedLight, int packedOverlay, Vec3 position,
-                                            double rotation, float baseScale, int seedOffset) {
-        ItemStack stack = animation.displayed(slot);
-        float reveal = animation.reveal(slot);
-        if (stack.isEmpty() || reveal <= 0.001F) {
-            return;
-        }
-        float scale = baseScale * reveal;
-        poses.pushPose();
-        poses.translate(position.x, position.y, position.z);
-        poses.mulPose(Axis.YP.rotationDegrees((float) rotation));
-        poses.scale(scale, scale, scale);
-        ItemRenderer renderer = Minecraft.getInstance().getItemRenderer();
-        renderer.renderStatic(stack, ItemDisplayContext.FIXED, packedLight, packedOverlay, poses, buffers,
-                crucible.getLevel(), (int) crucible.getBlockPos().asLong() + seedOffset);
-        poses.popPose();
+    private static Vec3 orbitPosition(double angle, double radius, double height) {
+        return new Vec3(
+                REACTION_CENTER.x + Math.cos(angle) * radius,
+                height,
+                REACTION_CENTER.z + Math.sin(angle) * radius
+        );
     }
 
-    private static void renderStack(ArcaneCrucibleBlockEntity crucible, ItemStack stack,
-                                    PoseStack poses, MultiBufferSource buffers, int packedLight, int packedOverlay,
-                                    Vec3 position, double rotation, float scale, int seedOffset) {
-        poses.pushPose();
-        poses.translate(position.x, position.y, position.z);
-        poses.mulPose(Axis.YP.rotationDegrees((float) rotation));
-        poses.scale(scale, scale, scale);
-        Minecraft.getInstance().getItemRenderer().renderStatic(
-                stack,
-                ItemDisplayContext.FIXED,
-                packedLight,
-                packedOverlay,
+    private static void renderIngredient(ArcaneCrucibleBlockEntity crucible, MachineItemAnimation animation,
+                                         int slot, PoseStack poses, MultiBufferSource buffers, int packedOverlay,
+                                         Vec3 position, float scale, double time, int seedOffset) {
+        FloatingItemVisuals.render(
+                crucible,
+                animation.displayed(slot),
                 poses,
                 buffers,
-                crucible.getLevel(),
-                (int) crucible.getBlockPos().asLong() + seedOffset
+                packedOverlay,
+                position,
+                scale * animation.reveal(slot),
+                FloatingItemVisuals.slowRotation(time, seedOffset * 120.0D),
+                seedOffset
         );
-        poses.popPose();
     }
 
     private static void publishCurrent(ArcaneCrucibleBlockEntity crucible, int slot, Vec3 localPosition,
@@ -208,7 +180,7 @@ public final class ArcaneCrucibleRenderer implements BlockEntityRenderer<ArcaneC
         ));
     }
 
-    private static void renderReaction(ArcaneCrucibleBlockEntity crucible, PoseStack poses, VertexConsumer consumer,
+    private static void renderReaction(MachineItemAnimation animation, PoseStack poses, VertexConsumer consumer,
                                        Vec3[] catalystPositions, Vec3 mediumPosition, float progress,
                                        int reactionColor, double time) {
         PoseStack.Pose pose = poses.last();
@@ -229,7 +201,7 @@ public final class ArcaneCrucibleRenderer implements BlockEntityRenderer<ArcaneC
         );
         for (int index = 0; index < catalystPositions.length; index++) {
             int slot = ArcaneCrucibleBlockEntity.FIRST_CATALYST_SLOT + index;
-            if (crucible.getItem(slot).isEmpty()) {
+            if (animation.displayed(slot).isEmpty()) {
                 continue;
             }
             int streamColor = index == 0
@@ -256,7 +228,7 @@ public final class ArcaneCrucibleRenderer implements BlockEntityRenderer<ArcaneC
                 0.010F + mixing * 0.008F,
                 reactionColor,
                 activation * (0.22F + mixing * 0.34F),
-                wrappedRadians(time, 0.055D, 0.0D)
+                0.0F
         );
         renderRing(
                 pose,
@@ -266,7 +238,7 @@ public final class ArcaneCrucibleRenderer implements BlockEntityRenderer<ArcaneC
                 0.008F,
                 blendColor(AMETHYST_COLOR, reactionColor, mixing),
                 activation * (0.20F + mixing * 0.30F) * (1.0F - condensation * 0.55F),
-                wrappedRadians(time, -0.085D, 0.0D)
+                Mth.PI / 24.0F
         );
 
         float coreSize = (0.055F + mixing * 0.075F - condensation * 0.040F) * reactionPulse;
@@ -418,10 +390,6 @@ public final class ArcaneCrucibleRenderer implements BlockEntityRenderer<ArcaneC
         return (float) (value - Math.floor(value));
     }
 
-    private static float wrappedDegrees(double time, double speed, double phase) {
-        return (float) ((time * speed + phase) % 360.0D);
-    }
-
     private static float wrappedRadians(double time, double speed, double phase) {
         return (float) ((time * speed + phase) % (Math.PI * 2.0D));
     }
@@ -480,15 +448,86 @@ public final class ArcaneCrucibleRenderer implements BlockEntityRenderer<ArcaneC
 
     private static final class AnimationState {
         private final MachineItemAnimation items = new MachineItemAnimation(ArcaneCrucibleBlockEntity.CONTAINER_SIZE);
+        private ItemStack formingResult = ItemStack.EMPTY;
         private float progress;
-        private double catalystAngle;
+        private float predictedProgress;
+        private double completionHoldTicks;
+        private boolean completing;
+        private int lastOutputCount;
+        private int lastSyncedProgress = -1;
 
-        private void advance(ArcaneCrucibleBlockEntity crucible, double time) {
+        private void advance(ArcaneCrucibleBlockEntity crucible, ItemStack recipeResult, double time) {
             double delta = this.items.advance(crucible, time);
-            float blend = MachineItemAnimation.smoothing(delta, 0.34D);
-            this.progress = Mth.lerp(blend, this.progress, crucible.progressFraction());
-            this.catalystAngle = (this.catalystAngle
-                    + delta * (0.032D + this.progress * this.progress * 0.055D)) % (Math.PI * 2.0D);
+            int syncedProgress = crucible.progress();
+            int outputCount = crucible.getItem(ArcaneCrucibleBlockEntity.OUTPUT_SLOT).getCount();
+            boolean outputIncreased = outputCount > this.lastOutputCount;
+            if (!recipeResult.isEmpty()) {
+                this.formingResult = recipeResult.copy();
+            }
+
+            if (this.lastSyncedProgress < 0) {
+                this.predictedProgress = crucible.progressFraction();
+                this.progress = this.predictedProgress;
+            } else if (syncedProgress == 0 && this.lastSyncedProgress > 0) {
+                if (outputIncreased
+                        && this.lastSyncedProgress >= ArcaneCrucibleBlockEntity.DISTILLATION_TIME - 8) {
+                    this.predictedProgress = 1.0F;
+                    this.progress = 1.0F;
+                    this.completionHoldTicks = 2.5D;
+                    this.completing = true;
+                    this.items.hide(ArcaneCrucibleBlockEntity.MEDIUM_SLOT);
+                    for (int index = 0; index < ArcaneCrucibleBlockEntity.CATALYST_SLOT_COUNT; index++) {
+                        this.items.hide(ArcaneCrucibleBlockEntity.FIRST_CATALYST_SLOT + index);
+                    }
+                } else {
+                    this.predictedProgress = 0.0F;
+                    this.completionHoldTicks = 0.0D;
+                }
+            } else if (syncedProgress > 0) {
+                float synchronizedFraction = crucible.progressFraction();
+                if (synchronizedFraction + 0.08F < this.predictedProgress) {
+                    this.predictedProgress = synchronizedFraction;
+                } else {
+                    this.predictedProgress = Math.max(this.predictedProgress, synchronizedFraction);
+                }
+            }
+
+            if (this.completing) {
+                this.completionHoldTicks = Math.max(0.0D, this.completionHoldTicks - delta);
+                this.predictedProgress = 1.0F;
+                this.progress = 1.0F;
+                if (this.completionHoldTicks <= 0.0D) {
+                    this.completing = false;
+                    this.predictedProgress = 0.0F;
+                    this.progress = 0.0F;
+                    this.formingResult = ItemStack.EMPTY;
+                }
+                this.lastOutputCount = outputCount;
+                this.lastSyncedProgress = syncedProgress;
+                return;
+            }
+
+            if (syncedProgress > 0) {
+                this.predictedProgress = Math.min(
+                        1.0F,
+                        this.predictedProgress + (float) (delta / ArcaneCrucibleBlockEntity.DISTILLATION_TIME)
+                );
+            } else {
+                this.predictedProgress = 0.0F;
+            }
+
+            float blend = MachineItemAnimation.smoothing(delta, syncedProgress > 0 ? 1.10D : 0.82D);
+            this.progress = Mth.lerp(blend, this.progress, this.predictedProgress);
+            if (syncedProgress == 0 && this.completionHoldTicks <= 0.0D && this.progress < 0.01F) {
+                this.progress = 0.0F;
+                this.formingResult = ItemStack.EMPTY;
+            }
+            this.lastOutputCount = outputCount;
+            this.lastSyncedProgress = syncedProgress;
+        }
+
+        private ItemStack formingResult() {
+            return this.formingResult;
         }
     }
 }

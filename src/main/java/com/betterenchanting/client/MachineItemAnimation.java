@@ -52,6 +52,11 @@ final class MachineItemAnimation {
         return smoothStep(this.reveal[slot]);
     }
 
+    void hide(int slot) {
+        this.displayed[slot] = ItemStack.EMPTY;
+        this.reveal[slot] = 0.0F;
+    }
+
     static float smoothing(double deltaTicks, double responsePerTick) {
         return (float) (1.0D - Math.exp(-Math.max(0.0D, deltaTicks) * responsePerTick));
     }

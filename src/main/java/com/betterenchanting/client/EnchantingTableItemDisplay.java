@@ -4,16 +4,12 @@ import com.betterenchanting.config.BetterEnchantingConfig;
 import com.betterenchanting.world.inventory.EnhancedEnchantingMenu;
 import com.betterenchanting.world.level.block.EnchantingTableStorage;
 import com.mojang.blaze3d.vertex.PoseStack;
-import com.mojang.math.Axis;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.util.Mth;
 import net.minecraft.world.SimpleContainer;
-import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.entity.EnchantingTableBlockEntity;
 import net.minecraft.world.phys.Vec3;
@@ -44,7 +40,7 @@ public final class EnchantingTableItemDisplay {
                 inventory.getItem(EnhancedEnchantingMenu.REAGENT_SLOT)
         );
 
-        float targetY = 1.30F + Mth.sin(time * 0.08F) * 0.04F;
+        float targetY = (float) (1.30D + FloatingItemVisuals.bob(time, 0.0D, 0.04D));
         renderStack(
                 table,
                 target,
@@ -55,7 +51,7 @@ public final class EnchantingTableItemDisplay {
                 0.5F,
                 targetY,
                 0.5F,
-                time * 1.25F,
+                FloatingItemVisuals.slowRotation(time, 0.0D),
                 0.72F,
                 0
         );
@@ -63,7 +59,7 @@ public final class EnchantingTableItemDisplay {
                 new Vec3(0.5D, targetY, 0.5D), 0.34D, displays);
 
         ItemStack reagent = inventory.getItem(EnhancedEnchantingMenu.REAGENT_SLOT);
-        float reagentY = 1.89F + Mth.sin(time * 0.1F + 1.2F) * 0.035F;
+        float reagentY = (float) (1.89D + FloatingItemVisuals.bob(time, 1.2D, 0.035D));
         renderStack(
                 table,
                 reagent,
@@ -74,7 +70,7 @@ public final class EnchantingTableItemDisplay {
                 0.5F,
                 reagentY,
                 0.5F,
-                -time * 1.8F,
+                FloatingItemVisuals.slowRotation(time, 120.0D),
                 0.50F,
                 1
         );
@@ -82,10 +78,10 @@ public final class EnchantingTableItemDisplay {
                 new Vec3(0.5D, reagentY, 0.5D), 0.27D, displays);
 
         for (int index = 0; index < EnhancedEnchantingMenu.MODIFIER_SLOT_COUNT; index++) {
-            float angle = time * 0.035F + index * ((float) Math.PI * 2.0F / EnhancedEnchantingMenu.MODIFIER_SLOT_COUNT);
+            float angle = time * 0.012F + index * ((float) Math.PI * 2.0F / EnhancedEnchantingMenu.MODIFIER_SLOT_COUNT);
             float radius = 0.62F;
             float x = 0.5F + Mth.cos(angle) * radius;
-            float y = 1.31F + Mth.sin(time * 0.11F + index * 1.7F) * 0.065F;
+            float y = (float) (1.31D + FloatingItemVisuals.bob(time, index * 1.7D, 0.05D));
             float z = 0.5F + Mth.sin(angle) * radius;
             ItemStack modifier = inventory.getItem(EnhancedEnchantingMenu.FIRST_MODIFIER_SLOT + index);
             renderStack(
@@ -98,7 +94,7 @@ public final class EnchantingTableItemDisplay {
                     x,
                     y,
                     z,
-                    time * 2.8F + index * 120.0F,
+                    FloatingItemVisuals.slowRotation(time, index * 120.0D),
                     0.42F,
                     2 + index
             );
@@ -140,24 +136,16 @@ public final class EnchantingTableItemDisplay {
             float scale,
             int seedOffset
     ) {
-        if (stack.isEmpty()) {
-            return;
-        }
-        poseStack.pushPose();
-        poseStack.translate(x, y, z);
-        poseStack.mulPose(Axis.YP.rotationDegrees(rotationDegrees));
-        poseStack.scale(scale, scale, scale);
-        ItemRenderer renderer = Minecraft.getInstance().getItemRenderer();
-        renderer.renderStatic(
+        FloatingItemVisuals.render(
+                table,
                 stack,
-                ItemDisplayContext.GROUND,
-                packedLight,
-                packedOverlay,
                 poseStack,
                 buffers,
-                table.getLevel(),
-                (int) table.getBlockPos().asLong() + seedOffset
+                packedOverlay,
+                new Vec3(x, y, z),
+                scale,
+                rotationDegrees,
+                seedOffset
         );
-        poseStack.popPose();
     }
 }
