@@ -47,6 +47,12 @@ public final class RoutedEnchantmentTuningScreen extends Screen {
     }
 
     @Override
+    protected void init() {
+        super.init();
+        rebuildFocusControls(false);
+    }
+
+    @Override
     public void tick() {
         super.tick();
         if (this.actionCooldown > 0) {
@@ -71,6 +77,7 @@ public final class RoutedEnchantmentTuningScreen extends Screen {
                     this.height / 2,
                     MUTED_COLOR
             );
+            super.render(graphics, mouseX, mouseY, partialTick);
             return;
         }
 
@@ -123,6 +130,7 @@ public final class RoutedEnchantmentTuningScreen extends Screen {
                 panelWidth - 16
         );
         graphics.drawCenteredString(this.font, footer, this.width / 2, footerTop + 7, MUTED_COLOR);
+        super.render(graphics, mouseX, mouseY, partialTick);
     }
 
     private void renderPartChoices(
@@ -264,6 +272,7 @@ public final class RoutedEnchantmentTuningScreen extends Screen {
             for (PartButton part : this.partButtons) {
                 if (part.contains(mouseX, mouseY)) {
                     this.selectedPartIndex = part.partIndex();
+                    rebuildFocusControls(true);
                     return true;
                 }
             }
@@ -286,6 +295,96 @@ public final class RoutedEnchantmentTuningScreen extends Screen {
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private void rebuildFocusControls(boolean focusEnchantments) {
+        this.clearWidgets();
+        Optional<PreviewState> current = currentPreview();
+        if (current.isEmpty()) {
+            return;
+        }
+        List<PartChoice> choices = partChoices(current.get().preview(), current.get().breakdown());
+        if (choices.isEmpty()) {
+            return;
+        }
+        ensureSelection(choices);
+
+        int panelWidth = Math.min(PANEL_MAX_WIDTH, this.width - 20);
+        int panelHeight = Math.min(PANEL_MAX_HEIGHT, this.height - 20);
+        int left = (this.width - panelWidth) / 2;
+        int top = (this.height - panelHeight) / 2;
+        int right = left + panelWidth;
+        int bottom = top + panelHeight;
+        int headerBottom = top + 42;
+        int footerTop = bottom - 22;
+        int partWidth = Math.min(136, Math.max(104, panelWidth / 3));
+        int dividerX = left + partWidth;
+        int partX = left + 7;
+        int partY = headerBottom + 7;
+        int partHeight = footerTop - headerBottom - 14;
+        int partRowHeight = Math.min(34, Math.max(22, partHeight / Math.max(1, choices.size())));
+
+        ControllerFocusButton firstPart = null;
+        for (int index = 0; index < choices.size(); index++) {
+            PartChoice choice = choices.get(index);
+            int rowY = partY + index * partRowHeight;
+            if (rowY + partRowHeight > partY + partHeight) {
+                break;
+            }
+            ControllerFocusButton button = this.addRenderableWidget(new ControllerFocusButton(
+                    partX, rowY, partWidth - 14, partRowHeight - 2, choice.name(), () -> {
+                        this.selectedPartIndex = choice.partIndex();
+                        rebuildFocusControls(true);
+                    }
+            ));
+            if (firstPart == null) {
+                firstPart = button;
+            }
+        }
+
+        PartChoice selected = selectedChoice(choices);
+        int enchantX = dividerX + 14;
+        int enchantY = headerBottom + 41;
+        int enchantWidth = right - dividerX - 26;
+        int enchantHeight = footerTop - headerBottom - 52;
+        int enchantRowHeight = Math.min(31, Math.max(22,
+                enchantHeight / Math.max(1, selected.enchantments().size())));
+        ControllerFocusButton firstEnchantment = null;
+        for (int index = 0; index < selected.enchantments().size(); index++) {
+            RoutedEnchantmentState enchantment = selected.enchantments().get(index);
+            int rowY = enchantY + index * enchantRowHeight;
+            if (rowY + enchantRowHeight > footerTop - 2) {
+                break;
+            }
+            ControllerFocusButton button = this.addRenderableWidget(new ControllerFocusButton(
+                    enchantX, rowY, enchantWidth, enchantRowHeight - 2,
+                    net.minecraft.world.item.enchantment.Enchantment.getFullname(
+                            enchantment.enchantment(),
+                            enchantment.effectiveLevel() > 0 ? enchantment.effectiveLevel() : enchantment.level()),
+                    () -> activateEnchantment(selected.partIndex(), enchantment.enchantmentId())
+            ));
+            button.active = canUse(enchantment);
+            if (firstEnchantment == null && button.active) {
+                firstEnchantment = button;
+            }
+        }
+
+        ControllerFocusButton initial = focusEnchantments && firstEnchantment != null
+                ? firstEnchantment : firstPart;
+        if (initial != null) {
+            this.setInitialFocus(initial);
+        }
+    }
+
+    private void activateEnchantment(int partIndex, ResourceLocation enchantmentId) {
+        if (this.actionCooldown > 0) {
+            return;
+        }
+        Vec3 effectPosition = Vec3.atCenterOf(this.stationPos).add(0.0D, 1.0D, 0.0D);
+        PacketDistributor.sendToServer(new PromoteRoutedEnchantmentPayload(
+                this.stationPos, partIndex, enchantmentId,
+                effectPosition.x, effectPosition.y, effectPosition.z));
+        this.actionCooldown = 5;
     }
 
     @Override

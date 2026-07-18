@@ -47,6 +47,12 @@ public final class PedestalUpgradeScreen extends Screen {
     }
 
     @Override
+    protected void init() {
+        super.init();
+        rebuildFocusControls(false);
+    }
+
+    @Override
     public void tick() {
         super.tick();
         if (this.actionCooldown > 0) {
@@ -68,6 +74,7 @@ public final class PedestalUpgradeScreen extends Screen {
             graphics.drawCenteredString(this.font,
                     Component.translatable("gui.betterenchanting.pedestal.screen.unavailable"),
                     this.width / 2, this.height / 2, AttunementUiTheme.MUTED_COLOR);
+            super.render(graphics, mouseX, mouseY, partialTick);
             return;
         }
 
@@ -77,6 +84,7 @@ public final class PedestalUpgradeScreen extends Screen {
             graphics.drawCenteredString(this.font,
                     Component.translatable("gui.betterenchanting.pedestal.screen.no_enchantments"),
                     this.width / 2, this.height / 2, AttunementUiTheme.MUTED_COLOR);
+            super.render(graphics, mouseX, mouseY, partialTick);
             return;
         }
         ensureSelection(pedestal, choices);
@@ -111,6 +119,7 @@ public final class PedestalUpgradeScreen extends Screen {
                 right - dividerX - 16, detailsTop - headerBottom - 14, mouseX, mouseY);
         renderDetails(graphics, pedestal, this.detailChoice, left + 8, detailsTop + 7,
                 panelWidth - 16, DETAILS_HEIGHT - 14);
+        super.render(graphics, mouseX, mouseY, partialTick);
     }
 
     private void renderParts(GuiGraphics graphics, List<PartChoice> choices, int x, int y,
@@ -245,6 +254,7 @@ public final class PedestalUpgradeScreen extends Screen {
             for (PartButton part : this.partButtons) {
                 if (part.contains(mouseX, mouseY)) {
                     this.selectedPartIndex = part.partIndex();
+                    rebuildFocusControls(true);
                     return true;
                 }
             }
@@ -261,6 +271,96 @@ public final class PedestalUpgradeScreen extends Screen {
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private void rebuildFocusControls(boolean focusEnchantments) {
+        this.clearWidgets();
+        Optional<AttunementPedestalBlockEntity> current = currentPedestal();
+        if (current.isEmpty()) {
+            return;
+        }
+        AttunementPedestalBlockEntity pedestal = current.get();
+        List<PartChoice> choices = partChoices(pedestal);
+        if (choices.isEmpty()) {
+            return;
+        }
+        ensureSelection(pedestal, choices);
+
+        int panelWidth = Math.min(PANEL_MAX_WIDTH, this.width - 20);
+        int panelHeight = Math.min(PANEL_MAX_HEIGHT, this.height - 20);
+        int left = (this.width - panelWidth) / 2;
+        int top = (this.height - panelHeight) / 2;
+        int right = left + panelWidth;
+        int bottom = top + panelHeight;
+        int headerBottom = top + HEADER_HEIGHT;
+        int detailsTop = bottom - DETAILS_HEIGHT;
+        int partWidth = Math.min(142, Math.max(108, panelWidth / 3));
+        int dividerX = left + partWidth;
+        int partX = left + 7;
+        int partY = headerBottom + 7;
+        int partHeight = detailsTop - headerBottom - 14;
+        int partRowHeight = Math.min(34, Math.max(24, partHeight / Math.max(1, choices.size())));
+
+        ControllerFocusButton firstPart = null;
+        for (int index = 0; index < choices.size(); index++) {
+            PartChoice choice = choices.get(index);
+            int rowY = partY + index * partRowHeight;
+            if (rowY + partRowHeight > partY + partHeight) {
+                break;
+            }
+            ControllerFocusButton button = this.addRenderableWidget(new ControllerFocusButton(
+                    partX, rowY, partWidth - 14, partRowHeight - 2, choice.name(), () -> {
+                        this.selectedPartIndex = choice.partIndex();
+                        rebuildFocusControls(true);
+                    }
+            ));
+            if (firstPart == null) {
+                firstPart = button;
+            }
+        }
+
+        PartChoice selected = selectedChoice(choices);
+        int enchantX = dividerX + 14;
+        int enchantY = headerBottom + 29;
+        int enchantWidth = right - dividerX - 26;
+        int enchantHeight = detailsTop - headerBottom - 33;
+        int enchantRowHeight = Math.min(34, Math.max(24,
+                enchantHeight / Math.max(1, selected.enchantments().size())));
+        ControllerFocusButton firstEnchantment = null;
+        for (int index = 0; index < selected.enchantments().size(); index++) {
+            EnchantmentChoice choice = selected.enchantments().get(index);
+            int rowY = enchantY + index * enchantRowHeight;
+            if (rowY + enchantRowHeight > detailsTop - 2) {
+                break;
+            }
+            UpgradePlan plan = pedestal.previewPlan(selected.partIndex(), choice.id());
+            boolean alreadySelected = choice.id().equals(pedestal.selectedEnchantment())
+                    && selected.partIndex() == pedestal.selectedPartIndex();
+            ControllerFocusButton button = this.addRenderableWidget(new ControllerFocusButton(
+                    enchantX, rowY, enchantWidth, enchantRowHeight - 2,
+                    Enchantment.getFullname(choice.enchantment(), choice.level()),
+                    () -> activateEnchantment(selected.partIndex(), choice.id())
+            ));
+            button.active = !alreadySelected || plan.canUpgrade();
+            if (firstEnchantment == null && button.active) {
+                firstEnchantment = button;
+            }
+        }
+
+        ControllerFocusButton initial = focusEnchantments && firstEnchantment != null
+                ? firstEnchantment : firstPart;
+        if (initial != null) {
+            this.setInitialFocus(initial);
+        }
+    }
+
+    private void activateEnchantment(int partIndex, ResourceLocation enchantmentId) {
+        if (this.actionCooldown > 0) {
+            return;
+        }
+        PacketDistributor.sendToServer(new SelectPedestalUpgradePayload(
+                this.pedestalPos, partIndex, enchantmentId));
+        this.actionCooldown = 4;
     }
 
     @Override

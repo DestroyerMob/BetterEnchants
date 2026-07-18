@@ -109,6 +109,8 @@
   "jei.betterenchanting.essence_acquisition.purification": "Source: curing a zombie villager (%s).",
   "key.categories.betterenchanting": "Better Enchanting",
   "key.betterenchanting.toggle_vein_miner_mode": "Cycle Vein Miner Mode",
+  "key.betterenchanting.activate_flash_step": "Activate Flash Step",
+  "gui.betterenchanting.controller.offer": "Enchantment offer %s",
   "message.betterenchanting.grindstone_disenchanted": "Removed enchantments from %s",
   "message.betterenchanting.vein_miner_mode": "Vein Miner: %s",
   "vein_miner_mode.betterenchanting.connected_matching": "Connected Matching Ores",

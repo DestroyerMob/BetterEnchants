@@ -95,6 +95,19 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
     protected void init() {
         super.init();
         this.bookModel = new BookModel(this.minecraft.getEntityModels().bakeLayer(ModelLayers.BOOK));
+        int x = (this.width - this.imageWidth) / 2;
+        int y = (this.height - this.imageHeight) / 2;
+        for (int option = 0; option < 3; option++) {
+            int selectedOption = option;
+            this.addRenderableWidget(new ControllerFocusButton(
+                    x + 60,
+                    y + 14 + 19 * option,
+                    108,
+                    19,
+                    Component.translatable("gui.betterenchanting.controller.offer", option + 1),
+                    () -> this.activateOption(selectedOption)
+            ));
+        }
     }
 
     @Override
@@ -116,15 +129,21 @@ public class EnhancedEnchantingScreen extends AbstractContainerScreen<EnhancedEn
                     && optionY >= 0.0D
                     && optionX < 108.0D
                     && optionY < 19.0D
-                    && this.minecraft != null
-                    && this.minecraft.player != null
-                    && this.menu.clickMenuButton(this.minecraft.player, option)) {
-                this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, option);
+                    && this.activateOption(option)) {
                 return true;
             }
         }
 
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    private boolean activateOption(int option) {
+        if (this.minecraft == null || this.minecraft.player == null || this.minecraft.gameMode == null
+                || !this.menu.clickMenuButton(this.minecraft.player, option)) {
+            return false;
+        }
+        this.minecraft.gameMode.handleInventoryButtonClick(this.menu.containerId, option);
+        return true;
     }
 
     @Override
